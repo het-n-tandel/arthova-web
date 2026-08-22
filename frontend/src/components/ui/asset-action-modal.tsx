@@ -145,7 +145,7 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    if (query.length > 2 && (assetType === 'stock' || assetType === 'mutual_fund')) {
+    if (query.trim().length >= 2 && (assetType === 'stock' || assetType === 'mutual_fund')) {
       setIsSearching(true);
       setShowDropdown(true);
       
@@ -163,7 +163,7 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
         } finally {
           setIsSearching(false);
         }
-      }, 800);
+      }, 300);
       
       setSearchTimeout(timeoutId);
     } else {
@@ -179,6 +179,17 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
     
     if (asset.price) {
       setPricePerUnit(asset.price.toString());
+    } else if (assetType === 'mutual_fund') {
+      try {
+        const res = await fetch(`https://api.mfapi.in/mf/${asset.symbol}`);
+        if (res.ok) {
+          const mfData = await res.json();
+          const latestNav = mfData.data?.[0]?.nav;
+          if (latestNav) setPricePerUnit(latestNav);
+        }
+      } catch (e) {
+        console.error("MF NAV fetch error:", e);
+      }
     } else if (!isManualAsset) {
       try {
         const res = await fetch(`http://localhost:8080/api/public/market/quote?symbol=${asset.symbol}`);
