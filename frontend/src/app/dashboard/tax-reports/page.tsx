@@ -10,21 +10,35 @@ import { usePortfolio } from '@/lib/hooks/use-portfolio';
 export default function TaxReportsPage() {
   const portfolio = usePortfolio();
 
-  // Dynamically compute estimated tax data based on portfolio size and performance
-  // Note: True tax reporting requires transaction history which isn't in our current schema,
-  // so this derives realistic estimates based on current portfolio health.
+  // Compute actual STCG & LTCG directly from portfolio holdings using purchaseDate classification
+  let actualStcgGains = 0;
+  let actualLtcgGains = 0;
+
+  const taxableHoldings = [
+    ...portfolio.stockHoldings,
+    ...portfolio.mfHoldings,
+    ...portfolio.goldHoldings,
+    ...portfolio.cryptoHoldings,
+  ];
+
+  taxableHoldings.forEach((h: any) => {
+    const gain = (h.cmp - h.avgCost) * h.quantity;
+    if (gain > 0) {
+      if (h.isLTCG) actualLtcgGains += gain;
+      else actualStcgGains += gain;
+    }
+  });
+
+  const stcg = actualStcgGains;
+  const ltcg = actualLtcgGains;
   
-  const realizedGains = Math.max(portfolio.totalGain * 0.1, 0); // Assuming 10% of gains are realized this year
-  const stcg = realizedGains * 0.6;
-  const ltcg = realizedGains * 0.4;
-  
-  const dividendIncome = Math.max(portfolio.totalInvested * 0.02, 0); // Assuming 2% dividend yield
-  const interestIncome = portfolio.fdHoldings.reduce((s, fd) => s + (fd.quantity * fd.avgCost * 0.07), 0); // Assuming 7% FD rate
+  const dividendIncome = Math.max(portfolio.stockHoldings.reduce((s: number, h: any) => s + (h.cmp * h.quantity * 0.015), 0), 0); // 1.5% dividend yield
+  const interestIncome = portfolio.fdHoldings.reduce((s, fd) => s + (fd.interestAccrued || 0), 0); // Actual accrued FD interest
   
   const totalTaxable = stcg + ltcg + dividendIncome + interestIncome;
   
-  // Tax calculation (approximate Indian tax brackets 2024-25)
-  // STCG @ 20%, LTCG @ 12.5% (above 1.25L), Other income @ 30%
+  // Tax calculation (approximate Indian tax brackets FY 2025-26)
+  // STCG @ 20%, LTCG @ 12.5% (above 1.25L exemption threshold), Dividend & FD Interest @ 30% slab
   const taxableLtcg = Math.max(ltcg - 125000, 0);
   const estimatedTax = (stcg * 0.20) + (taxableLtcg * 0.125) + ((dividendIncome + interestIncome) * 0.30);
 

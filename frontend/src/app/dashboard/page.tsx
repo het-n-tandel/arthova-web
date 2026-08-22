@@ -40,8 +40,15 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' as const } },
 };
 
-const assetIcons = [TrendingUp, PiggyBank, Coins, Landmark, Building2];
-const assetColors = ['#C9A227', '#3FA88A', '#7C8AD4', '#D9705C', '#E0B34C'];
+const assetIconMap: Record<string, any> = {
+  'Stocks': TrendingUp,
+  'Mutual Funds': PiggyBank,
+  'Gold & Silver': Coins,
+  'Fixed Deposits': Landmark,
+  'Bonds': Landmark,
+};
+
+const assetColors = ['#C9A227', '#3FA88A', '#7C8AD4', '#D9705C', '#E0B34C', '#8A5CF5', '#38BDF8', '#F43F5E'];
 
 export default function DashboardPage() {
   const portfolio = usePortfolio();
@@ -53,7 +60,7 @@ export default function DashboardPage() {
     name: a.name,
     value: a.allocation,
     current: a.current,
-    color: assetColors[i],
+    color: assetColors[i % assetColors.length],
   }));
 
   const favoriteStocks = portfolio.stockHoldings.filter((s: any) => favorites.has(s.symbol));
@@ -88,17 +95,20 @@ export default function DashboardPage() {
         >
           <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
             <div className="flex-1">
-              <span className="text-eyebrow mb-2 block">Total Portfolio Value</span>
+              <span className="text-eyebrow mb-2 block">Net Worth</span>
               <div className="flex items-end gap-4 mb-2">
                 <span
                   className="text-[42px] font-medium text-text-primary leading-none"
                   style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}
                 >
-                  {formatINRCompact(portfolio.totalCurrent)}
+                  {formatINRCompact(portfolio.netWorth)}
                 </span>
                 <DeltaBadge value={portfolio.totalGainPercent} size="md" />
               </div>
               <div className="flex items-center gap-4 text-[13px]">
+                <span className="text-text-secondary">
+                  Assets: <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINRCompact(portfolio.totalCurrent)}</span>
+                </span>
                 <span className="text-text-secondary">
                   Invested: <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINRCompact(portfolio.totalInvested)}</span>
                 </span>
@@ -121,9 +131,9 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Summary cards grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {portfolio.assets.map((asset, i) => {
-          const Icon = assetIcons[i];
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {portfolio.assets.map((asset) => {
+          const Icon = assetIconMap[asset.name] || TrendingUp;
           return (
             <SummaryCard
               key={asset.name}

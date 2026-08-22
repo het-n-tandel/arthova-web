@@ -338,6 +338,39 @@ export function usePortfolio(): PortfolioSummary {
         };
       });
 
+    // Bonds: computes accrued coupon interest into cmp and total value
+    const mapBonds = () => holdings
+      .filter((h: any) => h.assetType === 'bond' && parseFloat(h.quantity) > 0)
+      .map((h: any) => {
+        const meta       = parseMeta(h.metadata);
+        const qtyN       = parseFloat(h.quantity);
+        const avgCostN   = parseFloat(h.avgCost);
+        const purchaseTs = new Date(h.purchaseDate || h.createdAt || Date.now()).getTime();
+        const yearsElapsedN = Math.max(0, (Date.now() - purchaseTs) / (1000 * 60 * 60 * 24 * 365));
+
+        const couponRate   = parseFloat(meta.couponRate || '0') / 100;
+        const faceValue    = qtyN * avgCostN;
+        const couponEarned = faceValue * couponRate * yearsElapsedN;
+        const totalValue   = faceValue + couponEarned;
+        const cmp          = avgCostN > 0 ? (totalValue / qtyN) : 1;
+
+        const live = livePrices.get(h.symbol);
+        const finalCmp = live?.price ?? cmp;
+
+        return {
+          ...h,
+          metadata: meta,
+          avgCost:  avgCostN,
+          quantity: qtyN,
+          cmp:      finalCmp,
+          computedValue: totalValue,
+          couponEarned,
+          dayChange:        live?.change        ?? 0,
+          dayChangePercent: live?.changePercent ?? 0,
+          ...enrichDates(h, finalCmp),
+        };
+      });
+
     return {
       isLoading,
       totalInvested,
@@ -353,7 +386,7 @@ export function usePortfolio(): PortfolioSummary {
       mfHoldings:       mapLive('mutual_fund'),
       goldHoldings:     mapMetal('gold').concat(mapMetal('silver')),
       cryptoHoldings:   mapLive('crypto'),
-      bondHoldings:     mapLive('bond'),
+      bondHoldings:     mapBonds(),
       fdHoldings:       mapFixed('fd'),
       propHoldings:     mapFixed('property'),
       cashHoldings:     mapCashLiability('cash'),
