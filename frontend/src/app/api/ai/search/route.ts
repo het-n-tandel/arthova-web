@@ -57,28 +57,30 @@ export async function GET(req: Request) {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          // Take top 6 matching schemes
-          const topSchemes = data.slice(0, 6);
+          // Return up to 25 matching schemes
+          const topSchemes = data.slice(0, 25);
 
-          // Fetch current NAV price for each scheme in parallel
+          // Enrich top 8 schemes with NAV price in parallel for instant display
           const enriched = await Promise.all(
-            topSchemes.map(async (scheme: any) => {
-              try {
-                const navRes = await fetch(`https://api.mfapi.in/mf/${scheme.schemeCode}`, {
-                  next: { revalidate: 3600 }
-                });
-                if (navRes.ok) {
-                  const navData = await navRes.json();
-                  const latest = navData.data?.[0];
-                  const price = latest ? parseFloat(latest.nav) : undefined;
-                  return {
-                    symbol: String(scheme.schemeCode),
-                    name: scheme.schemeName,
-                    price: price
-                  };
+            topSchemes.map(async (scheme: any, idx: number) => {
+              if (idx < 8) {
+                try {
+                  const navRes = await fetch(`https://api.mfapi.in/mf/${scheme.schemeCode}`, {
+                    next: { revalidate: 3600 }
+                  });
+                  if (navRes.ok) {
+                    const navData = await navRes.json();
+                    const latest = navData.data?.[0];
+                    const price = latest ? parseFloat(latest.nav) : undefined;
+                    return {
+                      symbol: String(scheme.schemeCode),
+                      name: scheme.schemeName,
+                      price: price
+                    };
+                  }
+                } catch (e) {
+                  // Ignore NAV fetch error
                 }
-              } catch (e) {
-                // Ignore individual NAV fetch error
               }
               return {
                 symbol: String(scheme.schemeCode),
@@ -114,7 +116,7 @@ export async function GET(req: Request) {
         if (item.exchange === 'NSI' || item.exchange === 'BSE') return true;
         return false;
       })
-      .slice(0, 7)
+      .slice(0, 15)
       .map((item: any) => ({
         symbol: item.symbol,
         name: item.shortname || item.longname || item.symbol
@@ -124,7 +126,7 @@ export async function GET(req: Request) {
     if (parsed.length === 0) {
       parsed = searchRes.quotes
         .filter((item: any) => item.symbol && item.quoteType === 'EQUITY')
-        .slice(0, 7)
+        .slice(0, 15)
         .map((item: any) => ({
           symbol: item.symbol,
           name: item.shortname || item.longname || item.symbol

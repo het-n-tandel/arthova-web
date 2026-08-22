@@ -283,16 +283,27 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
           {isSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint animate-spin" />}
 
           {showDropdown && searchResults.length > 0 && (
-            <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-default rounded-[8px] overflow-hidden max-h-60 overflow-y-auto shadow-lg">
+            <div className="absolute z-20 w-full mt-1 bg-bg-surface border border-border-default rounded-[8px] overflow-hidden max-h-80 overflow-y-auto shadow-2xl custom-scrollbar">
+              <div className="px-3 py-1.5 bg-bg-surface-2 text-[10px] text-text-faint font-mono border-b border-border-default sticky top-0 flex justify-between items-center z-10">
+                <span>{searchResults.length} {assetType === 'mutual_fund' ? 'FUNDS FOUND' : 'STOCKS FOUND'}</span>
+                <span>SELECT TO TRADE</span>
+              </div>
               {searchResults.map((res, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => selectAssetForTrade(res)}
-                  className="w-full text-left px-4 py-2 hover:bg-bg-surface-2 transition-colors border-b border-border-default last:border-b-0"
+                  className="w-full text-left px-4 py-2.5 hover:bg-bg-surface-2 transition-colors border-b border-border-default last:border-b-0 flex justify-between items-center group"
                 >
-                  <div className="font-medium text-[13px] text-text-primary">{res.symbol}</div>
-                  <div className="text-[11px] text-text-secondary">{res.name}</div>
+                  <div className="min-w-0 flex-1 pr-2">
+                    <div className="font-medium text-[13px] text-text-primary truncate" title={res.name}>{res.name}</div>
+                    <div className="text-[11px] text-text-faint font-mono">{res.symbol}</div>
+                  </div>
+                  {res.price ? (
+                    <span className="text-[12px] font-mono text-text-secondary whitespace-nowrap">₹{res.price.toFixed(2)}</span>
+                  ) : (
+                    <span className="text-[11px] text-accent-brass group-hover:underline font-medium whitespace-nowrap">Select →</span>
+                  )}
                 </button>
               ))}
             </div>
