@@ -16,6 +16,7 @@ interface ManualAsset {
   quantity: number;
   avgCost: number;
   cmp: number;
+  computedValue?: number;
   assetType: string;
   metadata: any;
   createdAt: string;
@@ -78,11 +79,14 @@ export function ManualAssetTable({ data, className, type }: ManualAssetTableProp
       columnHelper.display({
         id: 'totalValue',
         header: type === 'liability' ? 'Remaining Loan' : 'Total Value',
-        cell: ({ row }) => (
-          <span className="text-[13px] font-medium text-text-primary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>
-            {formatINR(row.original.quantity * row.original.cmp)}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const totalVal = row.original.computedValue ?? row.original.cmp ?? (row.original.quantity * row.original.avgCost);
+          return (
+            <span className="text-[13px] font-medium text-text-primary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>
+              {formatINR(totalVal)}
+            </span>
+          );
+        },
       })
     );
 
