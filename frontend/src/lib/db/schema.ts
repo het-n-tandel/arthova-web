@@ -11,6 +11,7 @@ export const users = pgTable('users', {
   profession: text('profession'),
   incomeBracket: text('income_bracket'),
   riskTolerance: text('risk_tolerance'),
+  profileMetadata: jsonb('profile_metadata'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

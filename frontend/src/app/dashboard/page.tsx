@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
@@ -11,11 +11,13 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Activity,
+  Sparkles,
+  Sliders,
 } from 'lucide-react';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { formatINR, formatINRCompact, formatDate, cn } from '@/lib/formatters';
 import {
-  aiInsights,
+  aiInsights as staticAiInsights,
   recentActivity,
   generatePortfolioHistory,
 } from '@/lib/mock-data';
@@ -26,6 +28,10 @@ import { IncomeLineChart } from '@/components/charts/income-line-chart';
 import { AIInsightCard } from '@/components/portfolio/ai-insight-card';
 import { FavouriteStockRow } from '@/components/portfolio/favourite-stock-row';
 import { useLedgerStore } from '@/lib/store';
+import { AllocationDriftCard } from '@/components/charts/allocation-drift-card';
+import { GoalExecutionCards } from '@/components/portfolio/goal-execution-cards';
+import { NetWorthProjectionChart } from '@/components/charts/net-worth-projection-chart';
+import { AIOnboardingWizard } from '@/components/onboarding/ai-onboarding-wizard';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -45,6 +51,9 @@ const assetIconMap: Record<string, any> = {
   'Mutual Funds': PiggyBank,
   'Gold & Silver': Coins,
   'Fixed Deposits': Landmark,
+  'Property': Building2,
+  'Crypto': Activity,
+  'Cash': Landmark,
   'Bonds': Landmark,
 };
 
@@ -53,6 +62,52 @@ const assetColors = ['#C9A227', '#3FA88A', '#7C8AD4', '#D9705C', '#E0B34C', '#8A
 export default function DashboardPage() {
   const portfolio = usePortfolio();
   const favorites = useLedgerStore((s) => s.favorites);
+
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [aiData, setAiData] = useState<any>(null);
+
+  // Fetch initial AI Recommendation from Spring Boot engine
+  const fetchAiRecommendation = async (customPayload?: any) => {
+    try {
+      const payload = customPayload || {
+        userDemographics: { age: 28, targetRetirementAge: 55, maritalStatus: 'married', childrenCount: 1, dependentParents: true },
+        financialCashflow: { monthlyIncome: 120000, monthlyExpenses: 45000, monthlyEmis: 22000, taxBracketPercent: 30 },
+        netWorthBreakdown: {
+          totalCurrentAssets: portfolio.totalCurrent > 0 ? portfolio.totalCurrent : 1000000,
+          assetBreakdownPercent: {
+            equity: portfolio.totalCurrent > 0 ? ((portfolio.stockHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0) + portfolio.mfHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0)) / portfolio.totalCurrent) * 100 : 20,
+            fdDebt: portfolio.totalCurrent > 0 ? (portfolio.fdHoldings.reduce((s, h) => s + h.computedCurrent, 0) / portfolio.totalCurrent) * 100 : 60,
+            gold: portfolio.totalCurrent > 0 ? (portfolio.goldHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0) / portfolio.totalCurrent) * 100 : 10,
+            realEstate: portfolio.totalCurrent > 0 ? (portfolio.propHoldings.reduce((s, h) => s + h.computedCurrent, 0) / portfolio.totalCurrent) * 100 : 10,
+          },
+          totalLiabilities: portfolio.liabilityHoldings.reduce((s, h) => s + h.cmp, 0),
+          hasHighInterestDebt: false,
+        },
+        riskAndInsurance: { riskAppetite: 'Medium', hasHealthInsurance: true, hasLifeInsurance: true, hasEmergencyFund: false },
+        financialGoals: [
+          { type: 'Car Purchase', targetAmount: 800000, horizonYears: 2 },
+          { type: 'Child Education', targetAmount: 2500000, horizonYears: 12 },
+        ],
+      };
+
+      const res = await fetch('/api/ai/recommendation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setAiData(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch AI Recommendation', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchAiRecommendation();
+  }, [portfolio.totalCurrent]);
 
   const portfolioHistory = useMemo(() => generatePortfolioHistory(portfolio.netWorth, 12), [portfolio.netWorth]);
 
@@ -65,7 +120,6 @@ export default function DashboardPage() {
 
   const favoriteStocks = portfolio.stockHoldings.filter((s: any) => favorites.has(s.symbol));
 
-  // Top gainers and losers
   const topGainers = [...portfolio.stockHoldings]
     .sort((a, b) => b.dayChangePercent - a.dayChangePercent)
     .slice(0, 3);
@@ -81,11 +135,20 @@ export default function DashboardPage() {
       className="space-y-6"
     >
       {/* Page header */}
-      <motion.div variants={itemVariants}>
-        <h1 className="font-display text-[28px] text-text-primary mb-1">Dashboard</h1>
-        <p className="text-[13px] text-text-faint">
-          Portfolio overview as of {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
-        </p>
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-[28px] text-text-primary mb-1">Dashboard</h1>
+          <p className="text-[13px] text-text-faint">
+            Portfolio overview as of {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+        <button
+          onClick={() => setIsWizardOpen(true)}
+          className="flex items-center gap-2 bg-accent-brass hover:bg-accent-brass-dim text-bg-base px-4 py-2 rounded-[8px] text-[13px] font-medium transition-colors shadow-md"
+        >
+          <Sliders className="w-4 h-4" />
+          Calibrate AI Allocation
+        </button>
       </motion.div>
 
       {/* Hero: Total value + Allocation donut */}
@@ -130,6 +193,35 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
+      {/* AI Target Allocation Drift Card */}
+      {aiData && (
+        <motion.div variants={itemVariants}>
+          <AllocationDriftCard
+            current={aiData.currentAllocation}
+            recommended={aiData.recommendedAllocation}
+            netWorth={portfolio.totalCurrent}
+          />
+        </motion.div>
+      )}
+
+      {/* AI Net Worth Retirement Projection Chart */}
+      {aiData && (
+        <motion.div variants={itemVariants}>
+          <NetWorthProjectionChart
+            data={aiData.netWorthTrajectory}
+            retirementAge={aiData.retirementAge}
+            projectedRetirementNetWorth={aiData.projectedRetirementNetWorth}
+          />
+        </motion.div>
+      )}
+
+      {/* AI Goal Execution Plan Cards */}
+      {aiData?.goalExecutionPlan && (
+        <motion.div variants={itemVariants}>
+          <GoalExecutionCards goals={aiData.goalExecutionPlan} />
+        </motion.div>
+      )}
+
       {/* Summary cards grid */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {portfolio.assets.map((asset) => {
@@ -149,7 +241,7 @@ export default function DashboardPage() {
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Portfolio performance chart - spans 2 cols */}
+        {/* Portfolio performance chart */}
         <motion.div variants={itemVariants} className="lg:col-span-2">
           <div className="bg-bg-surface border border-border-default rounded-[12px] p-6">
             <h2 className="text-[16px] font-medium text-text-primary mb-4">Portfolio Performance</h2>
@@ -176,14 +268,21 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
-      {/* AI Insights */}
+      {/* AI Action Plan & Insights */}
       <motion.div variants={itemVariants}>
         <div className="flex items-center gap-2 mb-4">
           <Activity className="w-5 h-5 text-accent-brass" />
-          <h2 className="text-[16px] font-medium text-text-primary">AI Insights</h2>
+          <h2 className="text-[16px] font-medium text-text-primary">AI Rebalance Action Plan</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {aiInsights.slice(0, 3).map((insight) => (
+          {aiData?.rebalanceActions?.map((action: string, idx: number) => (
+            <div key={idx} className="bg-bg-surface border border-border-default rounded-[12px] p-4 space-y-2">
+              <div className="flex items-center gap-2 text-accent-brass text-[12px] font-medium">
+                <Sparkles className="w-3.5 h-3.5" /> Action #{idx + 1}
+              </div>
+              <p className="text-[13px] text-text-primary leading-relaxed">{action}</p>
+            </div>
+          )) || staticAiInsights.slice(0, 3).map((insight) => (
             <AIInsightCard key={insight.id} insight={insight} />
           ))}
         </div>
@@ -267,6 +366,15 @@ export default function DashboardPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* AI Onboarding Calibration Wizard Modal */}
+      <AIOnboardingWizard
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        onSuccess={(data) => {
+          setAiData(data);
+        }}
+      />
     </motion.div>
   );
 }

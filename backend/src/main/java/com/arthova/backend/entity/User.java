@@ -37,6 +37,9 @@ public class User {
     @Column(name = "risk_tolerance")
     private String riskTolerance;
 
+    @Column(name = "profile_metadata", columnDefinition = "jsonb")
+    private String profileMetadata;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
