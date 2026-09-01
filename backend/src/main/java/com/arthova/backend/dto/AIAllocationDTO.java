@@ -2,7 +2,6 @@ package com.arthova.backend.dto;
 
 import lombok.Data;
 import java.util.List;
-import java.util.Map;
 
 public class AIAllocationDTO {
 
@@ -88,6 +87,18 @@ public class AIAllocationDTO {
         private double expectedNetWorth;
         private double pessimisticNetWorth;
         private double optimisticNetWorth;
+        private String goalDipName;
+        private double goalOutflowAmount;
+    }
+
+    @Data
+    public static class AssetRecommendationReason {
+        private String assetClass;
+        private String goalType;
+        private String horizonLabel;
+        private String reasoning;
+        private String taxAdvantage;
+        private String riskProfile;
     }
 
     @Data
@@ -98,6 +109,7 @@ public class AIAllocationDTO {
         private RecommendedAllocation recommendedAllocation;
         private List<GoalExecutionPlanItem> goalExecutionPlan;
         private List<NetWorthYearPoint> netWorthTrajectory;
+        private List<AssetRecommendationReason> assetRecommendations;
         private double projectedRetirementNetWorth;
         private int retirementAge;
         private List<String> aiInsights;

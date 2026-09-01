@@ -42,7 +42,7 @@ public class AIAllocationService {
         currentAlloc.setEquityPercent(netWorth.getAssetBreakdownPercent().getEquity());
         currentAlloc.setDebtPercent(netWorth.getAssetBreakdownPercent().getFdDebt());
         currentAlloc.setGoldPercent(netWorth.getAssetBreakdownPercent().getGold());
-        currentAlloc.setCashPercent(netWorth.getAssetBreakdownPercent().getRealEstate()); // Property/Cash balance
+        currentAlloc.setCashPercent(netWorth.getAssetBreakdownPercent().getRealEstate());
         response.setCurrentAllocation(currentAlloc);
 
         // ── LAYER 2: ASSET ALLOCATION & GOAL SOLVER ───────────────────────────
@@ -50,14 +50,13 @@ public class AIAllocationService {
         int retirementAge = demo.getTargetRetirementAge() > age ? demo.getTargetRetirementAge() : 55;
         response.setRetirementAge(retirementAge);
 
-        // Risk-adjusted equity target rule of thumb
+        // Risk-adjusted equity target rule
         double targetEquity = 100.0 - age;
         if ("High".equalsIgnoreCase(riskIns.getRiskAppetite())) {
             targetEquity += 10.0;
         } else if ("Low".equalsIgnoreCase(riskIns.getRiskAppetite())) {
             targetEquity -= 15.0;
         }
-        // Clamp Equity between 20% and 80%
         targetEquity = Math.max(20.0, Math.min(80.0, targetEquity));
 
         double targetGold = 10.0;
@@ -71,33 +70,51 @@ public class AIAllocationService {
         targetAlloc.setCashPercent(targetCash);
         response.setRecommendedAllocation(targetAlloc);
 
-        // Goal Execution Plan
+        // Goal Execution Plan & Why Recommended Explanations
         List<GoalExecutionPlanItem> goalItems = new ArrayList<>();
+        List<AssetRecommendationReason> assetReasons = new ArrayList<>();
+
         for (FinancialGoalItem goal : goals) {
             GoalExecutionPlanItem item = new GoalExecutionPlanItem();
             item.setGoal(goal.getType());
             item.setOriginalTarget(goal.getTargetAmount());
             item.setHorizonYears(goal.getHorizonYears());
 
-            // 6% inflation adjustment
             double inflationAdjusted = goal.getTargetAmount() * Math.pow(1.06, goal.getHorizonYears());
             item.setInflationAdjustedTarget(Math.round(inflationAdjusted));
 
             String assetClass;
+            String reasonText;
+            String taxText;
+            String riskProfileText;
             double expectedAnnualReturn;
 
             if (goal.getHorizonYears() <= 3) {
-                assetClass = cashflow.getTaxBracketPercent() >= 30
-                        ? "Arbitrage Mutual Funds (Equity Tax Slab)"
-                        : "Short-Term Fixed Deposits";
+                if (cashflow.getTaxBracketPercent() >= 30) {
+                    assetClass = "Arbitrage Mutual Funds";
+                    reasonText = String.format("Selected for short-term horizon (%d yrs) with capital protection. Taxed at 20%% STCG equity rates instead of 30%% FD slab tax.", goal.getHorizonYears());
+                    taxText = "Saves ~10% in tax leakage vs FDs";
+                } else {
+                    assetClass = "Short-Term Fixed Deposits";
+                    reasonText = String.format("Selected for guaranteed 100%% capital safety for a short horizon of %d years.", goal.getHorizonYears());
+                    taxText = "Standard slab interest tax";
+                }
+                riskProfileText = "Low Volatility / Capital Preservation";
                 expectedAnnualReturn = 0.07;
             } else if (goal.getHorizonYears() <= 7) {
                 assetClass = "Balanced Advantage Funds";
+                reasonText = String.format("Selected for a medium-term horizon (%d yrs) to capture equity upside while dynamically hedging market downturns.", goal.getHorizonYears());
+                taxText = "Equity tax treatment (12.5% LTCG)";
+                riskProfileText = "Moderate Risk / Growth & Stability";
                 expectedAnnualReturn = 0.10;
             } else {
                 assetClass = "Nifty 50 Index & Flexi-Cap Funds";
+                reasonText = String.format("Selected for long-term compounding (%d yrs). Long horizons absorb market cycles and deliver max inflation-beating returns.", goal.getHorizonYears());
+                taxText = "₹1.25 Lakh annual LTCG tax-free threshold";
+                riskProfileText = "High Growth / High Equity Compounding";
                 expectedAnnualReturn = 0.13;
             }
+
             item.setSuggestedAssetClass(assetClass);
 
             int months = goal.getHorizonYears() * 12;
@@ -106,10 +123,22 @@ public class AIAllocationService {
             item.setRequiredMonthlySip(Math.round(requiredSIP));
 
             goalItems.add(item);
-        }
-        response.setGoalExecutionPlan(goalItems);
 
-        // Net Worth Trajectory Simulation (Retirement Year Engine)
+            // Asset Recommendation Reason
+            AssetRecommendationReason reason = new AssetRecommendationReason();
+            reason.setAssetClass(assetClass);
+            reason.setGoalType(goal.getType());
+            reason.setHorizonLabel(goal.getHorizonYears() + " Years");
+            reason.setReasoning(reasonText);
+            reason.setTaxAdvantage(taxText);
+            reason.setRiskProfile(riskProfileText);
+            assetReasons.add(reason);
+        }
+
+        response.setGoalExecutionPlan(goalItems);
+        response.setAssetRecommendations(assetReasons);
+
+        // ── NET WORTH TRAJECTORY SIMULATION WITH REALISTIC GOAL DIPS ─────────────
         List<NetWorthYearPoint> trajectory = new ArrayList<>();
         int totalYears = retirementAge - age;
         double currentAssets = netWorth.getTotalCurrentAssets();
@@ -124,28 +153,54 @@ public class AIAllocationService {
         double pessimisticAssets = currentAssets;
         double optimisticAssets = currentAssets;
 
-        for (int y = 0; y <= totalYears; y += 3) {
-            NetWorthYearPoint pt = new NetWorthYearPoint();
-            pt.setAge(age + y);
-            pt.setYear(2026 + y);
+        for (int y = 0; y <= totalYears; y++) {
+            // Check if any goal matures in this exact year
+            double goalOutflowInYear = 0.0;
+            List<String> outflowNames = new ArrayList<>();
 
-            if (y == 0) {
-                pt.setExpectedNetWorth(Math.round(currentAssets - currentLiabilities));
-                pt.setPessimisticNetWorth(Math.round(currentAssets - currentLiabilities));
-                pt.setOptimisticNetWorth(Math.round(currentAssets - currentLiabilities));
-            } else {
-                for (int i = 0; i < 3; i++) {
-                    expectedAssets = (expectedAssets + annualInvestCapacity) * (1 + expectedRate);
-                    pessimisticAssets = (pessimisticAssets + annualInvestCapacity) * (1 + pessimisticRate);
-                    optimisticAssets = (optimisticAssets + annualInvestCapacity) * (1 + optimisticRate);
+            for (FinancialGoalItem g : goals) {
+                if (g.getHorizonYears() == y) {
+                    double infAdjustedGoal = g.getTargetAmount() * Math.pow(1.06, g.getHorizonYears());
+                    goalOutflowInYear += infAdjustedGoal;
+                    outflowNames.add(g.getType());
                 }
+            }
+
+            if (y > 0) {
+                // Compound assets for 1 year
+                expectedAssets = (expectedAssets + annualInvestCapacity) * (1 + expectedRate);
+                pessimisticAssets = (pessimisticAssets + annualInvestCapacity) * (1 + pessimisticRate);
+                optimisticAssets = (optimisticAssets + annualInvestCapacity) * (1 + optimisticRate);
+
+                // DEDUCT GOAL OUTFLOW (REALISTIC GOAL DIP!)
+                if (goalOutflowInYear > 0) {
+                    expectedAssets = Math.max(0, expectedAssets - goalOutflowInYear);
+                    pessimisticAssets = Math.max(0, pessimisticAssets - goalOutflowInYear);
+                    optimisticAssets = Math.max(0, optimisticAssets - goalOutflowInYear);
+                }
+            }
+
+            // Only add data points every 2 or 3 years or when a goal outflow occurs
+            if (y == 0 || y % 3 == 0 || y == totalYears || goalOutflowInYear > 0) {
+                NetWorthYearPoint pt = new NetWorthYearPoint();
+                pt.setAge(age + y);
+                pt.setYear(2026 + y);
+
                 double paydownLiabilities = Math.max(0, currentLiabilities - (cashflow.getMonthlyEmis() * 12 * y));
+
                 pt.setExpectedNetWorth(Math.round(expectedAssets - paydownLiabilities));
                 pt.setPessimisticNetWorth(Math.round(pessimisticAssets - paydownLiabilities));
                 pt.setOptimisticNetWorth(Math.round(optimisticAssets - paydownLiabilities));
+
+                if (goalOutflowInYear > 0) {
+                    pt.setGoalDipName(String.join(", ", outflowNames));
+                    pt.setGoalOutflowAmount(Math.round(goalOutflowInYear));
+                }
+
+                trajectory.add(pt);
             }
-            trajectory.add(pt);
         }
+
         response.setNetWorthTrajectory(trajectory);
         response.setProjectedRetirementNetWorth(trajectory.isEmpty() ? 0 : trajectory.get(trajectory.size() - 1).getExpectedNetWorth());
 
@@ -164,7 +219,7 @@ public class AIAllocationService {
         }
 
         if (cashflow.getTaxBracketPercent() >= 30) {
-            insights.add("Tax Slab Optimization (30% Bracket): Recommending Arbitrage Funds over FDs for short-term goals to save 10% in taxes.");
+            insights.add("Tax Slab Optimization (30% Bracket): Recommending Arbitrage Funds over FDs for short-term goals to save ~10% in taxes.");
         }
 
         if (Math.abs(currentAlloc.getEquityPercent() - targetEquity) > 5.0) {
@@ -199,5 +254,17 @@ public class AIAllocationService {
                 e.printStackTrace();
             }
         }
+    }
+
+    public UserProfilePayload getUserProfile(UUID userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isPresent() && userOpt.get().getProfileMetadata() != null) {
+            try {
+                return objectMapper.readValue(userOpt.get().getProfileMetadata(), UserProfilePayload.class);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
     }
 }

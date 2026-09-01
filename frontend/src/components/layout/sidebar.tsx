@@ -22,6 +22,7 @@ import {
   ScrollText,
   Banknote,
   CreditCard,
+  Sparkles,
 } from 'lucide-react';
 import { useLedgerStore } from '@/lib/store';
 import { cn } from '@/lib/formatters';
@@ -29,6 +30,7 @@ import { useSession, signOut } from 'next-auth/react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/ai-advisor', label: 'AI Advisor', icon: Sparkles },
   { href: '/dashboard/portfolio', label: 'Portfolio', icon: Briefcase },
   { href: '/dashboard/stocks', label: 'Stocks', icon: TrendingUp },
   { href: '/dashboard/mutual-funds', label: 'Mutual Funds', icon: PiggyBank },

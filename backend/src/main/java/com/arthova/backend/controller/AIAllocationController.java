@@ -27,6 +27,20 @@ public class AIAllocationController {
         }
     }
 
+    @GetMapping("/profile/{userId}")
+    public ResponseEntity<UserProfilePayload> getUserProfile(@PathVariable UUID userId) {
+        try {
+            UserProfilePayload payload = aiAllocationService.getUserProfile(userId);
+            if (payload != null) {
+                return ResponseEntity.ok(payload);
+            }
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PostMapping("/profile/{userId}")
     public ResponseEntity<AIRecommendationResponse> saveProfileAndRecommend(
             @PathVariable UUID userId,

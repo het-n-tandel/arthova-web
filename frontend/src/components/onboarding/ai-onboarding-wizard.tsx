@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, User, Wallet, Target, CheckCircle2, ChevronRight, ChevronLeft } from 'lucide-react';
-import { formatINR } from '@/lib/formatters';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { X, Sparkles, User, Wallet, Target, ChevronRight, ChevronLeft } from 'lucide-react';
+import { usePortfolio } from '@/lib/hooks/use-portfolio';
 
 interface Props {
   isOpen: boolean;
@@ -13,6 +13,8 @@ interface Props {
 }
 
 export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props) {
+  const portfolio = usePortfolio();
+
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,6 +47,25 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
     { type: 'Car Purchase', targetAmount: 800000, horizonYears: 2 },
     { type: 'Child Education', targetAmount: 2500000, horizonYears: 12 },
   ]);
+
+  // Pre-populate with live portfolio assets when opened
+  useEffect(() => {
+    if (isOpen && portfolio.totalCurrent > 0) {
+      setTotalCurrentAssets(Math.round(portfolio.totalCurrent));
+      const equityVal = portfolio.stockHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0) + portfolio.mfHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0);
+      const fdVal = portfolio.fdHoldings.reduce((s, h) => s + h.computedCurrent, 0);
+      const goldVal = portfolio.goldHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0);
+      const propVal = portfolio.propHoldings.reduce((s, h) => s + h.computedCurrent, 0);
+
+      setEquityPct(Math.round((equityVal / portfolio.totalCurrent) * 100) || 20);
+      setFdDebtPct(Math.round((fdVal / portfolio.totalCurrent) * 100) || 60);
+      setGoldPct(Math.round((goldVal / portfolio.totalCurrent) * 100) || 10);
+      setRealEstatePct(Math.round((propVal / portfolio.totalCurrent) * 100) || 10);
+
+      const liabVal = portfolio.liabilityHoldings.reduce((s, h) => s + h.cmp, 0);
+      setTotalLiabilities(Math.round(liabVal));
+    }
+  }, [isOpen, portfolio.totalCurrent]);
 
   if (!isOpen) return null;
 
@@ -103,11 +124,8 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
     };
 
     try {
-      const url = userId
-        ? `http://localhost:8080/api/public/ai/profile/${userId}`
-        : '/api/ai/recommendation';
-
-      const res = await fetch(url, {
+      // Direct POST to AI recommendation endpoint
+      const res = await fetch('/api/ai/recommendation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -140,8 +158,8 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
               <Sparkles className="w-4 h-4 text-accent-brass" />
             </div>
             <div>
-              <h2 className="text-[16px] font-medium text-text-primary">AI Portfolio Onboarding</h2>
-              <p className="text-[11px] text-text-faint">Step {step} of 3 — Profile & Financial Calibration</p>
+              <h2 className="text-[16px] font-medium text-text-primary">AI Portfolio Calibration</h2>
+              <p className="text-[11px] text-text-faint">Step {step} of 3 — Live Profile Sync & Goal Inputs</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-[6px] text-text-faint hover:text-text-primary hover:bg-bg-surface-3 transition-colors">
@@ -197,7 +215,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
           {step === 2 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
               <h3 className="text-[14px] font-medium text-text-primary flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-accent-brass" /> Cash Flow, Tax & Net Worth
+                <Wallet className="w-4 h-4 text-accent-brass" /> Cash Flow, Tax & Net Worth (Fetched Live)
               </h3>
 
               <div className="grid grid-cols-3 gap-3">
@@ -232,7 +250,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
               </div>
 
               <div className="space-y-2 bg-bg-surface-2 p-3 rounded-[8px] border border-border-default">
-                <span className="text-[11px] text-text-faint block">Current Asset Distribution (%)</span>
+                <span className="text-[11px] text-text-faint block">Fetched Current Asset Distribution (%)</span>
                 <div className="grid grid-cols-4 gap-2">
                   <div>
                     <span className="text-[10px] text-text-faint block">Equity %</span>
@@ -346,7 +364,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
               className="flex items-center gap-2 bg-accent-brass hover:bg-accent-brass-dim text-bg-base px-5 py-2 rounded-[8px] text-[13px] font-medium transition-colors disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4" />
-              {isSubmitting ? 'Generating AI Portfolio...' : 'Generate AI Portfolio'}
+              {isSubmitting ? 'Calculating AI Engine...' : 'Save & Calculate AI Engine'}
             </button>
           )}
         </div>
