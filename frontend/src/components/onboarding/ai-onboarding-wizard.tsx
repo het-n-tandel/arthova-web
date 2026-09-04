@@ -2,22 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, User, Wallet, Target, ChevronRight, ChevronLeft, RefreshCw } from 'lucide-react';
+import { X, Sparkles, User, Wallet, Target, ChevronRight, ChevronLeft, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
+import { formatINR } from '@/lib/formatters';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (data: any) => void;
-  userId?: string;
+  onSuccess?: (data: any, profile: any) => void;
+  initialProfile?: any;
 }
 
-export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
+export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile }: Props) {
   const portfolio = usePortfolio();
 
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [profileLoadedSource, setProfileLoadedSource] = useState<'saved' | 'live' | 'default'>('default');
 
   // Form State
   const [age, setAge] = useState(28);
@@ -73,6 +75,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
         setRealEstatePct(Math.round((propVal / liveTotal) * 100));
       }
       setTotalLiabilities(Math.round(liabVal));
+      setProfileLoadedSource('live');
     } catch (e) {
       console.error('Error syncing live portfolio:', e);
     } finally {
@@ -80,45 +83,8 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
     }
   };
 
-  // Load existing saved profile when wizard opens
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const loadProfile = async () => {
-      // 1. Try fetching from backend DB via /api/ai/profile
-      try {
-        const res = await fetch('/api/ai/profile');
-        if (res.ok) {
-          const profile = await res.json();
-          if (profile && profile.userDemographics) {
-            applySavedProfile(profile);
-            return;
-          }
-        }
-      } catch (e) {
-        // Fallback to localStorage
-      }
-
-      // 2. Fallback to localStorage saved profile
-      const localProfile = localStorage.getItem('arthova_user_profile');
-      if (localProfile) {
-        try {
-          const profile = JSON.parse(localProfile);
-          if (profile && profile.userDemographics) {
-            applySavedProfile(profile);
-            return;
-          }
-        } catch (e) {}
-      }
-
-      // 3. If no saved profile, auto-sync live portfolio holdings
-      syncWithLivePortfolio();
-    };
-
-    loadProfile();
-  }, [isOpen]);
-
-  const applySavedProfile = (profile: any) => {
+  const applyProfile = (profile: any, source: 'saved' | 'live') => {
+    if (!profile) return;
     if (profile.userDemographics) {
       setAge(profile.userDemographics.age ?? 28);
       setTargetRetirementAge(profile.userDemographics.targetRetirementAge ?? 55);
@@ -152,7 +118,49 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
     if (Array.isArray(profile.financialGoals) && profile.financialGoals.length > 0) {
       setGoals(profile.financialGoals);
     }
+    setProfileLoadedSource(source);
   };
+
+  // Load existing saved profile when wizard opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (initialProfile) {
+      applyProfile(initialProfile, 'saved');
+      return;
+    }
+
+    const loadProfile = async () => {
+      // 1. Check localStorage first
+      const localProfile = localStorage.getItem('arthova_user_profile');
+      if (localProfile) {
+        try {
+          const profile = JSON.parse(localProfile);
+          if (profile && profile.userDemographics) {
+            applyProfile(profile, 'saved');
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // 2. Fetch from backend DB
+      try {
+        const res = await fetch('/api/ai/profile');
+        if (res.ok) {
+          const profile = await res.json();
+          if (profile && profile.userDemographics) {
+            applyProfile(profile, 'saved');
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 3. Fallback to live portfolio assets
+      syncWithLivePortfolio();
+    };
+
+    loadProfile();
+  }, [isOpen, initialProfile]);
 
   if (!isOpen) return null;
 
@@ -211,10 +219,10 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
     };
 
     try {
-      // 1. Save profile to localStorage immediately
+      // 1. Save profile to localStorage
       localStorage.setItem('arthova_user_profile', JSON.stringify(payload));
 
-      // 2. Persist to PostgreSQL database and generate recommendation via /api/ai/profile
+      // 2. Persist to PostgreSQL database and generate recommendation
       const res = await fetch('/api/ai/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -224,7 +232,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem('arthova_ai_data', JSON.stringify(data));
-        if (onSuccess) onSuccess(data);
+        if (onSuccess) onSuccess(data, payload);
         onClose();
       }
     } catch (err) {
@@ -244,19 +252,48 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
       >
         {/* Modal Header */}
         <div className="bg-bg-surface-2 px-6 py-4 border-b border-border-default flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-accent-brass/10 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-accent-brass" />
             </div>
             <div>
-              <h2 className="text-[16px] font-medium text-text-primary">AI Portfolio Calibration</h2>
-              <p className="text-[11px] text-text-faint">Step {step} of 3 — Profile & Financial Calibration</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[16px] font-medium text-text-primary">AI Portfolio Calibration Wizard</h2>
+                {profileLoadedSource === 'saved' && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-positive-bg text-positive font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Saved Profile Loaded
+                  </span>
+                )}
+                {profileLoadedSource === 'live' && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent-brass/10 text-accent-brass font-medium">
+                    Live Holdings Synced
+                  </span>
+                )}
+              </div>
+              <p className="text-[11.5px] text-text-faint">Step {step} of 3 — Customize your real financial parameters</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-[6px] text-text-faint hover:text-text-primary hover:bg-bg-surface-3 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Live Portfolio Alert Banner if detected */}
+        {portfolio.totalCurrent > 0 && (
+          <div className="bg-accent-brass/5 border-b border-border-default px-6 py-2 flex items-center justify-between text-[11.5px]">
+            <span className="text-text-secondary">
+              Detected Live Portfolio: <strong className="text-text-primary font-mono">{formatINR(portfolio.totalCurrent)}</strong> ({portfolio.stockHoldings.length + portfolio.mfHoldings.length} market holdings)
+            </span>
+            <button
+              type="button"
+              onClick={syncWithLivePortfolio}
+              className="text-accent-brass hover:underline flex items-center gap-1 font-medium"
+            >
+              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+              Re-sync Holdings
+            </button>
+          </div>
+        )}
 
         {/* Step Progress Bar */}
         <div className="h-1 bg-bg-surface-2 w-full flex">
@@ -273,31 +310,31 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[12px] text-text-faint block mb-1">Current Age</label>
-                  <input type="number" min={18} max={60} value={age} onChange={(e) => setAge(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary" />
+                  <label className="text-[12px] text-text-faint block mb-1">Your Current Age</label>
+                  <input type="number" min={18} max={65} value={age} onChange={(e) => setAge(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary focus:border-accent-brass outline-none" />
                 </div>
                 <div>
                   <label className="text-[12px] text-text-faint block mb-1">Target Retirement Age</label>
-                  <input type="number" min={age + 1} max={75} value={targetRetirementAge} onChange={(e) => setTargetRetirementAge(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary" />
+                  <input type="number" min={age + 1} max={75} value={targetRetirementAge} onChange={(e) => setTargetRetirementAge(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary focus:border-accent-brass outline-none" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[12px] text-text-faint block mb-1">Marital Status</label>
-                  <select value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] text-text-primary">
+                  <select value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] text-text-primary focus:border-accent-brass outline-none">
                     <option value="single">Single</option>
                     <option value="married">Married</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[12px] text-text-faint block mb-1">Children Count</label>
-                  <input type="number" min={0} max={5} value={childrenCount} onChange={(e) => setChildrenCount(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary" />
+                  <label className="text-[12px] text-text-faint block mb-1">Number of Children</label>
+                  <input type="number" min={0} max={6} value={childrenCount} onChange={(e) => setChildrenCount(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary focus:border-accent-brass outline-none" />
                 </div>
               </div>
 
               <div className="flex items-center gap-3 pt-2">
-                <input type="checkbox" id="depParents" checked={dependentParents} onChange={(e) => setDependentParents(e.target.checked)} className="accent-[#C9A227] w-4 h-4 rounded" />
+                <input type="checkbox" id="depParents" checked={dependentParents} onChange={(e) => setDependentParents(e.target.checked)} className="accent-[#C9A227] w-4 h-4 rounded cursor-pointer" />
                 <label htmlFor="depParents" className="text-[13px] text-text-secondary cursor-pointer">Financially dependent parents</label>
               </div>
             </motion.div>
@@ -307,38 +344,37 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-[14px] font-medium text-text-primary flex items-center gap-2">
-                  <Wallet className="w-4 h-4 text-accent-brass" /> Cash Flow, Tax & Live Asset Breakdown
+                  <Wallet className="w-4 h-4 text-accent-brass" /> Cash Flow, Living Costs & Liabilities
                 </h3>
-                <button
-                  type="button"
-                  onClick={syncWithLivePortfolio}
-                  className="flex items-center gap-1.5 text-[11px] text-accent-brass hover:text-accent-brass-dim bg-accent-brass/10 px-2.5 py-1 rounded-[6px] transition-colors"
-                >
-                  <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-                  Sync Live Portfolio
-                </button>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-[11px] text-text-faint block mb-1">Monthly Income (₹)</label>
-                  <input type="number" step={5000} value={monthlyIncome} onChange={(e) => setMonthlyIncome(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary" />
+                  <input type="number" step={5000} value={monthlyIncome} onChange={(e) => setMonthlyIncome(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary focus:border-accent-brass outline-none" />
                 </div>
                 <div>
-                  <label className="text-[11px] text-text-faint block mb-1">Monthly Expenses (₹)</label>
-                  <input type="number" step={1000} value={monthlyExpenses} onChange={(e) => setMonthlyExpenses(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary" />
+                  <label className="text-[11px] text-text-faint block mb-1">Living Expenses (₹)</label>
+                  <input type="number" step={1000} value={monthlyExpenses} onChange={(e) => setMonthlyExpenses(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary focus:border-accent-brass outline-none" />
                 </div>
                 <div>
                   <label className="text-[11px] text-text-faint block mb-1">Monthly EMIs (₹)</label>
-                  <input type="number" step={1000} value={monthlyEmis} onChange={(e) => setMonthlyEmis(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary" />
+                  <input type="number" step={1000} value={monthlyEmis} onChange={(e) => setMonthlyEmis(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary focus:border-accent-brass outline-none" />
                 </div>
+              </div>
+
+              <div className="bg-bg-surface-2 p-3 rounded-[8px] border border-border-default flex items-center justify-between text-[12px]">
+                <span className="text-text-secondary">Calculated Monthly Investment Surplus:</span>
+                <span className="font-mono text-positive font-bold text-[14px]">
+                  {formatINR(Math.max(0, monthlyIncome - monthlyExpenses - monthlyEmis))}/mo
+                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[12px] text-text-faint block mb-1">Income Tax Slab</label>
-                  <select value={taxBracketPercent} onChange={(e) => setTaxBracketPercent(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] text-text-primary">
-                    <option value={0}>0% Slab</option>
+                  <select value={taxBracketPercent} onChange={(e) => setTaxBracketPercent(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] text-text-primary focus:border-accent-brass outline-none">
+                    <option value={0}>0% Slab (Zero Tax)</option>
                     <option value={10}>10% Slab</option>
                     <option value={20}>20% Slab</option>
                     <option value={30}>30% Slab (High Tax Bracket)</option>
@@ -346,12 +382,12 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
                 </div>
                 <div>
                   <label className="text-[12px] text-text-faint block mb-1">Total Current Assets (₹)</label>
-                  <input type="number" step={50000} value={totalCurrentAssets} onChange={(e) => setTotalCurrentAssets(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary" />
+                  <input type="number" step={50000} value={totalCurrentAssets} onChange={(e) => setTotalCurrentAssets(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded-[6px] px-3 py-2 text-[13px] font-mono text-text-primary focus:border-accent-brass outline-none" />
                 </div>
               </div>
 
               <div className="space-y-2 bg-bg-surface-2 p-3 rounded-[8px] border border-border-default">
-                <span className="text-[11px] text-text-faint block">Current Asset Distribution (%)</span>
+                <span className="text-[11px] text-text-faint block">Current Asset Distribution Breakdown (%)</span>
                 <div className="grid grid-cols-4 gap-2">
                   <div>
                     <span className="text-[10px] text-text-faint block">Equity %</span>
@@ -374,11 +410,11 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center gap-2">
-                  <input type="checkbox" id="highDebt" checked={hasHighInterestDebt} onChange={(e) => setHasHighInterestDebt(e.target.checked)} className="accent-[#C9A227] w-4 h-4 rounded" />
-                  <label htmlFor="highDebt" className="text-[12px] text-text-secondary cursor-pointer">Has 24%+ Credit Card / Personal Debt</label>
+                  <input type="checkbox" id="highDebt" checked={hasHighInterestDebt} onChange={(e) => setHasHighInterestDebt(e.target.checked)} className="accent-[#C9A227] w-4 h-4 rounded cursor-pointer" />
+                  <label htmlFor="highDebt" className="text-[12px] text-text-secondary cursor-pointer">Has 24%+ Credit Card / Loan Debt</label>
                 </div>
                 <div className="flex items-center gap-2">
-                  <input type="checkbox" id="emFund" checked={hasEmergencyFund} onChange={(e) => setHasEmergencyFund(e.target.checked)} className="accent-[#C9A227] w-4 h-4 rounded" />
+                  <input type="checkbox" id="emFund" checked={hasEmergencyFund} onChange={(e) => setHasEmergencyFund(e.target.checked)} className="accent-[#C9A227] w-4 h-4 rounded cursor-pointer" />
                   <label htmlFor="emFund" className="text-[12px] text-text-secondary cursor-pointer">Already has 6-month Emergency Cash</label>
                 </div>
               </div>
@@ -388,11 +424,11 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
           {step === 3 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
               <h3 className="text-[14px] font-medium text-text-primary flex items-center gap-2">
-                <Target className="w-4 h-4 text-accent-brass" /> Risk Appetite & Financial Goals
+                <Target className="w-4 h-4 text-accent-brass" /> Risk Appetite & Life Financial Goals
               </h3>
 
               <div>
-                <label className="text-[12px] text-text-faint block mb-2">Risk Appetite</label>
+                <label className="text-[12px] text-text-faint block mb-2">Select Your Investment Risk Appetite</label>
                 <div className="grid grid-cols-3 gap-3">
                   {(['Low', 'Medium', 'High'] as const).map((r) => (
                     <button
@@ -413,18 +449,24 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-text-faint">Life Goals List</span>
+                  <span className="text-[12px] text-text-faint font-medium">Your Life Financial Goals</span>
                   <button type="button" onClick={handleAddGoal} className="text-[12px] text-accent-brass hover:underline font-medium">
-                    + Add Goal
+                    + Add New Goal
                   </button>
                 </div>
                 {goals.map((g, idx) => (
                   <div key={idx} className="flex items-center gap-2 bg-bg-surface-2 p-3 rounded-[8px] border border-border-default">
-                    <input type="text" value={g.type} onChange={(e) => handleGoalChange(idx, 'type', e.target.value)} className="bg-bg-base border border-border-default rounded px-2 py-1 text-[12px] text-text-primary flex-1" placeholder="Goal Name" />
-                    <input type="number" step={50000} value={g.targetAmount} onChange={(e) => handleGoalChange(idx, 'targetAmount', Number(e.target.value))} className="bg-bg-base border border-border-default rounded px-2 py-1 text-[12px] font-mono text-text-primary w-28" placeholder="Target ₹" />
-                    <input type="number" min={1} max={30} value={g.horizonYears} onChange={(e) => handleGoalChange(idx, 'horizonYears', Number(e.target.value))} className="bg-bg-base border border-border-default rounded px-2 py-1 text-[12px] font-mono text-text-primary w-16" placeholder="Years" />
+                    <input type="text" value={g.type} onChange={(e) => handleGoalChange(idx, 'type', e.target.value)} className="bg-bg-base border border-border-default rounded px-2.5 py-1.5 text-[12.5px] text-text-primary flex-1 focus:border-accent-brass outline-none" placeholder="e.g. Dream House, Vacation" />
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-text-faint font-mono">₹</span>
+                      <input type="number" step={50000} value={g.targetAmount} onChange={(e) => handleGoalChange(idx, 'targetAmount', Number(e.target.value))} className="bg-bg-base border border-border-default rounded pl-5 pr-2 py-1.5 text-[12px] font-mono text-text-primary w-28 focus:border-accent-brass outline-none" placeholder="Amount" />
+                    </div>
+                    <div className="relative">
+                      <input type="number" min={1} max={30} value={g.horizonYears} onChange={(e) => handleGoalChange(idx, 'horizonYears', Number(e.target.value))} className="bg-bg-base border border-border-default rounded px-2 py-1.5 text-[12px] font-mono text-text-primary w-16 focus:border-accent-brass outline-none" placeholder="Yrs" />
+                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-text-faint pointer-events-none">yr</span>
+                    </div>
                     {goals.length > 1 && (
-                      <button type="button" onClick={() => handleRemoveGoal(idx)} className="text-negative text-[12px] px-1 hover:underline">
+                      <button type="button" onClick={() => handleRemoveGoal(idx)} className="text-negative text-[13px] px-1 hover:opacity-80" title="Remove Goal">
                         ✕
                       </button>
                     )}
@@ -441,7 +483,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
             <button
               type="button"
               onClick={() => setStep(step - 1)}
-              className="flex items-center gap-1 text-[13px] text-text-secondary hover:text-text-primary transition-colors"
+              className="flex items-center gap-1 text-[13px] text-text-secondary hover:text-text-primary transition-colors font-medium"
             >
               <ChevronLeft className="w-4 h-4" /> Back
             </button>
