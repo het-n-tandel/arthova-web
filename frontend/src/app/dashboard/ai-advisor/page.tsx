@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Sliders, Activity, HelpCircle, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Sliders, Activity, HelpCircle, ShieldCheck, CheckCircle2, TrendingUp, Landmark, Coins, Banknote, ListPlus } from 'lucide-react';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { AllocationDriftCard } from '@/components/charts/allocation-drift-card';
 import { GoalExecutionCards } from '@/components/portfolio/goal-execution-cards';
@@ -24,22 +24,50 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' as const } },
 };
 
+const assetIconMap: Record<string, any> = {
+  'Equity': TrendingUp,
+  'Fixed Income': Landmark,
+  'Gold': Coins,
+  'Cash': Banknote,
+};
+
 export default function AIAdvisorPage() {
   const portfolio = usePortfolio();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [aiData, setAiData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load saved state from localStorage if present
+  // Load saved state on mount
   useEffect(() => {
-    const saved = localStorage.getItem('arthova_ai_data');
-    if (saved) {
+    const initData = async () => {
+      // 1. Check localStorage first
+      const savedData = localStorage.getItem('arthova_ai_data');
+      if (savedData) {
+        try {
+          setAiData(JSON.parse(savedData));
+          setIsLoading(false);
+          return;
+        } catch (e) {}
+      }
+
+      // 2. Fetch from DB if available
       try {
-        setAiData(JSON.parse(saved));
-        setIsLoading(false);
+        const profileRes = await fetch('/api/ai/profile');
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          if (profile && profile.userDemographics) {
+            await fetchAiRecommendation(profile);
+            return;
+          }
+        }
       } catch (e) {}
-    }
-  }, []);
+
+      // 3. Fallback default recommendation
+      await fetchAiRecommendation();
+    };
+
+    initData();
+  }, [portfolio.totalCurrent]);
 
   const fetchAiRecommendation = async (customPayload?: any) => {
     setIsLoading(true);
@@ -50,12 +78,12 @@ export default function AIAdvisorPage() {
         netWorthBreakdown: {
           totalCurrentAssets: portfolio.totalCurrent > 0 ? portfolio.totalCurrent : 1000000,
           assetBreakdownPercent: {
-            equity: portfolio.totalCurrent > 0 ? ((portfolio.stockHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0) + portfolio.mfHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0)) / portfolio.totalCurrent) * 100 : 20,
-            fdDebt: portfolio.totalCurrent > 0 ? (portfolio.fdHoldings.reduce((s, h) => s + h.computedCurrent, 0) / portfolio.totalCurrent) * 100 : 60,
-            gold: portfolio.totalCurrent > 0 ? (portfolio.goldHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0) / portfolio.totalCurrent) * 100 : 10,
-            realEstate: portfolio.totalCurrent > 0 ? (portfolio.propHoldings.reduce((s, h) => s + h.computedCurrent, 0) / portfolio.totalCurrent) * 100 : 10,
+            equity: portfolio.totalCurrent > 0 ? ((portfolio.stockHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0) + portfolio.mfHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0)) / portfolio.totalCurrent) * 100 : 20,
+            fdDebt: portfolio.totalCurrent > 0 ? (portfolio.fdHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0) / portfolio.totalCurrent) * 100 : 60,
+            gold: portfolio.totalCurrent > 0 ? (portfolio.goldHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0) / portfolio.totalCurrent) * 100 : 10,
+            realEstate: portfolio.totalCurrent > 0 ? (portfolio.propHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0) / portfolio.totalCurrent) * 100 : 10,
           },
-          totalLiabilities: portfolio.liabilityHoldings.reduce((s, h) => s + h.cmp, 0),
+          totalLiabilities: portfolio.liabilityHoldings.reduce((s, h) => s + (h.cmp || 0), 0),
           hasHighInterestDebt: false,
         },
         riskAndInsurance: { riskAppetite: 'Medium', hasHealthInsurance: true, hasLifeInsurance: true, hasEmergencyFund: false },
@@ -82,12 +110,6 @@ export default function AIAdvisorPage() {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!aiData) {
-      fetchAiRecommendation();
-    }
-  }, [portfolio.totalCurrent]);
 
   return (
     <motion.div
@@ -146,6 +168,78 @@ export default function AIAdvisorPage() {
         </motion.div>
       )}
 
+      {/* WHY STOCKS & ASSET CLASSES WERE RECOMMENDED (DETAILED EXPLANATION CARDS) */}
+      {!isLoading && aiData?.assetClassRecommendations && (
+        <motion.div variants={itemVariants} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-accent-brass" />
+              <h2 className="text-[16px] font-medium text-text-primary">Why These Assets & Stocks Were Recommended</h2>
+            </div>
+            <span className="text-[12px] text-text-faint">Hybrid Quantitative Rationale</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {aiData.assetClassRecommendations.map((rec: any, idx: number) => {
+              const Icon = rec.assetClass.includes('Equity')
+                ? TrendingUp
+                : rec.assetClass.includes('Debt') || rec.assetClass.includes('Fixed')
+                ? Landmark
+                : rec.assetClass.includes('Gold')
+                ? Coins
+                : Banknote;
+
+              return (
+                <div
+                  key={idx}
+                  className="bg-bg-surface border border-border-default hover:border-accent-brass/50 rounded-[12px] p-5 space-y-4 transition-all shadow-sm"
+                >
+                  <div className="flex items-start justify-between border-b border-border-default pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-accent-brass/10 flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 text-accent-brass" />
+                      </div>
+                      <div>
+                        <h3 className="text-[14px] font-medium text-text-primary">{rec.assetClass}</h3>
+                        <span className="text-[11px] text-text-faint font-mono">{rec.riskLevel}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-text-faint uppercase block">Target Weight</span>
+                      <span className="text-[15px] font-mono text-accent-brass font-bold">{rec.recommendedPercent.toFixed(0)}%</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[12.5px] text-text-secondary leading-relaxed">{rec.whyRecommended}</p>
+
+                  {/* Top Specific Recommended Instruments */}
+                  {rec.topInstruments && rec.topInstruments.length > 0 && (
+                    <div className="bg-bg-surface-2 p-3 rounded-[8px] space-y-1.5 border border-border-default">
+                      <span className="text-[11px] font-medium text-text-primary flex items-center gap-1">
+                        <ListPlus className="w-3.5 h-3.5 text-accent-brass" /> Top Recommended Instruments:
+                      </span>
+                      <ul className="space-y-1">
+                        {rec.topInstruments.map((inst: string, i: number) => (
+                          <li key={i} className="text-[11.5px] text-text-secondary flex items-start gap-1.5">
+                            <span className="text-accent-brass">•</span>
+                            <span>{inst}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between text-[11px] pt-1 border-t border-border-default gap-2">
+                    <span className="text-positive font-medium">Expected: {rec.expectedReturn}</span>
+                    <span className="text-text-faint font-mono text-[10.5px]">{rec.taxRule}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+
       {/* AI Goal Execution Plan Cards */}
       {!isLoading && aiData?.goalExecutionPlan && (
         <motion.div variants={itemVariants}>
@@ -153,26 +247,26 @@ export default function AIAdvisorPage() {
         </motion.div>
       )}
 
-      {/* WHY ASSETS WERE RECOMMENDED (AI EXPLANATION CARDS) */}
-      {!isLoading && aiData?.assetRecommendations && (
+      {/* GOAL-SPECIFIC ASSET REASONING CARDS */}
+      {!isLoading && aiData?.assetRecommendations && aiData.assetRecommendations.length > 0 && (
         <motion.div variants={itemVariants} className="space-y-4">
           <div className="flex items-center gap-2">
-            <HelpCircle className="w-5 h-5 text-accent-brass" />
-            <h2 className="text-[16px] font-medium text-text-primary">Why These Assets Were Recommended</h2>
+            <CheckCircle2 className="w-5 h-5 text-positive" />
+            <h2 className="text-[16px] font-medium text-text-primary">Goal-Specific Tax & Asset Selection</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {aiData.assetRecommendations.map((rec: any, idx: number) => (
-              <div key={idx} className="bg-bg-surface border border-border-default hover:border-accent-brass/40 rounded-[12px] p-5 space-y-3 transition-all">
+              <div key={idx} className="bg-bg-surface border border-border-default hover:border-accent-brass/40 rounded-[12px] p-4 space-y-2.5 transition-all">
                 <div className="flex items-center justify-between border-b border-border-default pb-2">
-                  <span className="text-[14px] font-medium text-text-primary flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-positive" />
+                  <span className="text-[13.5px] font-medium text-text-primary flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-accent-brass" />
                     {rec.assetClass}
                   </span>
                   <span className="text-[11px] px-2 py-0.5 rounded bg-bg-surface-2 text-accent-brass font-mono">
                     {rec.goalType} ({rec.horizonLabel})
                   </span>
                 </div>
-                <p className="text-[12.5px] text-text-secondary leading-relaxed">{rec.reasoning}</p>
+                <p className="text-[12px] text-text-secondary leading-relaxed">{rec.reasoning}</p>
                 <div className="flex items-center justify-between text-[11px] pt-1">
                   <span className="text-positive font-medium">💡 Tax Advantage: {rec.taxAdvantage}</span>
                   <span className="text-text-faint font-mono">{rec.riskProfile}</span>

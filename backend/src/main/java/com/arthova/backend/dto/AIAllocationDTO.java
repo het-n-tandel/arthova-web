@@ -84,11 +84,24 @@ public class AIAllocationDTO {
     public static class NetWorthYearPoint {
         private int age;
         private int year;
+        private String ageLabel;
         private double expectedNetWorth;
         private double pessimisticNetWorth;
         private double optimisticNetWorth;
+        private boolean isGoalDip;
         private String goalDipName;
         private double goalOutflowAmount;
+    }
+
+    @Data
+    public static class AssetClassRecommendation {
+        private String assetClass;
+        private double recommendedPercent;
+        private String whyRecommended;
+        private List<String> topInstruments;
+        private String expectedReturn;
+        private String riskLevel;
+        private String taxRule;
     }
 
     @Data
@@ -109,6 +122,7 @@ public class AIAllocationDTO {
         private RecommendedAllocation recommendedAllocation;
         private List<GoalExecutionPlanItem> goalExecutionPlan;
         private List<NetWorthYearPoint> netWorthTrajectory;
+        private List<AssetClassRecommendation> assetClassRecommendations;
         private List<AssetRecommendationReason> assetRecommendations;
         private double projectedRetirementNetWorth;
         private int retirementAge;

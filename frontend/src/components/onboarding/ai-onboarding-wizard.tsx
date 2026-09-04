@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, User, Wallet, Target, ChevronRight, ChevronLeft } from 'lucide-react';
+import { X, Sparkles, User, Wallet, Target, ChevronRight, ChevronLeft, RefreshCw } from 'lucide-react';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 
 interface Props {
@@ -12,11 +12,12 @@ interface Props {
   userId?: string;
 }
 
-export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props) {
+export function AIOnboardingWizard({ isOpen, onClose, onSuccess }: Props) {
   const portfolio = usePortfolio();
 
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Form State
   const [age, setAge] = useState(28);
@@ -48,24 +49,110 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
     { type: 'Child Education', targetAmount: 2500000, horizonYears: 12 },
   ]);
 
-  // Pre-populate with live portfolio assets when opened
-  useEffect(() => {
-    if (isOpen && portfolio.totalCurrent > 0) {
-      setTotalCurrentAssets(Math.round(portfolio.totalCurrent));
-      const equityVal = portfolio.stockHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0) + portfolio.mfHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0);
-      const fdVal = portfolio.fdHoldings.reduce((s, h) => s + h.computedCurrent, 0);
-      const goldVal = portfolio.goldHoldings.reduce((s, h) => s + h.cmp * h.quantity, 0);
-      const propVal = portfolio.propHoldings.reduce((s, h) => s + h.computedCurrent, 0);
+  // Sync live holdings from portfolio hook
+  const syncWithLivePortfolio = () => {
+    setIsSyncing(true);
+    try {
+      const liveTotal = portfolio.totalCurrent > 0 ? portfolio.totalCurrent : 1000000;
+      setTotalCurrentAssets(Math.round(liveTotal));
 
-      setEquityPct(Math.round((equityVal / portfolio.totalCurrent) * 100) || 20);
-      setFdDebtPct(Math.round((fdVal / portfolio.totalCurrent) * 100) || 60);
-      setGoldPct(Math.round((goldVal / portfolio.totalCurrent) * 100) || 10);
-      setRealEstatePct(Math.round((propVal / portfolio.totalCurrent) * 100) || 10);
+      const equityVal =
+        portfolio.stockHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0) +
+        portfolio.mfHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
+      const fdVal =
+        portfolio.fdHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0) +
+        portfolio.bondHoldings.reduce((s, h) => s + (h.cmp || 0), 0);
+      const goldVal = portfolio.goldHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
+      const propVal = portfolio.propHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0);
+      const liabVal = portfolio.liabilityHoldings.reduce((s, h) => s + (h.cmp || 0), 0);
 
-      const liabVal = portfolio.liabilityHoldings.reduce((s, h) => s + h.cmp, 0);
+      if (portfolio.totalCurrent > 0) {
+        setEquityPct(Math.round((equityVal / liveTotal) * 100));
+        setFdDebtPct(Math.round((fdVal / liveTotal) * 100));
+        setGoldPct(Math.round((goldVal / liveTotal) * 100));
+        setRealEstatePct(Math.round((propVal / liveTotal) * 100));
+      }
       setTotalLiabilities(Math.round(liabVal));
+    } catch (e) {
+      console.error('Error syncing live portfolio:', e);
+    } finally {
+      setTimeout(() => setIsSyncing(false), 400);
     }
-  }, [isOpen, portfolio.totalCurrent]);
+  };
+
+  // Load existing saved profile when wizard opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadProfile = async () => {
+      // 1. Try fetching from backend DB via /api/ai/profile
+      try {
+        const res = await fetch('/api/ai/profile');
+        if (res.ok) {
+          const profile = await res.json();
+          if (profile && profile.userDemographics) {
+            applySavedProfile(profile);
+            return;
+          }
+        }
+      } catch (e) {
+        // Fallback to localStorage
+      }
+
+      // 2. Fallback to localStorage saved profile
+      const localProfile = localStorage.getItem('arthova_user_profile');
+      if (localProfile) {
+        try {
+          const profile = JSON.parse(localProfile);
+          if (profile && profile.userDemographics) {
+            applySavedProfile(profile);
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // 3. If no saved profile, auto-sync live portfolio holdings
+      syncWithLivePortfolio();
+    };
+
+    loadProfile();
+  }, [isOpen]);
+
+  const applySavedProfile = (profile: any) => {
+    if (profile.userDemographics) {
+      setAge(profile.userDemographics.age ?? 28);
+      setTargetRetirementAge(profile.userDemographics.targetRetirementAge ?? 55);
+      setMaritalStatus(profile.userDemographics.maritalStatus ?? 'married');
+      setChildrenCount(profile.userDemographics.childrenCount ?? 1);
+      setDependentParents(profile.userDemographics.dependentParents ?? true);
+    }
+    if (profile.financialCashflow) {
+      setMonthlyIncome(profile.financialCashflow.monthlyIncome ?? 120000);
+      setMonthlyExpenses(profile.financialCashflow.monthlyExpenses ?? 45000);
+      setMonthlyEmis(profile.financialCashflow.monthlyEmis ?? 22000);
+      setTaxBracketPercent(profile.financialCashflow.taxBracketPercent ?? 30);
+    }
+    if (profile.netWorthBreakdown) {
+      setTotalCurrentAssets(profile.netWorthBreakdown.totalCurrentAssets ?? 1000000);
+      if (profile.netWorthBreakdown.assetBreakdownPercent) {
+        setEquityPct(profile.netWorthBreakdown.assetBreakdownPercent.equity ?? 20);
+        setFdDebtPct(profile.netWorthBreakdown.assetBreakdownPercent.fdDebt ?? 60);
+        setGoldPct(profile.netWorthBreakdown.assetBreakdownPercent.gold ?? 10);
+        setRealEstatePct(profile.netWorthBreakdown.assetBreakdownPercent.realEstate ?? 10);
+      }
+      setTotalLiabilities(profile.netWorthBreakdown.totalLiabilities ?? 1500000);
+      setHasHighInterestDebt(profile.netWorthBreakdown.hasHighInterestDebt ?? false);
+    }
+    if (profile.riskAndInsurance) {
+      setRiskAppetite(profile.riskAndInsurance.riskAppetite ?? 'Medium');
+      setHasHealthInsurance(profile.riskAndInsurance.hasHealthInsurance ?? true);
+      setHasLifeInsurance(profile.riskAndInsurance.hasLifeInsurance ?? true);
+      setHasEmergencyFund(profile.riskAndInsurance.hasEmergencyFund ?? false);
+    }
+    if (Array.isArray(profile.financialGoals) && profile.financialGoals.length > 0) {
+      setGoals(profile.financialGoals);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -124,8 +211,11 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
     };
 
     try {
-      // Direct POST to AI recommendation endpoint
-      const res = await fetch('/api/ai/recommendation', {
+      // 1. Save profile to localStorage immediately
+      localStorage.setItem('arthova_user_profile', JSON.stringify(payload));
+
+      // 2. Persist to PostgreSQL database and generate recommendation via /api/ai/profile
+      const res = await fetch('/api/ai/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -133,11 +223,12 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
 
       if (res.ok) {
         const data = await res.json();
+        localStorage.setItem('arthova_ai_data', JSON.stringify(data));
         if (onSuccess) onSuccess(data);
         onClose();
       }
     } catch (err) {
-      console.error('Failed to run AI onboarding', err);
+      console.error('Failed to save AI profile & calculate recommendation:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -159,7 +250,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
             </div>
             <div>
               <h2 className="text-[16px] font-medium text-text-primary">AI Portfolio Calibration</h2>
-              <p className="text-[11px] text-text-faint">Step {step} of 3 — Live Profile Sync & Goal Inputs</p>
+              <p className="text-[11px] text-text-faint">Step {step} of 3 — Profile & Financial Calibration</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-[6px] text-text-faint hover:text-text-primary hover:bg-bg-surface-3 transition-colors">
@@ -214,9 +305,19 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
 
           {step === 2 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-              <h3 className="text-[14px] font-medium text-text-primary flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-accent-brass" /> Cash Flow, Tax & Net Worth (Fetched Live)
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-[14px] font-medium text-text-primary flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-accent-brass" /> Cash Flow, Tax & Live Asset Breakdown
+                </h3>
+                <button
+                  type="button"
+                  onClick={syncWithLivePortfolio}
+                  className="flex items-center gap-1.5 text-[11px] text-accent-brass hover:text-accent-brass-dim bg-accent-brass/10 px-2.5 py-1 rounded-[6px] transition-colors"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                  Sync Live Portfolio
+                </button>
+              </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
@@ -240,7 +341,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
                     <option value={0}>0% Slab</option>
                     <option value={10}>10% Slab</option>
                     <option value={20}>20% Slab</option>
-                    <option value={30}>30% Slab (High Tax)</option>
+                    <option value={30}>30% Slab (High Tax Bracket)</option>
                   </select>
                 </div>
                 <div>
@@ -250,7 +351,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
               </div>
 
               <div className="space-y-2 bg-bg-surface-2 p-3 rounded-[8px] border border-border-default">
-                <span className="text-[11px] text-text-faint block">Fetched Current Asset Distribution (%)</span>
+                <span className="text-[11px] text-text-faint block">Current Asset Distribution (%)</span>
                 <div className="grid grid-cols-4 gap-2">
                   <div>
                     <span className="text-[10px] text-text-faint block">Equity %</span>
@@ -313,7 +414,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-text-faint">Life Goals List</span>
-                  <button type="button" onClick={handleAddGoal} className="text-[12px] text-accent-brass hover:underline">
+                  <button type="button" onClick={handleAddGoal} className="text-[12px] text-accent-brass hover:underline font-medium">
                     + Add Goal
                   </button>
                 </div>
@@ -364,7 +465,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, userId }: Props
               className="flex items-center gap-2 bg-accent-brass hover:bg-accent-brass-dim text-bg-base px-5 py-2 rounded-[8px] text-[13px] font-medium transition-colors disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4" />
-              {isSubmitting ? 'Calculating AI Engine...' : 'Save & Calculate AI Engine'}
+              {isSubmitting ? 'Saving & Calculating...' : 'Save & Calculate AI Engine'}
             </button>
           )}
         </div>
