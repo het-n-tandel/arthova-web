@@ -72,6 +72,43 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
   // Purchase Date (defaults to today, but can be backdated)
   const todayStr = new Date().toISOString().slice(0, 10);
   const [purchaseDate, setPurchaseDate] = useState(todayStr);
+  const [isFetchingHistoricalPrice, setIsFetchingHistoricalPrice] = useState(false);
+  const [historicalPriceNotice, setHistoricalPriceNotice] = useState<string | null>(null);
+
+  const fetchPastPrice = async (targetDate: string) => {
+    if (!selectedAsset?.symbol || isManualAsset) return;
+    if (targetDate >= todayStr) return;
+
+    setIsFetchingHistoricalPrice(true);
+    setHistoricalPriceNotice(null);
+    try {
+      if (assetType === 'mutual_fund') {
+        const res = await fetch(`https://api.mfapi.in/mf/${selectedAsset.symbol}`);
+        if (res.ok) {
+          const mfData = await res.json();
+          const targetFormatted = targetDate.split('-').reverse().join('-'); // YYYY-MM-DD -> DD-MM-YYYY
+          const match = mfData.data?.find((d: any) => d.date === targetFormatted) || mfData.data?.[0];
+          if (match?.nav) {
+            setPricePerUnit(match.nav);
+            setHistoricalPriceNotice(`Historical NAV ₹${match.nav} on ${match.date} loaded`);
+          }
+        }
+      } else {
+        const res = await fetch(`/api/market/historical?symbol=${selectedAsset.symbol}&date=${targetDate}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.close) {
+            setPricePerUnit(data.close.toString());
+            setHistoricalPriceNotice(`Historical close ₹${data.close} on ${targetDate} loaded`);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not auto-fetch past price:', err);
+    } finally {
+      setIsFetchingHistoricalPrice(false);
+    }
+  };
 
   // Metal fields
   const [metalPurity, setMetalPurity] = useState('24K');
@@ -570,11 +607,47 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
             )}
           </div>
 
-          <div className="bg-bg-surface-2 p-3 rounded-[8px] flex justify-between items-center text-[13px]">
-            <span className="text-text-secondary">{assetType === 'cash' && cashType === 'income' ? 'Total Monthly Income' : assetType === 'liability' ? 'Total Liability' : 'Total Value'}</span>
-            <span className="font-medium text-text-primary font-mono">
-              ₹{assetType === 'cash' && cashType === 'income' ? (parseFloat(quantity) || 0).toFixed(2) : assetType === 'liability' ? (parseFloat(quantity) || 0).toFixed(2) : ((parseFloat(quantity) || 0) * (parseFloat(pricePerUnit) || 1)).toFixed(2)}
-            </span>
+          <div className="bg-bg-surface-2 p-3 rounded-[8px] space-y-2 text-[13px] border border-border-default">
+            <div className="flex justify-between items-center">
+              <span className="text-text-secondary">
+                {assetType === 'cash' && cashType === 'income' ? 'Total Monthly Income' : assetType === 'liability' ? 'Total Liability' : tradeTab === 'buy' && purchaseDate < todayStr ? 'Total Invested (Past Basis)' : 'Total Value'}
+              </span>
+              <span className="font-medium text-text-primary font-mono">
+                ₹{assetType === 'cash' && cashType === 'income' ? (parseFloat(quantity) || 0).toFixed(2) : assetType === 'liability' ? (parseFloat(quantity) || 0).toFixed(2) : ((parseFloat(quantity) || 0) * (parseFloat(pricePerUnit) || 1)).toFixed(2)}
+              </span>
+            </div>
+
+            {/* If past purchase date, show Current Market Value & Unrealized Gain */}
+            {tradeTab === 'buy' && purchaseDate < todayStr && selectedAsset?.price && !isManualAsset && (
+              <>
+                <div className="flex justify-between items-center text-[12px] pt-1.5 border-t border-border-default">
+                  <span className="text-text-faint">Today&apos;s Live Value (CMP ₹{selectedAsset.price}):</span>
+                  <span className="font-mono text-text-primary font-medium">
+                    ₹{((parseFloat(quantity) || 0) * selectedAsset.price).toFixed(2)}
+                  </span>
+                </div>
+                {(() => {
+                  const qty = parseFloat(quantity) || 0;
+                  const buyPx = parseFloat(pricePerUnit) || 0;
+                  if (qty > 0 && buyPx > 0) {
+                    const invested = qty * buyPx;
+                    const current = qty * selectedAsset.price;
+                    const gain = current - invested;
+                    const gainPct = ((selectedAsset.price - buyPx) / buyPx) * 100;
+                    const isPositive = gain >= 0;
+                    return (
+                      <div className="flex justify-between items-center text-[11.5px] pt-0.5">
+                        <span className="text-text-faint">Unrealized P&amp;L since {purchaseDate}:</span>
+                        <span className={cn('font-mono font-medium', isPositive ? 'text-positive' : 'text-negative')}>
+                          {isPositive ? '+' : ''}₹{gain.toFixed(2)} ({isPositive ? '+' : ''}{gainPct.toFixed(2)}%)
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </>
+            )}
           </div>
 
           {/* Purchase / Investment Date Picker */}
@@ -611,9 +684,36 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
               type="date"
               max={new Date().toISOString().slice(0, 10)}
               value={purchaseDate}
-              onChange={e => setPurchaseDate(e.target.value)}
+              onChange={e => {
+                const newDate = e.target.value;
+                setPurchaseDate(newDate);
+                if (newDate < todayStr && !isManualAsset) {
+                  fetchPastPrice(newDate);
+                } else {
+                  setHistoricalPriceNotice(null);
+                }
+              }}
               className="w-full bg-bg-base border border-border-default rounded-[8px] px-3 py-2 text-[14px] text-text-primary focus:border-accent-brass transition-colors"
             />
+
+            {/* Auto-fetch historical price helper */}
+            {purchaseDate < todayStr && !isManualAsset && selectedAsset?.symbol && (
+              <div className="flex items-center justify-between pt-0.5 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => fetchPastPrice(purchaseDate)}
+                  disabled={isFetchingHistoricalPrice}
+                  className="text-accent-brass hover:underline flex items-center gap-1 font-medium"
+                >
+                  {isFetchingHistoricalPrice ? '⏳ Fetching past price...' : `⚡ Auto-fetch close price on ${purchaseDate}`}
+                </button>
+                {historicalPriceNotice && (
+                  <span className="text-positive font-mono truncate max-w-[200px]">
+                    ✓ {historicalPriceNotice}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <button 
