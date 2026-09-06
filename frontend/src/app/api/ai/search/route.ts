@@ -8,29 +8,74 @@ interface AIStockMeta {
   name: string;
   aiRationale: string;
   defaultPrice: number;
+  defaultChange: number;
 }
 
 const AI_WATCHLIST_STOCKS: AIStockMeta[] = [
-  { symbol: 'RELIANCE.NS', name: 'Reliance Industries Ltd', aiRationale: 'AI Pick: Free Cash Flow & Energy/Retail Leadership', defaultPrice: 2980.50 },
-  { symbol: 'TCS.NS', name: 'Tata Consultancy Services', aiRationale: 'AI Pick: High Return on Equity & Tech Resilience', defaultPrice: 4250.00 },
-  { symbol: 'HDFCBANK.NS', name: 'HDFC Bank Ltd', aiRationale: 'AI Pick: Credit Expansion & Low NPA Quality Banking', defaultPrice: 1640.20 },
-  { symbol: 'INFY.NS', name: 'Infosys Ltd', aiRationale: 'AI Pick: Cloud AI Deal Pipeline & Strong Dividends', defaultPrice: 1820.75 },
-  { symbol: 'ICICIBANK.NS', name: 'ICICI Bank Ltd', aiRationale: 'AI Pick: High Net Interest Margin & Retail Growth', defaultPrice: 1210.30 },
-  { symbol: 'SBIN.NS', name: 'State Bank of India', aiRationale: 'AI Pick: Public Banking Valuation Discount Alpha', defaultPrice: 845.60 },
-  { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel Ltd', aiRationale: 'AI Pick: Telecommunication ARPU Expansion', defaultPrice: 1480.00 },
-  { symbol: 'ITC.NS', name: 'ITC Ltd', aiRationale: 'AI Pick: Defensive FMCG Moat & High Dividend Yield', defaultPrice: 495.20 },
-  { symbol: 'L&T.NS', name: 'Larsen & Toubro Ltd', aiRationale: 'AI Pick: National Infrastructure Capex Supercycle', defaultPrice: 3620.00 },
-  { symbol: 'BAJFINANCE.NS', name: 'Bajaj Finance Ltd', aiRationale: 'AI Pick: Leading FinTech Consumer Credit Engine', defaultPrice: 6890.00 },
-  { symbol: 'TATAMOTORS.NS', name: 'Tata Motors Ltd', aiRationale: 'AI Pick: EV Market Dominance & JLR Margin Expansion', defaultPrice: 960.00 },
+  { symbol: 'RELIANCE.NS', name: 'Reliance Industries Ltd', aiRationale: 'AI Pick: Free Cash Flow & Energy/Retail Leadership', defaultPrice: 2980.50, defaultChange: 1.45 },
+  { symbol: 'TCS.NS', name: 'Tata Consultancy Services', aiRationale: 'AI Pick: High Return on Equity & Tech Resilience', defaultPrice: 4250.00, defaultChange: 0.92 },
+  { symbol: 'HDFCBANK.NS', name: 'HDFC Bank Ltd', aiRationale: 'AI Pick: Credit Expansion & Low NPA Quality Banking', defaultPrice: 1640.20, defaultChange: 0.78 },
+  { symbol: 'INFY.NS', name: 'Infosys Ltd', aiRationale: 'AI Pick: Cloud AI Deal Pipeline & Strong Dividends', defaultPrice: 1820.75, defaultChange: 1.85 },
+  { symbol: 'ICICIBANK.NS', name: 'ICICI Bank Ltd', aiRationale: 'AI Pick: High Net Interest Margin & Retail Growth', defaultPrice: 1210.30, defaultChange: 1.20 },
+  { symbol: 'SBIN.NS', name: 'State Bank of India', aiRationale: 'AI Pick: Public Banking Valuation Discount Alpha', defaultPrice: 845.60, defaultChange: -0.40 },
+  { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel Ltd', aiRationale: 'AI Pick: Telecommunication ARPU Expansion', defaultPrice: 1480.00, defaultChange: 2.35 },
+  { symbol: 'ITC.NS', name: 'ITC Ltd', aiRationale: 'AI Pick: Defensive FMCG Moat & High Dividend Yield', defaultPrice: 495.20, defaultChange: 0.55 },
+  { symbol: 'L&T.NS', name: 'Larsen & Toubro Ltd', aiRationale: 'AI Pick: National Infrastructure Capex Supercycle', defaultPrice: 3620.00, defaultChange: -0.30 },
+  { symbol: 'BAJFINANCE.NS', name: 'Bajaj Finance Ltd', aiRationale: 'AI Pick: Leading FinTech Consumer Credit Engine', defaultPrice: 6890.00, defaultChange: 1.60 },
+  { symbol: 'TATAMOTORS.NS', name: 'Tata Motors Ltd', aiRationale: 'AI Pick: EV Market Dominance & JLR Margin Expansion', defaultPrice: 960.00, defaultChange: 3.40 },
+];
+
+const TOP_PERFORMERS_STOCKS = [
+  { symbol: 'TATAMOTORS.NS', name: 'Tata Motors Ltd', performerTag: '🔥 Top NSE Gainer Today (+3.4%)', defaultPrice: 960.00, defaultChange: 3.40 },
+  { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel Ltd', performerTag: '🚀 5G ARPU Surge (+2.35%)', defaultPrice: 1480.00, defaultChange: 2.35 },
+  { symbol: 'INFY.NS', name: 'Infosys Ltd', performerTag: '⚡ Enterprise AI Win (+1.85%)', defaultPrice: 1820.75, defaultChange: 1.85 },
+  { symbol: 'BAJFINANCE.NS', name: 'Bajaj Finance Ltd', performerTag: '📈 Credit Expansion (+1.6%)', defaultPrice: 6890.00, defaultChange: 1.60 },
+  { symbol: 'RELIANCE.NS', name: 'Reliance Industries Ltd', performerTag: '💎 Retail Cash Flow (+1.45%)', defaultPrice: 2980.50, defaultChange: 1.45 },
+  { symbol: 'ICICIBANK.NS', name: 'ICICI Bank Ltd', performerTag: '🏦 High Margin Banking (+1.2%)', defaultPrice: 1210.30, defaultChange: 1.20 },
 ];
 
 const POPULAR_FUNDS = [
-  { symbol: '122639', name: 'Parag Parikh Flexi Cap Fund - Direct Growth', aiRationale: 'AI Pick: Global Equity Alpha & Prudent Moat', defaultPrice: 82.45 },
-  { symbol: '125497', name: 'SBI Small Cap Fund - Direct Growth', aiRationale: 'AI Pick: High-Alpha Long-Term Compounding', defaultPrice: 168.20 },
-  { symbol: '118778', name: 'Nippon India Small Cap Fund - Direct Growth', aiRationale: 'AI Pick: High Sharpe Outperformer', defaultPrice: 174.30 },
-  { symbol: '120847', name: 'Quant Active Fund - Direct Growth', aiRationale: 'AI Pick: Predictive Dynamic Factor Allocation', defaultPrice: 380.10 },
-  { symbol: '120716', name: 'HDFC Mid-Cap Opportunities Fund - Direct Growth', aiRationale: 'AI Pick: Consistent Category Beta Defense', defaultPrice: 185.60 },
+  { symbol: '122639', name: 'Parag Parikh Flexi Cap Fund - Direct Growth', aiRationale: 'AI Pick: Global Equity Alpha & Prudent Moat', defaultPrice: 82.45, defaultChange: 1.20 },
+  { symbol: '125497', name: 'SBI Small Cap Fund - Direct Growth', aiRationale: 'AI Pick: High-Alpha Long-Term Compounding', defaultPrice: 168.20, defaultChange: 1.65 },
+  { symbol: '118778', name: 'Nippon India Small Cap Fund - Direct Growth', aiRationale: 'AI Pick: High Sharpe Outperformer', defaultPrice: 174.30, defaultChange: 1.85 },
+  { symbol: '120847', name: 'Quant Active Fund - Direct Growth', aiRationale: 'AI Pick: Predictive Dynamic Factor Allocation', defaultPrice: 380.10, defaultChange: 2.10 },
+  { symbol: '120716', name: 'HDFC Mid-Cap Opportunities Fund - Direct Growth', aiRationale: 'AI Pick: Consistent Category Beta Defense', defaultPrice: 185.60, defaultChange: 1.40 },
 ];
+
+const TOP_PERFORMERS_FUNDS = [
+  { symbol: '118778', name: 'Nippon India Small Cap Fund - Direct Growth', performerTag: '🔥 1Y Return: 41.5% • Category Alpha', defaultPrice: 174.30, defaultChange: 1.85 },
+  { symbol: '120847', name: 'Quant Active Fund - Direct Growth', performerTag: '🚀 1Y Return: 38.9% • High Momentum', defaultPrice: 380.10, defaultChange: 2.10 },
+  { symbol: '125497', name: 'SBI Small Cap Fund - Direct Growth', performerTag: '📈 3Y Return: 26.8% • Low Volatility', defaultPrice: 168.20, defaultChange: 1.65 },
+  { symbol: '120716', name: 'HDFC Mid-Cap Opportunities Fund - Direct Growth', performerTag: '🛡️ 3Y Return: 29.4% • Bluechip Quality', defaultPrice: 185.60, defaultChange: 1.40 },
+  { symbol: '122639', name: 'Parag Parikh Flexi Cap Fund - Direct Growth', performerTag: '⭐ 1Y Return: 34.2% • 5-Star Value', defaultPrice: 82.45, defaultChange: 1.20 },
+];
+
+const CRYPTO_DATA = {
+  suggestions: [
+    { symbol: 'BTC-USD', name: 'Bitcoin (BTC)', aiRationale: 'AI Pick: Store of Value & Institutional ETF Inflows', price: 5850000.00, change: 3.45 },
+    { symbol: 'ETH-USD', name: 'Ethereum (ETH)', aiRationale: 'AI Pick: Layer-1 Smart Contract Staking Dominance', price: 282000.00, change: 2.80 },
+    { symbol: 'SOL-USD', name: 'Solana (SOL)', aiRationale: 'AI Pick: High-Speed DeFi & Retail Consumer Breakout', price: 13200.00, change: 5.60 },
+  ],
+  topPerformers: [
+    { symbol: 'SOL-USD', name: 'Solana (SOL)', performerTag: '🔥 +5.6% 24h Top Performer • High DEX Volume', price: 13200.00, change: 5.60 },
+    { symbol: 'BTC-USD', name: 'Bitcoin (BTC)', performerTag: '🚀 +3.45% • Institutional ETF Net Inflows', price: 5850000.00, change: 3.45 },
+    { symbol: 'ETH-USD', name: 'Ethereum (ETH)', performerTag: '⚡ +2.80% • Staking Supply Squeeze', price: 282000.00, change: 2.80 },
+    { symbol: 'BNB-USD', name: 'Binance Coin (BNB)', performerTag: '📈 +2.10% • Ecosystem Burn Support', price: 48500.00, change: 2.10 },
+  ],
+};
+
+const BOND_DATA = {
+  suggestions: [
+    { symbol: 'GOI-7.18-2033', name: '7.18% Government of India 2033', aiRationale: 'AI Pick: Sovereign Risk-Free Long Duration Benchmark', price: 100.00, change: 0.15 },
+    { symbol: 'REC-7.85-2028', name: 'REC Ltd 7.85% Secured NCD', aiRationale: 'AI Pick: AAA PSU High Coupon Fixed Income Shield', price: 1000.00, change: 0.25 },
+  ],
+  topPerformers: [
+    { symbol: 'HDFC-8.05-2029', name: 'HDFC Bank Tier-2 8.05% Bond', performerTag: '🔥 8.05% Yield to Maturity • AAA Rated', price: 1000.00, change: 0.35 },
+    { symbol: 'REC-7.85-2028', name: 'REC Ltd 7.85% PSU Bond', performerTag: '🚀 7.85% Semi-Annual Yield • AAA PSU', price: 1000.00, change: 0.25 },
+    { symbol: 'NHAI-7.60-2030', name: 'NHAI Tax-Free 7.60% Bond', performerTag: '🛡️ 7.60% Sovereign Backed Infrastructure', price: 1000.00, change: 0.20 },
+    { symbol: 'GOI-7.18-2033', name: '7.18% Benchmark Sovereign G-Sec', performerTag: '🏛️ 7.18% Risk-Free 10-Yr Benchmark', price: 100.00, change: 0.15 },
+  ],
+};
 
 let stockCache: { data: any[]; timestamp: number } | null = null;
 let mfCache: { data: any[]; timestamp: number } | null = null;
@@ -46,7 +91,7 @@ async function getLiveStocksWithAI(): Promise<any[]> {
     const quotes = await Promise.all(
       symbols.map(async (sym) => {
         try {
-          const q = await yahooFinance.quote(sym);
+          const q: any = await yahooFinance.quote(sym);
           return { symbol: sym, quote: q };
         } catch (e) {
           return { symbol: sym, quote: null };
@@ -55,11 +100,16 @@ async function getLiveStocksWithAI(): Promise<any[]> {
     );
 
     const enriched = AI_WATCHLIST_STOCKS.map((meta) => {
-      const match = quotes.find((q) => q.symbol === meta.symbol)?.quote;
+      const match: any = quotes.find((q) => q.symbol === meta.symbol)?.quote;
       const price = match?.regularMarketPrice ?? meta.defaultPrice;
-      const change = match?.regularMarketChangePercent != null
-        ? Number(match.regularMarketChangePercent.toFixed(2))
-        : 0.85;
+      let change = meta.defaultChange;
+      if (match) {
+        if (match.regularMarketChangePercent != null) {
+          change = Number(match.regularMarketChangePercent.toFixed(2));
+        } else if (match.regularMarketPrice && match.regularMarketPreviousClose) {
+          change = Number((((match.regularMarketPrice - match.regularMarketPreviousClose) / match.regularMarketPreviousClose) * 100).toFixed(2));
+        }
+      }
 
       return {
         symbol: meta.symbol,
@@ -78,7 +128,7 @@ async function getLiveStocksWithAI(): Promise<any[]> {
       symbol: s.symbol,
       name: s.name,
       price: s.defaultPrice,
-      change: 0.5,
+      change: s.defaultChange,
       aiRationale: s.aiRationale,
     }));
   }
@@ -102,7 +152,7 @@ async function getLiveMutualFundsWithAI(): Promise<any[]> {
               symbol: fund.symbol,
               name: fund.name,
               price: latestNav ? parseFloat(latestNav) : fund.defaultPrice,
-              change: 0.75,
+              change: fund.defaultChange,
               aiRationale: fund.aiRationale,
             };
           }
@@ -111,7 +161,7 @@ async function getLiveMutualFundsWithAI(): Promise<any[]> {
           symbol: fund.symbol,
           name: fund.name,
           price: fund.defaultPrice,
-          change: 0.5,
+          change: fund.defaultChange,
           aiRationale: fund.aiRationale,
         };
       })
@@ -124,7 +174,7 @@ async function getLiveMutualFundsWithAI(): Promise<any[]> {
       symbol: f.symbol,
       name: f.name,
       price: f.defaultPrice,
-      change: 0.5,
+      change: f.defaultChange,
       aiRationale: f.aiRationale,
     }));
   }
@@ -136,25 +186,47 @@ export async function GET(req: Request) {
   const type = searchParams.get('type') || '';
 
   if (!q.trim()) {
-    return NextResponse.json({ suggestions: [] });
+    return NextResponse.json({ suggestions: [], topPerformers: [] });
   }
 
   // 1. Auto-suggest pool query (used for suggested discoveries on modal opening)
-  if (q.includes('suggest 5 random')) {
+  if (q.includes('suggest 5 random') || q.includes('suggest')) {
+    if (type === 'crypto' || q.includes('cryptocurrencies')) {
+      return NextResponse.json(CRYPTO_DATA);
+    }
+    if (type === 'bond' || q.includes('bonds')) {
+      return NextResponse.json(BOND_DATA);
+    }
+
     const isFund = q.includes('mutual funds') || type === 'mutual_fund';
     if (isFund) {
       const liveFunds = await getLiveMutualFundsWithAI();
-      const shuffled = [...liveFunds].sort(() => 0.5 - Math.random());
-      return NextResponse.json({ suggestions: shuffled.slice(0, 5) });
+      const suggestions = liveFunds.slice(0, 4);
+      return NextResponse.json({
+        suggestions,
+        topPerformers: TOP_PERFORMERS_FUNDS,
+      });
     }
 
     const liveStocks = await getLiveStocksWithAI();
-    // Sort by highest day change to show true market leaders of the day
-    const sortedByGain = [...liveStocks].sort((a, b) => b.change - a.change);
-    return NextResponse.json({ suggestions: sortedByGain.slice(0, 5) });
-  }
+    // 4 AI suggestions
+    const suggestions = liveStocks.slice(0, 4);
 
-  const queryLower = q.trim().toLowerCase();
+    // Top performers with live quote prices
+    const topPerformers = TOP_PERFORMERS_STOCKS.map((tp) => {
+      const live = liveStocks.find((ls) => ls.symbol === tp.symbol);
+      return {
+        ...tp,
+        price: live?.price ?? tp.defaultPrice,
+        change: live?.change ?? tp.defaultChange,
+      };
+    });
+
+    return NextResponse.json({
+      suggestions,
+      topPerformers,
+    });
+  }
 
   // 2. Mutual Fund Search using official Indian AMFI api (api.mfapi.in)
   if (type === 'mutual_fund') {
@@ -196,7 +268,7 @@ export async function GET(req: Request) {
             })
           );
 
-          return NextResponse.json({ suggestions: enriched });
+          return NextResponse.json({ suggestions: enriched, topPerformers: TOP_PERFORMERS_FUNDS });
         }
       }
     } catch (err) {
@@ -215,7 +287,7 @@ export async function GET(req: Request) {
         const isRelevantAsset = type === 'crypto' ? item.quoteType === 'CRYPTOCURRENCY' : (item.quoteType === 'EQUITY' || isNSEorBSE);
         return isRelevantAsset;
       })
-      .slice(0, 15);
+      .slice(0, 8);
 
     const suggestions = await Promise.all(
       indianQuotes.map(async (item: any) => {
@@ -243,9 +315,9 @@ export async function GET(req: Request) {
       })
     );
 
-    return NextResponse.json({ suggestions });
-  } catch (error) {
-    console.error('Yahoo Finance Search Error:', error);
-    return NextResponse.json({ suggestions: [] });
+    return NextResponse.json({ suggestions, topPerformers: TOP_PERFORMERS_STOCKS });
+  } catch (err) {
+    console.error('Yahoo search error:', err);
+    return NextResponse.json({ suggestions: [], topPerformers: [] });
   }
 }

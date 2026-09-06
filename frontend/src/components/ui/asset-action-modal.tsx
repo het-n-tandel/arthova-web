@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { X, Search, Loader2, ChevronLeft, TrendingUp, AlertTriangle, Sparkles } from 'lucide-react';
+import { X, Search, Loader2, ChevronLeft, TrendingUp, AlertTriangle, Sparkles, Flame } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { LineChart, Line, YAxis, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/formatters';
@@ -149,7 +149,7 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
           query = `suggest 5 popular indian government or corporate bonds (ignore previous answers, seed: ${randomSeed})`;
       }
       
-      const res = await fetch(`/api/ai/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/ai/search?q=${encodeURIComponent(query)}&type=${assetType}`);
       if (!res.ok) throw new Error('Failed to fetch suggestions');
       return res.json();
     },
@@ -304,7 +304,63 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
     if (isManualAsset) return null;
 
     const rawSuggestions = suggestionsData?.suggestions || [];
+    const topPerformers = suggestionsData?.topPerformers || [];
     const filteredSuggestions = rawSuggestions.filter((s: any) => !ownedSymbols.includes(s.symbol));
+    const filteredPerformers = topPerformers.filter((s: any) => !ownedSymbols.includes(s.symbol));
+
+    const renderAssetCard = (stock: any, isTopPerformer: boolean = false) => (
+      <button
+        key={`${stock.symbol}-${isTopPerformer ? 'top' : 'sug'}`}
+        type="button"
+        onClick={() => selectAssetForTrade(stock)}
+        className="w-full min-w-0 text-left bg-bg-base border border-border-default hover:border-accent-brass/60 rounded-[10px] p-3.5 transition-all hover:bg-bg-surface-2 group flex flex-col justify-between shadow-sm overflow-hidden"
+      >
+        <div className="w-full min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="font-semibold text-[13.5px] text-text-primary truncate" title={stock.name}>
+              {stock.symbol.replace('.NS', '')}
+            </span>
+            <span className={cn(
+              "text-[11px] font-mono font-medium px-1.5 py-0.5 rounded shrink-0",
+              (stock.change ?? 0) >= 0 ? "text-positive bg-positive/10 border border-positive/20" : "text-negative bg-negative/10 border border-negative/20"
+            )}>
+              {(stock.change ?? 0) >= 0 ? '+' : ''}{(stock.change ?? 0).toFixed(2)}%
+            </span>
+          </div>
+          <p className="text-[11.5px] text-text-faint truncate block w-full" title={stock.name}>
+            {stock.name}
+          </p>
+        </div>
+
+        {/* AI Rationale or Performer Tag - Wrapped with line-clamp-2 & break-words so text never overflows */}
+        {stock.aiRationale && !isTopPerformer && (
+          <div 
+            className="mt-2 text-[11px] text-accent-brass bg-accent-brass/10 border border-accent-brass/25 rounded px-2 py-1 leading-snug line-clamp-2 break-words text-left w-full" 
+            title={stock.aiRationale}
+          >
+            ✨ {stock.aiRationale}
+          </div>
+        )}
+
+        {stock.performerTag && (
+          <div 
+            className="mt-2 text-[11px] text-positive bg-positive/10 border border-positive/25 rounded px-2 py-1 leading-snug line-clamp-2 break-words text-left w-full font-medium" 
+            title={stock.performerTag}
+          >
+            {stock.performerTag}
+          </div>
+        )}
+
+        <div className="mt-2.5 pt-2 border-t border-border-default/60 flex items-center justify-between w-full">
+          <span className="text-[10px] text-text-faint uppercase font-mono tracking-wider">
+            {assetType === 'mutual_fund' ? 'NAV' : 'PRICE'}
+          </span>
+          <span className="text-[13px] text-text-primary font-mono font-medium">
+            ₹{stock.price ? stock.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+          </span>
+        </div>
+      </button>
+    );
 
     return (
       <div className="space-y-6">
@@ -351,14 +407,14 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
           <div className="mb-6">
             <h3 className="text-[13px] font-medium text-text-secondary mb-3 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-text-faint" /> 
-              Your Holdings
+              Your Current Holdings
             </h3>
-            <div className="grid grid-cols-2 gap-3 max-h-[150px] overflow-y-auto pr-2 pb-2 custom-scrollbar">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
               {activeHoldings.map((stock: any) => (
                 <button
                   key={stock.symbol}
                   onClick={() => selectAssetForTrade({ symbol: stock.symbol, name: stock.name, price: stock.cmp, change: stock.dayChange })}
-                  className="text-left bg-bg-surface-2 border border-border-default hover:border-accent-brass/50 rounded-[8px] p-3 transition-all group"
+                  className="text-left bg-bg-surface-2 border border-border-default hover:border-accent-brass/50 rounded-[8px] p-3 transition-all group overflow-hidden"
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-medium text-[13px] text-text-primary truncate pr-2" title={stock.name}>{stock.symbol.replace('.NS', '')}</span>
@@ -373,46 +429,49 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
           </div>
         )}
 
+        {/* Suggested Discoveries (AI Picks) */}
         <div>
-          <h3 className="text-[13px] font-medium text-text-secondary mb-3 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-accent-brass" /> 
-            Suggested Discoveries
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[13px] font-medium text-text-secondary flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-accent-brass" /> 
+              Suggested Discoveries
+            </h3>
+            <span className="text-[11px] text-text-faint">
+              AI Quantitative Strategy Picks
+            </span>
+          </div>
           
           {isLoadingSuggestions ? (
             <div className="flex justify-center py-8">
               <Loader2 className="w-6 h-6 text-text-faint animate-spin" />
             </div>
           ) : filteredSuggestions.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 pb-2 custom-scrollbar">
-              {filteredSuggestions.map((stock: any) => (
-                <button
-                  key={stock.symbol}
-                  onClick={() => selectAssetForTrade(stock)}
-                  className="text-left bg-bg-base border border-border-default hover:border-accent-brass/50 rounded-[8px] p-3 transition-all hover:bg-bg-surface-2 group flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-medium text-[13px] text-text-primary truncate pr-2" title={stock.name}>{stock.symbol.replace('.NS', '')}</span>
-                      <span className={cn("text-[12px] font-medium whitespace-nowrap", (stock.change ?? 0) >= 0 ? "text-positive" : "text-negative")}>
-                        {(stock.change ?? 0) >= 0 ? '+' : ''}{(stock.change ?? 0).toFixed(2)}%
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-text-faint truncate">{stock.name}</div>
-                  </div>
-                  {stock.aiRationale && (
-                    <div className="mt-2 text-[10.5px] text-accent-brass font-medium bg-accent-brass/10 border border-accent-brass/25 rounded px-2 py-0.5 truncate" title={stock.aiRationale}>
-                      ✨ {stock.aiRationale}
-                    </div>
-                  )}
-                  <div className="mt-2 text-[13px] text-text-secondary font-mono">₹{stock.price?.toFixed(2)}</div>
-                </button>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+              {filteredSuggestions.map((stock: any) => renderAssetCard(stock, false))}
             </div>
           ) : (
             <p className="text-[13px] text-text-faint text-center py-8 bg-bg-surface-2 rounded-[8px]">No new suggestions right now.</p>
           )}
         </div>
+
+        {/* Today's Top Performers */}
+        {filteredPerformers.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[13px] font-medium text-text-secondary flex items-center gap-2">
+                <Flame className="w-4 h-4 text-positive" /> 
+                Today&apos;s Top Performers
+              </h3>
+              <span className="text-[11px] text-text-faint">
+                Top market gainers &amp; yield leaders
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+              {filteredPerformers.map((stock: any) => renderAssetCard(stock, true))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -442,7 +501,7 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
     const availableCash = (portfolio.cashHoldings || []).reduce((sum: number, h: any) => sum + (Number(h.computedValue || h.quantity) || 0), 0);
     const isInsufficientCash = isBuy && assetType !== 'cash' && assetType !== 'liability' && totalTradeCost > 0 && availableCash >= 0 && totalTradeCost > availableCash;
 
-    const isFormValid = isQuantityValid && isNameValid && isPriceValid && isEmiValid && isFdValid && isPropertyValid && isBondValid && isSellValid;
+    const isFormValid = isQuantityValid && isNameValid && isPriceValid && isEmiValid && isFdValid && isPropertyValid && isBondValid && isSellValid && !isInsufficientCash;
     
     return (
       <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-200">
@@ -748,10 +807,14 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
           <button 
             type="button"
             onClick={() => mutation.mutate()} 
-            disabled={mutation.isPending || !isFormValid} 
-            className="w-full bg-accent-brass hover:bg-accent-brass-dim text-bg-base font-medium py-2.5 rounded-[8px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={mutation.isPending || !isFormValid || isInsufficientCash} 
+            className="w-full bg-accent-brass hover:bg-accent-brass-dim text-bg-base font-medium py-2.5 rounded-[8px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-bg-surface-3 disabled:text-text-faint border disabled:border-border-default shadow-sm"
           >
-            {mutation.isPending ? 'Processing...' : `Confirm ${isManualAsset ? (tradeTab === 'buy' ? 'ADD' : 'REMOVE') : tradeTab.toUpperCase()}`}
+            {mutation.isPending
+              ? 'Processing...'
+              : isInsufficientCash
+                ? 'Insufficient Cash Balance'
+                : `Confirm ${isManualAsset ? (tradeTab === 'buy' ? 'ADD' : 'REMOVE') : tradeTab.toUpperCase()}`}
           </button>
         </div>
       </div>
@@ -760,15 +823,15 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="bg-bg-surface border border-border-default rounded-[16px] w-full max-w-md overflow-hidden relative shadow-2xl">
-        <div className="flex justify-between items-center p-5 border-b border-border-default">
+      <div className="bg-bg-surface border border-border-default rounded-[16px] w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden relative shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex justify-between items-center p-5 border-b border-border-default shrink-0">
           <h2 className="text-[18px] font-medium text-text-primary capitalize">
               {isManualAsset ? `Manage ${assetType.replace('_', ' ')}` : 'Trade Platform'}
           </h2>
           <button onClick={onClose} className="text-text-faint hover:text-text-primary transition-colors p-1 bg-bg-surface-2 rounded-full"><X className="w-4 h-4"/></button>
         </div>
         
-        <div className="p-5">
+        <div className="p-5 overflow-y-auto flex-1 custom-scrollbar">
           {view === 'discovery' ? renderDiscovery() : renderTrading()}
         </div>
       </div>
