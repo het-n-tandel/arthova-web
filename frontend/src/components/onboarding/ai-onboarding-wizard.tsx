@@ -24,21 +24,21 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
   // Form State
   const [age, setAge] = useState(28);
   const [targetRetirementAge, setTargetRetirementAge] = useState(55);
-  const [maritalStatus, setMaritalStatus] = useState('married');
-  const [childrenCount, setChildrenCount] = useState(1);
-  const [dependentParents, setDependentParents] = useState(true);
+  const [maritalStatus, setMaritalStatus] = useState('single');
+  const [childrenCount, setChildrenCount] = useState(0);
+  const [dependentParents, setDependentParents] = useState(false);
 
-  const [monthlyIncome, setMonthlyIncome] = useState(120000);
-  const [monthlyExpenses, setMonthlyExpenses] = useState(45000);
-  const [monthlyEmis, setMonthlyEmis] = useState(22000);
-  const [taxBracketPercent, setTaxBracketPercent] = useState(30);
+  const [monthlyIncome, setMonthlyIncome] = useState(100000);
+  const [monthlyExpenses, setMonthlyExpenses] = useState(40000);
+  const [monthlyEmis, setMonthlyEmis] = useState(0);
+  const [taxBracketPercent, setTaxBracketPercent] = useState(20);
 
-  const [totalCurrentAssets, setTotalCurrentAssets] = useState(1000000);
-  const [equityPct, setEquityPct] = useState(20);
-  const [fdDebtPct, setFdDebtPct] = useState(60);
-  const [goldPct, setGoldPct] = useState(10);
-  const [realEstatePct, setRealEstatePct] = useState(10);
-  const [totalLiabilities, setTotalLiabilities] = useState(1500000);
+  const [totalCurrentAssets, setTotalCurrentAssets] = useState(0);
+  const [equityPct, setEquityPct] = useState(0);
+  const [fdDebtPct, setFdDebtPct] = useState(0);
+  const [goldPct, setGoldPct] = useState(0);
+  const [realEstatePct, setRealEstatePct] = useState(0);
+  const [totalLiabilities, setTotalLiabilities] = useState(0);
   const [hasHighInterestDebt, setHasHighInterestDebt] = useState(false);
 
   const [riskAppetite, setRiskAppetite] = useState<'Low' | 'Medium' | 'High'>('Medium');
@@ -46,16 +46,13 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
   const [hasLifeInsurance, setHasLifeInsurance] = useState(true);
   const [hasEmergencyFund, setHasEmergencyFund] = useState(false);
 
-  const [goals, setGoals] = useState([
-    { type: 'Car Purchase', targetAmount: 800000, horizonYears: 2 },
-    { type: 'Child Education', targetAmount: 2500000, horizonYears: 12 },
-  ]);
+  const [goals, setGoals] = useState<Array<{ type: string; targetAmount: number; horizonYears: number }>>([]);
 
   // Sync live holdings from portfolio hook
   const syncWithLivePortfolio = () => {
     setIsSyncing(true);
     try {
-      const liveTotal = portfolio.totalCurrent > 0 ? portfolio.totalCurrent : 1000000;
+      const liveTotal = portfolio.totalCurrent || 0;
       setTotalCurrentAssets(Math.round(liveTotal));
 
       const equityVal =
@@ -63,16 +60,21 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
         portfolio.mfHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
       const fdVal =
         portfolio.fdHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0) +
-        portfolio.bondHoldings.reduce((s, h) => s + (h.cmp || 0), 0);
+        portfolio.bondHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
       const goldVal = portfolio.goldHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
       const propVal = portfolio.propHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0);
       const liabVal = portfolio.liabilityHoldings.reduce((s, h) => s + (h.cmp || 0), 0);
 
-      if (portfolio.totalCurrent > 0) {
+      if (liveTotal > 0) {
         setEquityPct(Math.round((equityVal / liveTotal) * 100));
         setFdDebtPct(Math.round((fdVal / liveTotal) * 100));
         setGoldPct(Math.round((goldVal / liveTotal) * 100));
         setRealEstatePct(Math.round((propVal / liveTotal) * 100));
+      } else {
+        setEquityPct(0);
+        setFdDebtPct(0);
+        setGoldPct(0);
+        setRealEstatePct(0);
       }
       setTotalLiabilities(Math.round(liabVal));
       setProfileLoadedSource('live');
@@ -86,28 +88,40 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
   const applyProfile = (profile: any, source: 'saved' | 'live') => {
     if (!profile) return;
     if (profile.userDemographics) {
-      setAge(profile.userDemographics.age ?? 28);
+      setAge(profile.userDemographics.age ?? profile.calculatedAge ?? 28);
       setTargetRetirementAge(profile.userDemographics.targetRetirementAge ?? 55);
-      setMaritalStatus(profile.userDemographics.maritalStatus ?? 'married');
-      setChildrenCount(profile.userDemographics.childrenCount ?? 1);
-      setDependentParents(profile.userDemographics.dependentParents ?? true);
+      setMaritalStatus(profile.userDemographics.maritalStatus ?? 'single');
+      setChildrenCount(profile.userDemographics.childrenCount ?? 0);
+      setDependentParents(profile.userDemographics.dependentParents ?? false);
     }
     if (profile.financialCashflow) {
-      setMonthlyIncome(profile.financialCashflow.monthlyIncome ?? 120000);
-      setMonthlyExpenses(profile.financialCashflow.monthlyExpenses ?? 45000);
-      setMonthlyEmis(profile.financialCashflow.monthlyEmis ?? 22000);
-      setTaxBracketPercent(profile.financialCashflow.taxBracketPercent ?? 30);
+      setMonthlyIncome(profile.financialCashflow.monthlyIncome ?? profile.registeredSalary ?? 100000);
+      setMonthlyExpenses(profile.financialCashflow.monthlyExpenses ?? 40000);
+      setMonthlyEmis(profile.financialCashflow.monthlyEmis ?? 0);
+      setTaxBracketPercent(profile.financialCashflow.taxBracketPercent ?? 20);
     }
     if (profile.netWorthBreakdown) {
-      setTotalCurrentAssets(profile.netWorthBreakdown.totalCurrentAssets ?? 1000000);
-      if (profile.netWorthBreakdown.assetBreakdownPercent) {
-        setEquityPct(profile.netWorthBreakdown.assetBreakdownPercent.equity ?? 20);
-        setFdDebtPct(profile.netWorthBreakdown.assetBreakdownPercent.fdDebt ?? 60);
-        setGoldPct(profile.netWorthBreakdown.assetBreakdownPercent.gold ?? 10);
-        setRealEstatePct(profile.netWorthBreakdown.assetBreakdownPercent.realEstate ?? 10);
+      if (profile.netWorthBreakdown.totalCurrentAssets > 0) {
+        setTotalCurrentAssets(profile.netWorthBreakdown.totalCurrentAssets);
+        if (profile.netWorthBreakdown.assetBreakdownPercent) {
+          setEquityPct(profile.netWorthBreakdown.assetBreakdownPercent.equity ?? 0);
+          setFdDebtPct(profile.netWorthBreakdown.assetBreakdownPercent.fdDebt ?? 0);
+          setGoldPct(profile.netWorthBreakdown.assetBreakdownPercent.gold ?? 0);
+          setRealEstatePct(profile.netWorthBreakdown.assetBreakdownPercent.realEstate ?? 0);
+        }
+      } else if (portfolio.totalCurrent > 0) {
+        syncWithLivePortfolio();
+      } else {
+        setTotalCurrentAssets(0);
+        setEquityPct(0);
+        setFdDebtPct(0);
+        setGoldPct(0);
+        setRealEstatePct(0);
       }
-      setTotalLiabilities(profile.netWorthBreakdown.totalLiabilities ?? 1500000);
+      setTotalLiabilities(profile.netWorthBreakdown.totalLiabilities ?? 0);
       setHasHighInterestDebt(profile.netWorthBreakdown.hasHighInterestDebt ?? false);
+    } else if (portfolio.totalCurrent > 0) {
+      syncWithLivePortfolio();
     }
     if (profile.riskAndInsurance) {
       setRiskAppetite(profile.riskAndInsurance.riskAppetite ?? 'Medium');
@@ -115,7 +129,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
       setHasLifeInsurance(profile.riskAndInsurance.hasLifeInsurance ?? true);
       setHasEmergencyFund(profile.riskAndInsurance.hasEmergencyFund ?? false);
     }
-    if (Array.isArray(profile.financialGoals) && profile.financialGoals.length > 0) {
+    if (Array.isArray(profile.financialGoals)) {
       setGoals(profile.financialGoals);
     }
     setProfileLoadedSource(source);
@@ -136,7 +150,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
       if (localProfile) {
         try {
           const profile = JSON.parse(localProfile);
-          if (profile && profile.userDemographics) {
+          if (profile) {
             applyProfile(profile, 'saved');
             return;
           }
@@ -148,7 +162,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
         const res = await fetch('/api/ai/profile');
         if (res.ok) {
           const profile = await res.json();
-          if (profile && profile.userDemographics) {
+          if (profile) {
             applyProfile(profile, 'saved');
             return;
           }
@@ -445,34 +459,47 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
                     </button>
                   ))}
                 </div>
-              </div>
-
-              <div className="space-y-3">
+                          <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-text-faint font-medium">Your Life Financial Goals</span>
+                  <span className="text-[12px] text-text-faint font-medium">Your Life Financial Goals ({goals.length})</span>
                   <button type="button" onClick={handleAddGoal} className="text-[12px] text-accent-brass hover:underline font-medium">
                     + Add New Goal
                   </button>
                 </div>
-                {goals.map((g, idx) => (
-                  <div key={idx} className="flex items-center gap-2 bg-bg-surface-2 p-3 rounded-[8px] border border-border-default">
-                    <input type="text" value={g.type} onChange={(e) => handleGoalChange(idx, 'type', e.target.value)} className="bg-bg-base border border-border-default rounded px-2.5 py-1.5 text-[12.5px] text-text-primary flex-1 focus:border-accent-brass outline-none" placeholder="e.g. Dream House, Vacation" />
-                    <div className="relative">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-text-faint font-mono">₹</span>
-                      <input type="number" step={50000} value={g.targetAmount} onChange={(e) => handleGoalChange(idx, 'targetAmount', Number(e.target.value))} className="bg-bg-base border border-border-default rounded pl-5 pr-2 py-1.5 text-[12px] font-mono text-text-primary w-28 focus:border-accent-brass outline-none" placeholder="Amount" />
-                    </div>
-                    <div className="relative">
-                      <input type="number" min={1} max={30} value={g.horizonYears} onChange={(e) => handleGoalChange(idx, 'horizonYears', Number(e.target.value))} className="bg-bg-base border border-border-default rounded px-2 py-1.5 text-[12px] font-mono text-text-primary w-16 focus:border-accent-brass outline-none" placeholder="Yrs" />
-                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-text-faint pointer-events-none">yr</span>
-                    </div>
-                    {goals.length > 1 && (
-                      <button type="button" onClick={() => handleRemoveGoal(idx)} className="text-negative text-[13px] px-1 hover:opacity-80" title="Remove Goal">
+
+                {goals.length === 0 ? (
+                  <div className="p-4 bg-bg-surface-2 rounded-[8px] border border-dashed border-border-default text-center space-y-1.5">
+                    <p className="text-[13px] text-text-primary font-medium">Pure Wealth Compounding Mode</p>
+                    <p className="text-[11.5px] text-text-faint max-w-sm mx-auto leading-relaxed">
+                      You haven&apos;t added any short-term life goals. 100% of your investible monthly surplus will be directed towards long-term multi-asset compounding until retirement.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleAddGoal}
+                      className="text-[12px] text-accent-brass font-medium hover:underline pt-1 inline-block"
+                    >
+                      + Add a Life Goal (Car, House, Education)
+                    </button>
+                  </div>
+                ) : (
+                  goals.map((g, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-bg-surface-2 p-3 rounded-[8px] border border-border-default">
+                      <input type="text" value={g.type} onChange={(e) => handleGoalChange(idx, 'type', e.target.value)} className="bg-bg-base border border-border-default rounded px-2.5 py-1.5 text-[12.5px] text-text-primary flex-1 focus:border-accent-brass outline-none" placeholder="e.g. Dream House, Vacation" />
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-text-faint font-mono">₹</span>
+                        <input type="number" step={50000} value={g.targetAmount} onChange={(e) => handleGoalChange(idx, 'targetAmount', Number(e.target.value))} className="bg-bg-base border border-border-default rounded pl-5 pr-2 py-1.5 text-[12px] font-mono text-text-primary w-28 focus:border-accent-brass outline-none" placeholder="Amount" />
+                      </div>
+                      <div className="relative">
+                        <input type="number" min={1} max={30} value={g.horizonYears} onChange={(e) => handleGoalChange(idx, 'horizonYears', Number(e.target.value))} className="bg-bg-base border border-border-default rounded px-2.5 py-1.5 text-[12px] font-mono text-text-primary w-16 focus:border-accent-brass outline-none" placeholder="Yrs" />
+                        <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-text-faint pointer-events-none">yr</span>
+                      </div>
+                      <button type="button" onClick={() => handleRemoveGoal(idx)} className="text-negative text-[13px] px-1.5 hover:opacity-80 transition-opacity" title="Remove Goal">
                         ✕
                       </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                    </div>
+                  ))
+                )}
+              </div>        </div>
             </motion.div>
           )}
         </div>

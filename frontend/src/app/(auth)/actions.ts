@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { users, holdings, assetTransactions, dematAccounts } from "@/lib/db/schema";
 import { signIn, signOut } from "@/auth";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
@@ -17,6 +17,10 @@ export async function registerUser(formData: FormData) {
   const profession = formData.get('profession') as string;
   const incomeBracket = formData.get('incomeBracket') as string;
   const riskTolerance = formData.get('riskTolerance') as string;
+  const dematBroker = formData.get('dematBroker') as string;
+
+  const monthlySalary = parseFloat((formData.get('monthlySalary') as string) || '0');
+  const initialCash = parseFloat((formData.get('initialCash') as string) || '0');
 
   if (!email || !password || !name || !dobRaw) {
     return { error: 'Email, password, name, and date of birth are required' };
@@ -47,7 +51,7 @@ export async function registerUser(formData: FormData) {
   const passwordHash = await bcrypt.hash(password, 10);
 
   try {
-    await db.insert(users).values({
+    const [newUser] = await db.insert(users).values({
       email,
       passwordHash,
       name,
@@ -55,11 +59,65 @@ export async function registerUser(formData: FormData) {
       country,
       currency,
       profession: profession || null,
-      incomeBracket: incomeBracket || null,
+      incomeBracket: incomeBracket || (monthlySalary > 0 ? `₹${Math.round(monthlySalary * 12 / 100000)}L/yr` : null),
       riskTolerance: riskTolerance || null,
-    });
+    }).returning();
+
+    // 1. Automatically create Monthly Salary holding (income)
+    if (monthlySalary > 0) {
+      const [salaryHolding] = await db.insert(holdings).values({
+        userId: newUser.id,
+        assetType: 'cash',
+        symbol: 'SALARY',
+        name: 'Monthly Salary',
+        quantity: monthlySalary.toString(),
+        avgCost: '1',
+        purchaseDate: new Date(),
+        metadata: { type: 'income', isSalary: true, amount: monthlySalary.toString() },
+      }).returning();
+
+      await db.insert(assetTransactions).values({
+        holdingId: salaryHolding.id,
+        type: 'deposit',
+        quantity: monthlySalary.toString(),
+        pricePerUnit: '1',
+        amount: monthlySalary.toString(),
+      });
+    }
+
+    // 2. Automatically create Liquid Bank Cash holding (locker)
+    if (initialCash > 0) {
+      const [cashHolding] = await db.insert(holdings).values({
+        userId: newUser.id,
+        assetType: 'cash',
+        symbol: 'CASH',
+        name: 'Cash in Bank / Hand',
+        quantity: initialCash.toString(),
+        avgCost: '1',
+        purchaseDate: new Date(),
+        metadata: { type: 'locker', amount: initialCash.toString() },
+      }).returning();
+
+      await db.insert(assetTransactions).values({
+        holdingId: cashHolding.id,
+        type: 'deposit',
+        quantity: initialCash.toString(),
+        pricePerUnit: '1',
+        amount: initialCash.toString(),
+      });
+    }
+
+    // 3. Connect Demat account if selected
+    if (dematBroker) {
+      await db.insert(dematAccounts).values({
+        userId: newUser.id,
+        brokerName: dematBroker,
+      });
+    }
+
     return { success: true };
   } catch (err) {
+    console.error('Registration failed:', err);
     return { error: 'Failed to create user' };
   }
 }

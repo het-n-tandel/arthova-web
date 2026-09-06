@@ -103,25 +103,47 @@ export default function AIAdvisorPage() {
   const fetchAiRecommendation = async (customPayload?: any) => {
     setIsLoading(true);
     try {
+      const liveTotal = portfolio.totalCurrent || 0;
+      const equityVal =
+        portfolio.stockHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0) +
+        portfolio.mfHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
+      const fdVal =
+        portfolio.fdHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0) +
+        portfolio.bondHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
+      const goldVal = portfolio.goldHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
+      const propVal = portfolio.propHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0);
+      const liabVal = portfolio.liabilityHoldings.reduce((s, h) => s + (h.cmp || 0), 0);
+
+      const salaryH = portfolio.cashHoldings.find(h => h.name.toLowerCase().includes('salary') || (h as any).isSalary);
+      const salaryAmount = salaryH ? (salaryH.quantity || 0) : 100000;
+
       const payload = customPayload || {
-        userDemographics: { age: 28, targetRetirementAge: 55, maritalStatus: 'married', childrenCount: 1, dependentParents: true },
-        financialCashflow: { monthlyIncome: 120000, monthlyExpenses: 45000, monthlyEmis: 22000, taxBracketPercent: 30 },
+        userDemographics: {
+          age: userProfile?.userDemographics?.age || userProfile?.calculatedAge || 28,
+          targetRetirementAge: userProfile?.userDemographics?.targetRetirementAge || 55,
+          maritalStatus: userProfile?.userDemographics?.maritalStatus || 'single',
+          childrenCount: 0,
+          dependentParents: false,
+        },
+        financialCashflow: {
+          monthlyIncome: salaryAmount,
+          monthlyExpenses: Math.round(salaryAmount * 0.4),
+          monthlyEmis: 0,
+          taxBracketPercent: salaryAmount > 125000 ? 30 : salaryAmount > 60000 ? 20 : 10,
+        },
         netWorthBreakdown: {
-          totalCurrentAssets: portfolio.totalCurrent > 0 ? portfolio.totalCurrent : 1000000,
+          totalCurrentAssets: liveTotal,
           assetBreakdownPercent: {
-            equity: portfolio.totalCurrent > 0 ? ((portfolio.stockHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0) + portfolio.mfHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0)) / portfolio.totalCurrent) * 100 : 20,
-            fdDebt: portfolio.totalCurrent > 0 ? (portfolio.fdHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0) / portfolio.totalCurrent) * 100 : 60,
-            gold: portfolio.totalCurrent > 0 ? (portfolio.goldHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0) / portfolio.totalCurrent) * 100 : 10,
-            realEstate: portfolio.totalCurrent > 0 ? (portfolio.propHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0) / portfolio.totalCurrent) * 100 : 10,
+            equity: liveTotal > 0 ? (equityVal / liveTotal) * 100 : 0,
+            fdDebt: liveTotal > 0 ? (fdVal / liveTotal) * 100 : 0,
+            gold: liveTotal > 0 ? (goldVal / liveTotal) * 100 : 0,
+            realEstate: liveTotal > 0 ? (propVal / liveTotal) * 100 : 0,
           },
-          totalLiabilities: portfolio.liabilityHoldings.reduce((s, h) => s + (h.cmp || 0), 0),
+          totalLiabilities: liabVal,
           hasHighInterestDebt: false,
         },
         riskAndInsurance: { riskAppetite: 'Medium', hasHealthInsurance: true, hasLifeInsurance: true, hasEmergencyFund: false },
-        financialGoals: [
-          { type: 'Car Purchase', targetAmount: 800000, horizonYears: 2 },
-          { type: 'Child Education', targetAmount: 2500000, horizonYears: 12 },
-        ],
+        financialGoals: userProfile?.financialGoals || [],
       };
 
       const res = await fetch('/api/ai/recommendation', {
@@ -265,14 +287,20 @@ export default function AIAdvisorPage() {
               <Target className="w-3 h-3 text-accent-brass" /> Active Life Goals ({activeGoals.length})
             </span>
             <div className="flex flex-wrap gap-1.5">
-              {activeGoals.map((g: any, i: number) => (
-                <span
-                  key={i}
-                  className="bg-bg-base border border-border-default px-2 py-0.5 rounded text-[11px] font-mono text-text-secondary"
-                >
-                  {g.type}: {formatINRCompact(g.targetAmount)} in {g.horizonYears}y
+              {activeGoals.length > 0 ? (
+                activeGoals.map((g: any, i: number) => (
+                  <span
+                    key={i}
+                    className="bg-bg-base border border-border-default px-2 py-0.5 rounded text-[11px] font-mono text-text-secondary"
+                  >
+                    {g.type}: {formatINRCompact(g.targetAmount)} in {g.horizonYears}y
+                  </span>
+                ))
+              ) : (
+                <span className="text-[11.5px] text-text-faint font-mono">
+                  Pure Wealth Compounding Mode (No goals)
                 </span>
-              ))}
+              )}
             </div>
           </div>
         </div>

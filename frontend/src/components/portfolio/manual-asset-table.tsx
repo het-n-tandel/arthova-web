@@ -36,17 +36,27 @@ export function ManualAssetTable({ data, className, type }: ManualAssetTableProp
 
     cols.push(
       columnHelper.accessor('name', {
-        header: type === 'cash' ? 'Account/Income Name' : type === 'liability' ? 'Loan Name' : 'Asset Name',
-        cell: (info) => (
-          <div>
-            <p className="text-[13px] font-medium text-text-primary">{info.getValue()}</p>
-            {type === 'cash' && (
-              <p className="text-[11px] text-text-faint">
-                {info.row.original.metadata?.type === 'income' ? 'Monthly Income' : 'Locker (One-time)'}
-              </p>
-            )}
-          </div>
-        ),
+        header: type === 'cash' ? 'Account / Income Name' : type === 'liability' ? 'Loan Name' : 'Asset Name',
+        cell: (info) => {
+          const isSalary = Boolean(info.row.original.metadata?.isSalary || info.row.original.name.toLowerCase().includes('salary'));
+          return (
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-[13px] font-medium text-text-primary">{info.getValue()}</p>
+                {isSalary && (
+                  <span className="text-[10.5px] bg-accent-brass/15 text-accent-brass border border-accent-brass/30 px-1.5 py-0.5 rounded font-medium">
+                    Primary Salary
+                  </span>
+                )}
+              </div>
+              {type === 'cash' && (
+                <p className="text-[11px] text-text-faint">
+                  {info.row.original.metadata?.type === 'income' ? 'Monthly Income (Recurring)' : 'Liquid Cash / Bank'}
+                </p>
+              )}
+            </div>
+          );
+        },
       })
     );
 

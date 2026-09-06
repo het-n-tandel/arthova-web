@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { X, Search, Loader2, ChevronLeft, TrendingUp } from 'lucide-react';
+import { X, Search, Loader2, ChevronLeft, TrendingUp, AlertTriangle, Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { LineChart, Line, YAxis, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/formatters';
@@ -389,15 +389,22 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
                 <button
                   key={stock.symbol}
                   onClick={() => selectAssetForTrade(stock)}
-                  className="text-left bg-bg-base border border-border-default hover:border-accent-brass/50 rounded-[8px] p-3 transition-all hover:bg-bg-surface-2 group"
+                  className="text-left bg-bg-base border border-border-default hover:border-accent-brass/50 rounded-[8px] p-3 transition-all hover:bg-bg-surface-2 group flex flex-col justify-between"
                 >
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="font-medium text-[13px] text-text-primary truncate pr-2" title={stock.name}>{stock.symbol.replace('.NS', '')}</span>
-                    <span className={cn("text-[12px] font-medium whitespace-nowrap", stock.change >= 0 ? "text-positive" : "text-negative")}>
-                      {stock.change >= 0 ? '+' : ''}{stock.change?.toFixed(2)}%
-                    </span>
+                  <div>
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-medium text-[13px] text-text-primary truncate pr-2" title={stock.name}>{stock.symbol.replace('.NS', '')}</span>
+                      <span className={cn("text-[12px] font-medium whitespace-nowrap", (stock.change ?? 0) >= 0 ? "text-positive" : "text-negative")}>
+                        {(stock.change ?? 0) >= 0 ? '+' : ''}{(stock.change ?? 0).toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-text-faint truncate">{stock.name}</div>
                   </div>
-                  <div className="text-[11px] text-text-faint truncate">{stock.name}</div>
+                  {stock.aiRationale && (
+                    <div className="mt-2 text-[10.5px] text-accent-brass font-medium bg-accent-brass/10 border border-accent-brass/25 rounded px-2 py-0.5 truncate" title={stock.aiRationale}>
+                      ✨ {stock.aiRationale}
+                    </div>
+                  )}
                   <div className="mt-2 text-[13px] text-text-secondary font-mono">₹{stock.price?.toFixed(2)}</div>
                 </button>
               ))}
@@ -428,6 +435,12 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
     const isPropertyValid = assetType === 'property' ? (propertyLocation.trim().length > 0) : true;
     const isBondValid = assetType === 'bond' ? (!!bondCouponRate && !isNaN(parseFloat(bondCouponRate)) && parseFloat(bondCouponRate) > 0 && !!bondTenureYears && !isNaN(parseFloat(bondTenureYears)) && parseFloat(bondTenureYears) > 0) : true;
     const isSellValid = tradeTab !== 'sell' || !ownedHolding || (parseFloat(quantity) <= ownedHolding.quantity);
+
+    // Cash guardrail calculation
+    const isBuy = tradeTab === 'buy';
+    const totalTradeCost = (parseFloat(quantity) || 0) * (isManualAsset && !isMetal ? 1 : (parseFloat(pricePerUnit) || 0));
+    const availableCash = (portfolio.cashHoldings || []).reduce((sum: number, h: any) => sum + (Number(h.computedValue || h.quantity) || 0), 0);
+    const isInsufficientCash = isBuy && assetType !== 'cash' && assetType !== 'liability' && totalTradeCost > 0 && availableCash >= 0 && totalTradeCost > availableCash;
 
     const isFormValid = isQuantityValid && isNameValid && isPriceValid && isEmiValid && isFdValid && isPropertyValid && isBondValid && isSellValid;
     
@@ -715,6 +728,22 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
               </div>
             )}
           </div>
+
+          {/* Insufficient Cash Warning */}
+          {isInsufficientCash && (
+            <div className="p-3 bg-warning/10 border border-warning/30 rounded-[8px] flex items-start gap-2.5 text-[12px]">
+              <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-warning block mb-0.5">Insufficient Liquid Cash</span>
+                <span className="text-text-secondary leading-tight block">
+                  Purchase total is <strong className="text-text-primary font-mono">₹{totalTradeCost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong>, but your recorded liquid cash is <strong className="text-text-primary font-mono">₹{availableCash.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</strong> (Shortfall: ₹{(totalTradeCost - availableCash).toLocaleString('en-IN', { maximumFractionDigits: 2 })}).
+                </span>
+                <span className="text-[11px] text-text-faint mt-1 block">
+                  ⚠️ Please ensure you have sufficient bank balance before executing. You can log deposits in the Cash section.
+                </span>
+              </div>
+            </div>
+          )}
 
           <button 
             type="button"

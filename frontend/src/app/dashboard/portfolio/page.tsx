@@ -3,18 +3,20 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, UploadCloud } from 'lucide-react';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { formatINR, formatINRCompact, cn } from '@/lib/formatters';
 import { SummaryCard } from '@/components/ui/summary-card';
 import { DeltaBadge } from '@/components/ui/delta-badge';
 import { HoldingsTable } from '@/components/portfolio/holdings-table';
+import { CsvImportModal } from '@/components/portfolio/csv-import-modal';
 
 const tabs = ['All Holdings', 'Stocks', 'Mutual Funds', 'Gold & Silver', 'Fixed Deposits', 'Property'] as const;
 
 export default function PortfolioPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<typeof tabs[number]>('Stocks');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const portfolio = usePortfolio();
   const { stockHoldings, mfHoldings, goldHoldings, fdHoldings, propHoldings } = portfolio;
 
@@ -25,9 +27,20 @@ export default function PortfolioPage() {
       transition={{ duration: 0.25 }}
       className="space-y-6"
     >
-      <div>
-        <h1 className="font-display text-[28px] text-text-primary mb-1">Portfolio</h1>
-        <p className="text-[13px] text-text-faint">Detailed breakdown of all your investments</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-[28px] text-text-primary mb-1">Portfolio</h1>
+          <p className="text-[13px] text-text-faint">Detailed breakdown of all your investments</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2 bg-bg-surface border border-border-default hover:border-accent-brass hover:text-accent-brass text-text-primary px-3.5 py-2 rounded-[8px] text-[13px] font-medium transition-colors shadow-sm"
+          >
+            <UploadCloud className="w-4 h-4 text-accent-brass" />
+            Import Statement (CSV)
+          </button>
+        </div>
       </div>
 
       {/* Summary stats */}
@@ -187,6 +200,10 @@ export default function PortfolioPage() {
             </div>
           )}
         </div>
+      )}
+
+      {isImportModalOpen && (
+        <CsvImportModal onClose={() => setIsImportModalOpen(false)} />
       )}
     </motion.div>
   );

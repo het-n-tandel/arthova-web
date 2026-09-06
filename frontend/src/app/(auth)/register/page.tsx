@@ -69,6 +69,25 @@ export default function RegisterPage() {
           </div>
         </div>
 
+        {/* Initial Income & Liquid Cash Setup */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[13px] font-medium text-text-primary">Monthly Salary / Income (₹) *</label>
+            <div className="relative">
+              <Coins className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint" />
+              <input required name="monthlySalary" type="number" step="1000" min="0" placeholder="e.g. 100000" className="w-full bg-bg-base border border-border-default rounded-[8px] pl-10 pr-4 py-2.5 text-[14px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-accent-brass transition-all font-mono" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[13px] font-medium text-text-primary">Bank / Liquid Cash (₹) *</label>
+            <div className="relative">
+              <Coins className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint" />
+              <input required name="initialCash" type="number" step="1000" min="0" placeholder="e.g. 50000" className="w-full bg-bg-base border border-border-default rounded-[8px] pl-10 pr-4 py-2.5 text-[14px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-accent-brass transition-all font-mono" />
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-1.5">
           <label className="text-[13px] font-medium text-text-primary">Email address *</label>
           <div className="relative">

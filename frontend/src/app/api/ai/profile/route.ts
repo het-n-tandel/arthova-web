@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { users, holdings } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { calculateAIRecommendation } from '@/lib/ai-engine';
 
 export async function GET() {
@@ -13,7 +13,32 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 1. Try Spring Boot first
+    // 1. Fetch user demographics directly from PostgreSQL
+    let userRow: any = null;
+    let registeredSalary = 0;
+
+    try {
+      const userList = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (userList.length > 0) {
+        userRow = userList[0];
+      }
+
+      // Check for user's primary salary holding
+      const userHoldings = await db.select().from(holdings).where(eq(holdings.userId, userId));
+      const salaryH = userHoldings.find(h => h.assetType === 'cash' && (h.name.toLowerCase().includes('salary') || (h.metadata as any)?.isSalary));
+      if (salaryH) {
+        registeredSalary = parseFloat(salaryH.quantity.toString()) || 0;
+      }
+    } catch (dbErr) {
+      console.warn('DB user query error:', dbErr);
+    }
+
+    const calculatedAge = userRow?.dateOfBirth
+      ? Math.max(18, Math.floor((Date.now() - new Date(userRow.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000)))
+      : 28;
+
+    // 2. Try Spring Boot for saved profile
+    let profile: any = null;
     try {
       const res = await fetch(`http://localhost:8080/api/public/ai/profile/${userId}`, {
         headers: { 'Content-Type': 'application/json' },
@@ -21,24 +46,68 @@ export async function GET() {
       });
 
       if (res.ok) {
-        const profile = await res.json();
-        return NextResponse.json(profile);
+        profile = await res.json();
       }
     } catch (e) {
-      // Spring Boot offline, fallback to database direct query
+      // Spring Boot offline
     }
 
-    // 2. Direct PostgreSQL fallback via Drizzle
-    try {
-      const userList = await db.select({ profileMetadata: users.profileMetadata }).from(users).where(eq(users.id, userId)).limit(1);
-      if (userList.length > 0 && userList[0].profileMetadata) {
-        return NextResponse.json(userList[0].profileMetadata);
+    // 3. If not from Spring Boot, get profileMetadata from Drizzle
+    if (!profile && userRow?.profileMetadata) {
+      profile = userRow.profileMetadata;
+    }
+
+    // 4. Enrich or synthesize default profile with real user registration data
+    if (!profile) {
+      profile = {
+        userDemographics: {
+          age: calculatedAge,
+          targetRetirementAge: Math.max(calculatedAge + 5, 55),
+          maritalStatus: 'single',
+          childrenCount: 0,
+          dependentParents: false,
+        },
+        financialCashflow: {
+          monthlyIncome: registeredSalary > 0 ? registeredSalary : 100000,
+          monthlyExpenses: registeredSalary > 0 ? Math.round(registeredSalary * 0.4) : 40000,
+          monthlyEmis: 0,
+          taxBracketPercent: registeredSalary > 125000 ? 30 : registeredSalary > 60000 ? 20 : 10,
+        },
+        netWorthBreakdown: {
+          totalCurrentAssets: 0,
+          assetBreakdownPercent: { equity: 0, fdDebt: 0, gold: 0, realEstate: 0 },
+          totalLiabilities: 0,
+          hasHighInterestDebt: false,
+        },
+        riskAndInsurance: {
+          riskAppetite: userRow?.riskTolerance || 'Medium',
+          hasHealthInsurance: true,
+          hasLifeInsurance: true,
+          hasEmergencyFund: false,
+        },
+        financialGoals: [],
+      };
+    } else {
+      // Keep real age synced from Date of Birth if user registered with DOB
+      if (userRow?.dateOfBirth) {
+        profile.userDemographics = {
+          ...profile.userDemographics,
+          age: calculatedAge,
+        };
       }
-    } catch (dbErr) {
-      console.warn('DB profile query fallback error:', dbErr);
+      if (registeredSalary > 0 && (!profile.financialCashflow?.monthlyIncome || profile.financialCashflow.monthlyIncome === 120000)) {
+        profile.financialCashflow = {
+          ...profile.financialCashflow,
+          monthlyIncome: registeredSalary,
+        };
+      }
     }
 
-    return NextResponse.json({ notFound: true }, { status: 404 });
+    profile.dateOfBirth = userRow?.dateOfBirth || null;
+    profile.calculatedAge = calculatedAge;
+    profile.registeredSalary = registeredSalary;
+
+    return NextResponse.json(profile);
   } catch (err: any) {
     console.error('Error fetching user AI profile:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

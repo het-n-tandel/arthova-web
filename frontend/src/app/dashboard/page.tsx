@@ -15,11 +15,11 @@ import {
   Sparkles,
   ArrowRight,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { formatINR, formatINRCompact, formatDate, cn } from '@/lib/formatters';
 import {
   aiInsights,
-  recentActivity,
   generatePortfolioHistory,
 } from '@/lib/mock-data';
 import { SummaryCard } from '@/components/ui/summary-card';
@@ -59,6 +59,16 @@ const assetColors = ['#C9A227', '#3FA88A', '#7C8AD4', '#D9705C', '#E0B34C', '#8A
 export default function DashboardPage() {
   const portfolio = usePortfolio();
   const favorites = useLedgerStore((s) => s.favorites);
+
+  const { data: activityData, isLoading: isLoadingActivity } = useQuery({
+    queryKey: ['recent-activity'],
+    queryFn: async () => {
+      const res = await fetch('/api/portfolio/activity');
+      if (!res.ok) return { activities: [] };
+      return res.json();
+    },
+  });
+  const activitiesList = activityData?.activities || [];
 
   const portfolioHistory = useMemo(() => generatePortfolioHistory(portfolio.netWorth, 12), [portfolio.netWorth]);
 
@@ -273,32 +283,41 @@ export default function DashboardPage() {
         <motion.div variants={itemVariants}>
           <div className="bg-bg-surface border border-border-default rounded-[12px] p-5">
             <h2 className="text-[16px] font-medium text-text-primary mb-4">Recent Activity</h2>
-            <div className="space-y-3">
-              {recentActivity.slice(0, 6).map((activity) => (
-                <div key={activity.id} className="flex items-center gap-3">
-                  <div className={cn(
-                    'w-8 h-8 rounded-[6px] flex items-center justify-center shrink-0',
-                    activity.amount > 0 ? 'bg-positive-bg' : 'bg-bg-surface-2'
-                  )}>
-                    {activity.amount > 0 ? (
-                      <ArrowDownRight className="w-4 h-4 text-positive" />
-                    ) : (
-                      <ArrowUpRight className="w-4 h-4 text-text-faint" />
-                    )}
+            {isLoadingActivity ? (
+              <div className="py-6 text-center text-[12.5px] text-text-faint">Loading activity feed...</div>
+            ) : activitiesList.length === 0 ? (
+              <div className="py-8 text-center border border-dashed border-border-default rounded-[8px] bg-bg-surface-2/40">
+                <p className="text-[13px] text-text-secondary">No recent transactions yet.</p>
+                <p className="text-[11px] text-text-faint mt-1">Trades, deposits, and broker imports will show up here.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activitiesList.slice(0, 6).map((activity: any) => (
+                  <div key={activity.id} className="flex items-center gap-3">
+                    <div className={cn(
+                      'w-8 h-8 rounded-[6px] flex items-center justify-center shrink-0',
+                      activity.amount > 0 ? 'bg-positive-bg' : 'bg-bg-surface-2'
+                    )}>
+                      {activity.amount > 0 ? (
+                        <ArrowDownRight className="w-4 h-4 text-positive" />
+                      ) : (
+                        <ArrowUpRight className="w-4 h-4 text-text-faint" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] text-text-primary truncate">{activity.description}</p>
+                      <p className="text-[11px] text-text-faint">{formatDate(activity.date)}</p>
+                    </div>
+                    <span
+                      className={cn('text-[13px]', activity.amount > 0 ? 'text-positive' : 'text-text-secondary')}
+                      style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}
+                    >
+                      {activity.amount > 0 ? '+' : ''}{formatINR(activity.amount)}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] text-text-primary truncate">{activity.description}</p>
-                    <p className="text-[11px] text-text-faint">{formatDate(activity.date)}</p>
-                  </div>
-                  <span
-                    className={cn('text-[13px]', activity.amount > 0 ? 'text-positive' : 'text-text-secondary')}
-                    style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}
-                  >
-                    {activity.amount > 0 ? '+' : ''}{formatINR(activity.amount)}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
