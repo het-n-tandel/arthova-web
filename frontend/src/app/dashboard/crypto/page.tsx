@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { HoldingsTable } from '@/components/portfolio/holdings-table';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { AssetActionModal } from '@/components/ui/asset-action-modal';
-import { Plus } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Plus, Bitcoin } from 'lucide-react';
 
 export default function CryptoPage() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -40,15 +41,15 @@ export default function CryptoPage() {
       ) : cryptoHoldings.length > 0 ? (
         <HoldingsTable data={cryptoHoldings} />
       ) : (
-        <div className="text-center py-12 border border-border-default rounded-[12px] bg-bg-surface-2">
-          <p className="text-[14px] text-text-secondary mb-3">You don't own any cryptocurrency yet.</p>
-          <button
-            onClick={() => setModalOpen(true)}
-            className="text-accent-brass text-[13px] font-medium hover:underline"
-          >
-            Buy your first crypto
-          </button>
-        </div>
+        <EmptyState
+          icon={Bitcoin}
+          title="No Crypto Assets Yet"
+          description="Monitor Bitcoin, Ethereum, and digital assets alongside traditional equities with live USD-to-INR conversions."
+          tip="Crypto is a high-beta speculative asset class. Financial advisors recommend capping crypto exposure at 2–5% of total net worth."
+          actionLabel="Add Crypto Holding"
+          onAction={() => setModalOpen(true)}
+          accentColor="#F7931A"
+        />
       )}
 
       {modalOpen && (

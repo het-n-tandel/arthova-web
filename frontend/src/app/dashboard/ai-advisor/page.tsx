@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { AllocationDriftCard } from '@/components/charts/allocation-drift-card';
+import { SmartRebalancerCard } from '@/components/charts/smart-rebalancer-card';
 import { GoalExecutionCards } from '@/components/portfolio/goal-execution-cards';
 import { NetWorthProjectionChart } from '@/components/charts/net-worth-projection-chart';
 import { AIOnboardingWizard } from '@/components/onboarding/ai-onboarding-wizard';
@@ -112,6 +113,7 @@ export default function AIAdvisorPage() {
         portfolio.bondHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
       const goldVal = portfolio.goldHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
       const propVal = portfolio.propHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0);
+      const cashVal = portfolio.cashHoldings.reduce((s, h) => s + (h.computedValue || h.quantity || 0), 0);
       const liabVal = portfolio.liabilityHoldings.reduce((s, h) => s + (h.cmp || 0), 0);
 
       const salaryH = portfolio.cashHoldings.find(h => h.name.toLowerCase().includes('salary') || (h as any).isSalary);
@@ -138,6 +140,7 @@ export default function AIAdvisorPage() {
             fdDebt: liveTotal > 0 ? (fdVal / liveTotal) * 100 : 0,
             gold: liveTotal > 0 ? (goldVal / liveTotal) * 100 : 0,
             realEstate: liveTotal > 0 ? (propVal / liveTotal) * 100 : 0,
+            cash: liveTotal > 0 ? (cashVal / liveTotal) * 100 : 0,
           },
           totalLiabilities: liabVal,
           hasHighInterestDebt: false,
@@ -390,6 +393,18 @@ export default function AIAdvisorPage() {
             current={aiData.currentAllocation}
             recommended={aiData.recommendedAllocation}
             netWorth={portfolio.totalCurrent}
+          />
+        </motion.div>
+      )}
+
+      {/* Smart Monthly Rebalancer with 1-Click Execution */}
+      {!isLoading && aiData && (
+        <motion.div variants={itemVariants}>
+          <SmartRebalancerCard
+            current={aiData.currentAllocation}
+            recommended={aiData.recommendedAllocation}
+            netWorth={portfolio.totalCurrent}
+            defaultMonthlySurplus={aiData.netMonthlySurplus || 25000}
           />
         </motion.div>
       )}

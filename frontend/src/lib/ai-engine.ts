@@ -17,7 +17,8 @@ export interface AssetBreakdownPercent {
   equity: number;
   fdDebt: number;
   gold: number;
-  realEstate: number;
+  realEstate?: number;
+  cash?: number;
 }
 
 export interface NetWorthBreakdown {
@@ -127,10 +128,10 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
   const emergencyNeeded = riskIns.hasEmergencyFund ? 0.0 : Math.min(requiredEmergencyBuffer, netWorth.totalCurrentAssets);
 
   const currentAllocation: RecommendedAllocation = {
-    equityPercent: netWorth.assetBreakdownPercent?.equity ?? 20,
-    debtPercent: netWorth.assetBreakdownPercent?.fdDebt ?? 60,
-    goldPercent: netWorth.assetBreakdownPercent?.gold ?? 10,
-    cashPercent: netWorth.assetBreakdownPercent?.realEstate ?? 10,
+    equityPercent: netWorth.assetBreakdownPercent?.equity ?? 0,
+    debtPercent: netWorth.assetBreakdownPercent?.fdDebt ?? 0,
+    goldPercent: netWorth.assetBreakdownPercent?.gold ?? 0,
+    cashPercent: netWorth.assetBreakdownPercent?.cash ?? (netWorth.assetBreakdownPercent?.realEstate ?? 0),
   };
 
   // LAYER 2: ASSET ALLOCATION & GOAL SOLVER

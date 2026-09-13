@@ -8,6 +8,7 @@ import { SummaryCard } from '@/components/ui/summary-card';
 import { DeltaBadge } from '@/components/ui/delta-badge';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { AssetActionModal } from '@/components/ui/asset-action-modal';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function PropertyPage() {
   const { propHoldings, assets } = usePortfolio();
@@ -66,10 +67,15 @@ export default function PropertyPage() {
       </div>
 
       {enrichedProperties.length === 0 && (
-          <div className="text-center py-16 bg-bg-surface border border-border-default rounded-[12px]">
-              <p className="text-[14px] text-text-secondary">No properties found.</p>
-              <p className="text-[13px] text-text-faint mt-1">Click "Add Property" to track your real estate.</p>
-          </div>
+        <EmptyState
+          icon={Building2}
+          title="No Real Estate Properties Yet"
+          description="Log residential apartments, commercial offices, and land plots to monitor market appreciation and rental yields."
+          tip="Real estate adds tangible illiquidity premia and passive rental cash flow to a long-term multi-asset portfolio."
+          actionLabel="Add Your First Property"
+          onAction={() => setIsTradeOpen(true)}
+          accentColor="#E0B34C"
+        />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

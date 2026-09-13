@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { HoldingsTable } from '@/components/portfolio/holdings-table';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { AssetActionModal } from '@/components/ui/asset-action-modal';
-import { Plus } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Plus, Landmark } from 'lucide-react';
 
 export default function BondsPage() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -40,15 +41,15 @@ export default function BondsPage() {
       ) : bondHoldings.length > 0 ? (
         <HoldingsTable data={bondHoldings} />
       ) : (
-        <div className="text-center py-12 border border-border-default rounded-[12px] bg-bg-surface-2">
-          <p className="text-[14px] text-text-secondary mb-3">You don't own any bonds yet.</p>
-          <button
-            onClick={() => setModalOpen(true)}
-            className="text-accent-brass text-[13px] font-medium hover:underline"
-          >
-            Buy your first bond
-          </button>
-        </div>
+        <EmptyState
+          icon={Landmark}
+          title="No Bonds or Fixed Income Assets Yet"
+          description="Invest in Sovereign Gold Bonds, Government G-Secs, and Corporate Debentures for reliable semi-annual coupon yields."
+          tip="Sovereign Bonds offer sovereign credit safety and predictable income that cushions equity downturns."
+          actionLabel="Add Your First Bond"
+          onAction={() => setModalOpen(true)}
+          accentColor="#3FA88A"
+        />
       )}
 
       {modalOpen && (

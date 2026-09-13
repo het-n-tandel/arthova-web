@@ -7,6 +7,7 @@ import { formatINR, formatINRCompact, formatDate, cn } from '@/lib/formatters';
 import { SummaryCard } from '@/components/ui/summary-card';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { AssetActionModal } from '@/components/ui/asset-action-modal';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function FixedDepositsPage() {
   const { fdHoldings } = usePortfolio();
@@ -91,46 +92,54 @@ export default function FixedDepositsPage() {
         <SummaryCard label="At Maturity"      value={formatINRCompact(totalMaturity)} sublabel={`Avg ${avgRate.toFixed(2)}% p.a.`} />
       </div>
 
-      {/* FD Table */}
-      <div>
-        <h2 className="text-[16px] font-medium text-text-primary mb-4">Active Deposits</h2>
-        <div className="overflow-x-auto rounded-[12px] border border-border-default">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-bg-surface-2">
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Name</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Amount</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Rate</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Tenure</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Start</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Maturity</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Interest</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {enrichedFDs.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-8 text-[13px] text-text-faint">No FDs found. Click Add FD to track one.</td>
+      {/* FD Table / Empty State */}
+      {enrichedFDs.length === 0 ? (
+        <EmptyState
+          icon={Landmark}
+          title="No Fixed Deposits Added Yet"
+          description="Track your bank deposits, interest accruals, tenure countdowns, and maturity dates in one unified view."
+          tip="Fixed income provides a guaranteed capital preservation floor (~7% p.a.) ensuring short-term liquidity without market volatility."
+          actionLabel="Add Your First Fixed Deposit"
+          onAction={() => setIsTradeOpen(true)}
+          accentColor="#3FA88A"
+        />
+      ) : (
+        <div>
+          <h2 className="text-[16px] font-medium text-text-primary mb-4">Active Deposits</h2>
+          <div className="overflow-x-auto rounded-[12px] border border-border-default">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-bg-surface-2">
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Name</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Amount</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Rate</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Tenure</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Start</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Maturity</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Interest</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Status</th>
                 </tr>
-              ) : enrichedFDs.map((fd) => (
-                <tr key={fd.id} className="border-t border-border-default hover:bg-bg-surface-2 transition-colors h-[52px]">
-                  <td className="px-4 py-2 text-[13px] font-medium text-text-primary">{fd.name}</td>
-                  <td className="px-4 py-2 text-[13px]" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(fd.principal)}</td>
-                  <td className="px-4 py-2 text-[13px] text-positive" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{fd.ratePercent}%</td>
-                  <td className="px-4 py-2 text-[12px] text-text-secondary">{fd.tenureMonths}M ({fd.monthsElapsed}M elapsed)</td>
-                  <td className="px-4 py-2 text-[12px] text-text-faint">{formatDate(fd.startDate.toISOString())}</td>
-                  <td className="px-4 py-2 text-[12px] text-text-secondary">{formatDate(fd.maturityDate.toISOString())}</td>
-                  <td className="px-4 py-2 text-[13px] text-positive" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(fd.interestAccrued)} / {formatINR(fd.interestAtMaturity)}</td>
-                  <td className="px-4 py-2">
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${fd.isMatured ? 'bg-warning-bg text-warning' : 'bg-positive-bg text-positive'}`}>{fd.status}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {enrichedFDs.map((fd) => (
+                  <tr key={fd.id} className="border-t border-border-default hover:bg-bg-surface-2 transition-colors h-[52px]">
+                    <td className="px-4 py-2 text-[13px] font-medium text-text-primary">{fd.name}</td>
+                    <td className="px-4 py-2 text-[13px]" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(fd.principal)}</td>
+                    <td className="px-4 py-2 text-[13px] text-positive" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{fd.ratePercent}%</td>
+                    <td className="px-4 py-2 text-[12px] text-text-secondary">{fd.tenureMonths}M ({fd.monthsElapsed}M elapsed)</td>
+                    <td className="px-4 py-2 text-[12px] text-text-faint">{formatDate(fd.startDate.toISOString())}</td>
+                    <td className="px-4 py-2 text-[12px] text-text-secondary">{formatDate(fd.maturityDate.toISOString())}</td>
+                    <td className="px-4 py-2 text-[13px] text-positive" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(fd.interestAccrued)} / {formatINR(fd.interestAtMaturity)}</td>
+                    <td className="px-4 py-2">
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full ${fd.isMatured ? 'bg-warning-bg text-warning' : 'bg-positive-bg text-positive'}`}>{fd.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Maturity Timeline */}
       {sortedByMaturity.length > 0 && (

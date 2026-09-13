@@ -43,7 +43,11 @@ public class AIAllocationService {
         currentAlloc.setEquityPercent(netWorth.getAssetBreakdownPercent().getEquity());
         currentAlloc.setDebtPercent(netWorth.getAssetBreakdownPercent().getFdDebt());
         currentAlloc.setGoldPercent(netWorth.getAssetBreakdownPercent().getGold());
-        currentAlloc.setCashPercent(netWorth.getAssetBreakdownPercent().getRealEstate());
+        double userCash = netWorth.getAssetBreakdownPercent().getCash();
+        if (userCash <= 0 && netWorth.getAssetBreakdownPercent().getRealEstate() > 0) {
+            userCash = netWorth.getAssetBreakdownPercent().getRealEstate();
+        }
+        currentAlloc.setCashPercent(userCash);
         response.setCurrentAllocation(currentAlloc);
 
         // ── LAYER 2: ASSET ALLOCATION & GOAL SOLVER ───────────────────────────

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { HoldingsTable } from '@/components/portfolio/holdings-table';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { AssetActionModal } from '@/components/ui/asset-action-modal';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Plus, TrendingUp } from 'lucide-react';
 import { SummaryCard } from '@/components/ui/summary-card';
 import { formatINR, formatINRCompact } from '@/lib/formatters';
@@ -57,15 +58,15 @@ export default function StocksPage() {
           onRowClick={(symbol) => router.push(`/dashboard/stocks/${symbol}`)}
         />
       ) : (
-        <div className="text-center py-12 border border-border-default rounded-[12px] bg-bg-surface-2">
-          <p className="text-[14px] text-text-secondary mb-3">You don't own any stocks yet.</p>
-          <button
-            onClick={() => setModalOpen(true)}
-            className="text-accent-brass text-[13px] font-medium hover:underline"
-          >
-            Buy your first stock
-          </button>
-        </div>
+        <EmptyState
+          icon={TrendingUp}
+          title="No Equity Stocks in Portfolio"
+          description="Build long-term compound wealth by holding shares of Indian bluechip compounders and high-growth businesses."
+          tip="Equities historically deliver 12–14% CAGR in India, outpacing inflation and serving as the engine of net worth expansion."
+          actionLabel="Add Your First Stock"
+          onAction={() => setModalOpen(true)}
+          accentColor="#C9A227"
+        />
       )}
 
       {modalOpen && (

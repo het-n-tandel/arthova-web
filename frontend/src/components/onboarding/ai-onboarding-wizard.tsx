@@ -63,13 +63,14 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
         portfolio.bondHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
       const goldVal = portfolio.goldHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
       const propVal = portfolio.propHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0);
+      const cashVal = portfolio.cashHoldings.reduce((s, h) => s + (h.computedValue || h.quantity || 0), 0);
       const liabVal = portfolio.liabilityHoldings.reduce((s, h) => s + (h.cmp || 0), 0);
 
       if (liveTotal > 0) {
         setEquityPct(Math.round((equityVal / liveTotal) * 100));
         setFdDebtPct(Math.round((fdVal / liveTotal) * 100));
         setGoldPct(Math.round((goldVal / liveTotal) * 100));
-        setRealEstatePct(Math.round((propVal / liveTotal) * 100));
+        setRealEstatePct(Math.round(((propVal + cashVal) / liveTotal) * 100));
       } else {
         setEquityPct(0);
         setFdDebtPct(0);
@@ -215,6 +216,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
           fdDebt: Number(fdDebtPct),
           gold: Number(goldPct),
           realEstate: Number(realEstatePct),
+          cash: Number(realEstatePct),
         },
         totalLiabilities: Number(totalLiabilities),
         hasHighInterestDebt,
@@ -416,7 +418,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
                     <input type="number" value={goldPct} onChange={(e) => setGoldPct(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded px-2 py-1 text-[12px] font-mono text-text-primary" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-text-faint block">Property %</span>
+                    <span className="text-[10px] text-text-faint block">Cash/Prop %</span>
                     <input type="number" value={realEstatePct} onChange={(e) => setRealEstatePct(Number(e.target.value))} className="w-full bg-bg-base border border-border-default rounded px-2 py-1 text-[12px] font-mono text-text-primary" />
                   </div>
                 </div>

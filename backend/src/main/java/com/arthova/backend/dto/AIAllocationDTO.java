@@ -28,6 +28,7 @@ public class AIAllocationDTO {
         private double fdDebt = 60;
         private double gold = 10;
         private double realEstate = 10;
+        private double cash = 0;
     }
 
     @Data

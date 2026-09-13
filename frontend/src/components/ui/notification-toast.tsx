@@ -41,22 +41,22 @@ function NotificationToast({ notification, onDismiss }: { notification: Notifica
   const borderColor = borderColorMap[notification.type];
 
   useEffect(() => {
+    const dismissTimer = setTimeout(() => {
+      onDismiss();
+    }, 6000);
+
     const duration = 6000;
     const interval = 50;
     const decrement = (interval / duration) * 100;
     
-    const timer = setInterval(() => {
-      setProgress((p) => {
-        if (p <= 0) {
-          clearInterval(timer);
-          onDismiss();
-          return 0;
-        }
-        return p - decrement;
-      });
+    const progressTimer = setInterval(() => {
+      setProgress((p) => Math.max(0, p - decrement));
     }, interval);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(dismissTimer);
+      clearInterval(progressTimer);
+    };
   }, [onDismiss]);
 
   return (

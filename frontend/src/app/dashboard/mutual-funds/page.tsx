@@ -8,6 +8,7 @@ import { SummaryCard } from '@/components/ui/summary-card';
 import { DeltaBadge } from '@/components/ui/delta-badge';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { AssetActionModal } from '@/components/ui/asset-action-modal';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function MutualFundsPage() {
   const { mfHoldings, assets } = usePortfolio();
@@ -50,47 +51,55 @@ export default function MutualFundsPage() {
         <SummaryCard label="Total P&L" value={formatINR(mfStats.gain)} delta={mfStats.gainPercent} />
       </div>
 
-      {/* Fund Holdings Table */}
-      <div>
-        <h2 className="text-[16px] font-medium text-text-primary mb-4">Fund Holdings</h2>
-        <div className="overflow-x-auto rounded-[12px] border border-border-default">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-bg-surface-2">
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Fund</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Units</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Avg NAV</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>CMP</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Invested</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Current</th>
-                <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>P&L</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mfHoldings.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-[13px] text-text-faint">No mutual funds found. Click Trade Funds to add one.</td>
+      {/* Fund Holdings Table / Empty State */}
+      {mfHoldings.length === 0 ? (
+        <EmptyState
+          icon={PiggyBank}
+          title="No Mutual Funds or SIPs Logged"
+          description="Track active Systematic Investment Plans (SIPs) across Flexi Cap, Large & Mid Cap, and Index funds."
+          tip="Systematic rupee-cost averaging via mutual funds ensures disciplined compounding without trying to time daily market swings."
+          actionLabel="Add Your First Mutual Fund"
+          onAction={() => setIsTradeOpen(true)}
+          accentColor="#C9A227"
+        />
+      ) : (
+        <div>
+          <h2 className="text-[16px] font-medium text-text-primary mb-4">Fund Holdings</h2>
+          <div className="overflow-x-auto rounded-[12px] border border-border-default">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-bg-surface-2">
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Fund</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Units</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Avg NAV</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>CMP</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Invested</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>Current</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>P&L</th>
                 </tr>
-              ) : mfHoldings.map((mf) => (
-                <tr key={mf.id} className="border-t border-border-default hover:bg-bg-surface-2 transition-colors h-[52px]">
-                  <td className="px-4 py-2">
-                    <p className="text-[13px] font-medium text-text-primary truncate max-w-[200px]" title={mf.name}>{mf.name}</p>
-                    <p className="text-[11px] text-text-faint">{mf.symbol}</p>
-                  </td>
-                  <td className="px-4 py-2 text-[13px]" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{mf.quantity}</td>
-                  <td className="px-4 py-2 text-[13px] text-text-secondary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>₹{mf.avgCost.toFixed(2)}</td>
-                  <td className="px-4 py-2 text-[13px]" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>₹{mf.cmp.toFixed(2)}</td>
-                  <td className="px-4 py-2 text-[13px] text-text-secondary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(mf.avgCost * mf.quantity)}</td>
-                  <td className="px-4 py-2 text-[13px] text-text-primary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(mf.cmp * mf.quantity)}</td>
-                  <td className="px-4 py-2">
-                    <DeltaBadge value={((mf.cmp - mf.avgCost) / mf.avgCost) * 100} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {mfHoldings.map((mf) => (
+                  <tr key={mf.id} className="border-t border-border-default hover:bg-bg-surface-2 transition-colors h-[52px]">
+                    <td className="px-4 py-2">
+                      <p className="text-[13px] font-medium text-text-primary truncate max-w-[200px]" title={mf.name}>{mf.name}</p>
+                      <p className="text-[11px] text-text-faint">{mf.symbol}</p>
+                    </td>
+                    <td className="px-4 py-2 text-[13px]" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{mf.quantity}</td>
+                    <td className="px-4 py-2 text-[13px] text-text-secondary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>₹{mf.avgCost.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-[13px]" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>₹{mf.cmp.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-[13px] text-text-secondary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(mf.avgCost * mf.quantity)}</td>
+                    <td className="px-4 py-2 text-[13px] text-text-primary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(mf.cmp * mf.quantity)}</td>
+                    <td className="px-4 py-2">
+                      <DeltaBadge value={((mf.cmp - mf.avgCost) / mf.avgCost) * 100} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* SIP Calculator */}
       <div className="bg-bg-surface border border-border-default rounded-[12px] p-6">

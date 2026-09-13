@@ -10,6 +10,7 @@ import { IncomeLineChart } from '@/components/charts/income-line-chart';
 import { useLedgerStore } from '@/lib/store';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { AssetActionModal } from '@/components/ui/asset-action-modal';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function GoldSilverPage() {
   const livePrices = useLedgerStore((s) => s.livePrices);
@@ -73,62 +74,76 @@ export default function GoldSilverPage() {
         <SummaryCard label="Total P&L" value={formatINR(totalStats.gain)} delta={totalStats.gainPercent} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-bg-surface border border-border-default rounded-[12px] p-6">
-          <h2 className="text-[16px] font-medium text-text-primary mb-4">Gold Price History</h2>
-          <IncomeLineChart data={priceHistory} height={250} />
-        </div>
+      {goldHoldings.length === 0 ? (
+        <EmptyState
+          icon={Coins}
+          title="No Gold & Silver Holdings Yet"
+          description="Track physical bullion, digital gold, and Sovereign Gold Bonds (SGB) in real time against live international spot rates."
+          tip="Holding 10% Gold provides an un-correlated crisis hedge that protects purchasing power against rupee inflation and stock market drawdowns."
+          actionLabel="Trade / Add Gold"
+          onAction={() => setTradeMetal('gold')}
+          secondaryActionLabel="Add Silver"
+          onSecondaryAction={() => setTradeMetal('silver')}
+          accentColor="#C9A227"
+        />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-bg-surface border border-border-default rounded-[12px] p-6">
+            <h2 className="text-[16px] font-medium text-text-primary mb-4">Gold Price History</h2>
+            <IncomeLineChart data={priceHistory} height={250} />
+          </div>
 
-        <div className="space-y-4">
-          <h2 className="text-[16px] font-medium text-text-primary">Holdings Breakdown</h2>
-          
-          <div className="bg-bg-surface border border-border-default rounded-[12px] p-5">
-            <h3 className="text-eyebrow text-accent-brass mb-3 flex justify-between">
-                <span>Gold</span>
-                <span>{formatINRCompact(goldTotal)}</span>
-            </h3>
-            <div className="space-y-3">
-              {myGoldHoldings.length === 0 ? (
-                  <p className="text-[13px] text-text-faint">No gold holdings.</p>
-              ) : myGoldHoldings.map((h) => (
-                <div key={h.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[13px] text-text-primary">{h.name || 'Gold'}</p>
-                    <p className="text-[11px] text-text-faint" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{h.quantity}g</p>
+          <div className="space-y-4">
+            <h2 className="text-[16px] font-medium text-text-primary">Holdings Breakdown</h2>
+            
+            <div className="bg-bg-surface border border-border-default rounded-[12px] p-5">
+              <h3 className="text-eyebrow text-accent-brass mb-3 flex justify-between">
+                  <span>Gold</span>
+                  <span>{formatINRCompact(goldTotal)}</span>
+              </h3>
+              <div className="space-y-3">
+                {myGoldHoldings.length === 0 ? (
+                    <p className="text-[13px] text-text-faint">No gold holdings.</p>
+                ) : myGoldHoldings.map((h) => (
+                  <div key={h.id} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[13px] text-text-primary">{h.name || 'Gold'}</p>
+                      <p className="text-[11px] text-text-faint" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{h.quantity}g</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[13px] text-text-primary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(h.quantity * h.cmp)}</p>
+                      <DeltaBadge value={(((h.quantity * h.cmp) - (h.quantity * h.avgCost)) / (h.quantity * h.avgCost)) * 100} />
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[13px] text-text-primary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(h.quantity * h.cmp)}</p>
-                    <DeltaBadge value={(((h.quantity * h.cmp) - (h.quantity * h.avgCost)) / (h.quantity * h.avgCost)) * 100} />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-          
-          <div className="bg-bg-surface border border-border-default rounded-[12px] p-5">
-            <h3 className="text-eyebrow text-text-faint mb-3 flex justify-between">
-                <span>Silver</span>
-                <span>{formatINRCompact(silverTotal)}</span>
-            </h3>
-            <div className="space-y-3">
-              {mySilverHoldings.length === 0 ? (
-                  <p className="text-[13px] text-text-faint">No silver holdings.</p>
-              ) : mySilverHoldings.map((h) => (
-                <div key={h.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[13px] text-text-primary">{h.name || 'Silver'}</p>
-                    <p className="text-[11px] text-text-faint" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{h.quantity}g</p>
+            
+            <div className="bg-bg-surface border border-border-default rounded-[12px] p-5">
+              <h3 className="text-eyebrow text-text-faint mb-3 flex justify-between">
+                  <span>Silver</span>
+                  <span>{formatINRCompact(silverTotal)}</span>
+              </h3>
+              <div className="space-y-3">
+                {mySilverHoldings.length === 0 ? (
+                    <p className="text-[13px] text-text-faint">No silver holdings.</p>
+                ) : mySilverHoldings.map((h) => (
+                  <div key={h.id} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[13px] text-text-primary">{h.name || 'Silver'}</p>
+                      <p className="text-[11px] text-text-faint" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{h.quantity}g</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[13px] text-text-primary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(h.quantity * h.cmp)}</p>
+                      <DeltaBadge value={(((h.quantity * h.cmp) - (h.quantity * h.avgCost)) / (h.quantity * h.avgCost)) * 100} />
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[13px] text-text-primary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{formatINR(h.quantity * h.cmp)}</p>
-                    <DeltaBadge value={(((h.quantity * h.cmp) - (h.quantity * h.avgCost)) / (h.quantity * h.avgCost)) * 100} />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <AnimatePresence>
         {tradeMetal && <AssetActionModal assetType={tradeMetal} mode="add" onClose={() => setTradeMetal(null)} />}
