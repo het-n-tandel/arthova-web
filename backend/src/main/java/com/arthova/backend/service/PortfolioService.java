@@ -127,7 +127,12 @@ public class PortfolioService {
         }
 
         if (request.getTransactionType() == TransactionType.buy) {
-            cashHolding.setQuantity(cashHolding.getQuantity().subtract(totalCost));
+            if (cashHolding.getQuantity().compareTo(totalCost) >= 0) {
+                cashHolding.setQuantity(cashHolding.getQuantity().subtract(totalCost));
+            } else {
+                // Preserve cash at minimum 0; do not push into negative balances
+                cashHolding.setQuantity(BigDecimal.ZERO);
+            }
         } else if (request.getTransactionType() == TransactionType.sell) {
             cashHolding.setQuantity(cashHolding.getQuantity().add(totalCost));
         }

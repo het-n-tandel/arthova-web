@@ -67,15 +67,36 @@ export async function POST(req: Request) {
 
       // 2. REVERT PREVIOUS REBALANCE PLAN (if any)
       if (previousPlan && Array.isArray(previousPlan.trades)) {
-        let restoredCash = 0;
-
         for (const prevTrade of previousPlan.trades) {
+          // EXPLICIT GUARD: Never delete or touch Cash or Income
+          if (
+            prevTrade.assetType === 'cash' || 
+            prevTrade.symbol === 'CASH' ||
+            prevTrade.symbol?.toLowerCase().includes('salary') ||
+            prevTrade.symbol?.toLowerCase().includes('saving')
+          ) {
+            continue;
+          }
+
           const [existingHolding] = await tx.select()
             .from(holdings)
             .where(and(eq(holdings.userId, userId), eq(holdings.symbol, prevTrade.symbol)))
             .limit(1);
 
           if (existingHolding) {
+            // EXPLICIT GUARD: Never delete or alter Cash, Savings, Salary, or Income
+            const isCashOrIncome = existingHolding.assetType === 'cash' ||
+              (existingHolding.metadata as any)?.type === 'income' ||
+              (existingHolding.metadata as any)?.type === 'locker' ||
+              existingHolding.symbol === 'CASH' ||
+              existingHolding.name?.toLowerCase().includes('salary') ||
+              existingHolding.name?.toLowerCase().includes('income') ||
+              existingHolding.name?.toLowerCase().includes('saving');
+
+            if (isCashOrIncome) {
+              continue;
+            }
+
             const isPureRebalance = (existingHolding.metadata as any)?.source === 'smart_rebalance' ||
               (existingHolding.metadata as any)?.category === 'Equity Rebalance' ||
               (existingHolding.metadata as any)?.category === 'Precious Metals Hedge' ||
@@ -95,29 +116,19 @@ export async function POST(req: Request) {
                 .set({ quantity: newQty.toString(), updatedAt: new Date() })
                 .where(eq(holdings.id, existingHolding.id));
             }
-
-            if (prevTrade.assetType === 'stock' || prevTrade.assetType === 'mutual_fund') {
-              restoredCash += Number(prevTrade.quantity) * Number(prevTrade.pricePerUnit);
-            }
           }
-        }
-
-        // Restore deducted cash
-        if (restoredCash > 0) {
-          await tx.execute(sql`
-            UPDATE holdings 
-            SET quantity = quantity + ${restoredCash}, updated_at = NOW()
-            WHERE user_id = ${userId} AND symbol = 'CASH'
-          `);
         }
       }
 
-      // Also clean up any orphan rebalance holdings
+      // Also clean up any orphan rebalance holdings (strictly protecting Cash & Income)
       const orphanRebalanceHoldings = await tx.select()
         .from(holdings)
         .where(and(
           eq(holdings.userId, userId),
-          sql`(metadata->>'source' = 'smart_rebalance' OR metadata->>'category' = 'Equity Rebalance' OR metadata->>'category' = 'Precious Metals Hedge')`
+          sql`(metadata->>'source' = 'smart_rebalance')`,
+          sql`asset_type != 'cash'`,
+          sql`symbol NOT IN ('CASH', 'SAVING', 'SAVINGS', 'SALARY', 'SALARY-')`,
+          sql`(metadata->>'type') IS DISTINCT FROM 'income'`
         ));
 
       for (const orphan of orphanRebalanceHoldings) {
@@ -132,7 +143,7 @@ export async function POST(req: Request) {
           .set({ profileMetadata: updatedMeta })
           .where(eq(users.id, userId));
 
-        return { success: true, message: 'Rebalance plan reset successfully', activePlan: null };
+        return { success: true, message: 'Rebalance plan reset successfully. Cash and Income remain 100% intact.', activePlan: null };
       }
 
       // 4. IF ACTION IS DEPLOY, APPLY NEW PLAN
@@ -140,7 +151,6 @@ export async function POST(req: Request) {
         throw new Error('Valid amount and trades required to deploy plan.');
       }
 
-      let cashToDeduct = 0;
       const deployedTrades = [];
 
       for (const trade of trades) {
@@ -202,10 +212,6 @@ export async function POST(req: Request) {
           amount: (qty * price).toString(),
         });
 
-        if (trade.assetType === 'stock' || trade.assetType === 'mutual_fund') {
-          cashToDeduct += (qty * price);
-        }
-
         deployedTrades.push({
           symbol: trade.symbol,
           name: trade.name,
@@ -216,30 +222,8 @@ export async function POST(req: Request) {
         });
       }
 
-      // Deduct cash from CASH holding (if applicable)
-      if (cashToDeduct > 0) {
-        const [cashHolding] = await tx.select()
-          .from(holdings)
-          .where(and(eq(holdings.userId, userId), eq(holdings.symbol, 'CASH')))
-          .limit(1);
-
-        if (cashHolding) {
-          const newCash = Number(cashHolding.quantity) - cashToDeduct;
-          await tx.update(holdings)
-            .set({ quantity: newCash.toString(), updatedAt: new Date() })
-            .where(eq(holdings.id, cashHolding.id));
-        } else {
-          await tx.insert(holdings).values({
-            userId,
-            assetType: 'cash',
-            symbol: 'CASH',
-            name: 'Brokerage Cash',
-            quantity: (-cashToDeduct).toString(),
-            avgCost: '1',
-            metadata: { type: 'locker' },
-          });
-        }
-      }
+      // Note: Cash and Income holdings are strictly preserved and never deducted.
+      // Rebalancing reflects the allocation of fresh monthly surplus inflow.
 
       // 5. Update user profile metadata with active plan
       const newPlan = {

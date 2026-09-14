@@ -10,13 +10,20 @@ export async function GET(req: Request) {
   const userId = session.user.id;
 
   // Use raw SQL for the join to get holdings with their latest prices
+  // Ensure Cash, Income, and Liabilities are never filtered out even if quantity is non-standard
   const result = await db.execute(sql`
     SELECT 
       h.*, 
       COALESCE(p.latest_price, h.avg_cost) as current_price
     FROM holdings h
     LEFT JOIN latest_prices p ON p.symbol = h.symbol
-    WHERE h.user_id = ${userId} AND h.quantity > 0;
+    WHERE h.user_id = ${userId} 
+      AND (
+        h.quantity > 0 
+        OR h.asset_type IN ('cash', 'liability')
+        OR (h.metadata->>'type') = 'income'
+        OR (h.metadata->>'type') = 'locker'
+      );
   `);
 
   return NextResponse.json(result.rows);
