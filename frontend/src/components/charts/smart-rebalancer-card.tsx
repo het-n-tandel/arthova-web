@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, 
@@ -13,10 +13,12 @@ import {
   ShieldCheck, 
   Info,
   Loader2,
-  SlidersHorizontal
+  SlidersHorizontal,
+  RotateCcw,
+  RefreshCw
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { formatINR, formatINRCompact, cn } from '@/lib/formatters';
 import { getMarketValuationInfo } from '@/lib/market-valuation-service';
 
@@ -50,8 +52,32 @@ export function SmartRebalancerCard({
 
   const [deployAmount, setDeployAmount] = useState<number>(defaultMonthlySurplus > 0 ? defaultMonthlySurplus : 25000);
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deploySuccess, setDeploySuccess] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [deploySuccess, setDeploySuccess] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [hasInitializedFromPlan, setHasInitializedFromPlan] = useState(false);
+
+  // Fetch active saved rebalance plan from server
+  const { data: rebalancePlanData, isLoading: isLoadingPlan } = useQuery({
+    queryKey: ['rebalance-plan'],
+    queryFn: async () => {
+      const res = await fetch('/api/portfolio/rebalance-plan');
+      if (!res.ok) return { activePlan: null };
+      return res.json();
+    },
+  });
+
+  const activePlan = rebalancePlanData?.activePlan;
+  const isPlanDeployed = Boolean(activePlan && activePlan.amount > 0);
+  const isAmountModified = isPlanDeployed && deployAmount !== activePlan.amount;
+
+  // Remember old deployed value when loaded
+  useEffect(() => {
+    if (activePlan?.amount && !hasInitializedFromPlan) {
+      setDeployAmount(activePlan.amount);
+      setHasInitializedFromPlan(true);
+    }
+  }, [activePlan, hasInitializedFromPlan]);
 
   // Market Valuation Tactical Overlay
   const marketValuation = useMemo(() => getMarketValuationInfo(), []);
@@ -140,9 +166,8 @@ export function SmartRebalancerCard({
           name: 'Nifty 50 Index ETF',
           quantity: Math.max(1, Math.round(deploymentPlan.equity.rupees / 280)),
           pricePerUnit: 280,
-          transactionType: 'buy',
           assetType: 'stock',
-          metadata: JSON.stringify({ category: 'Equity Rebalance' }),
+          metadata: { category: 'Equity Rebalance' },
           purchaseDate: today,
         });
       }
@@ -153,9 +178,8 @@ export function SmartRebalancerCard({
           name: 'Gold BeES ETF',
           quantity: Math.max(1, Math.round(deploymentPlan.gold.rupees / 75)),
           pricePerUnit: 75,
-          transactionType: 'buy',
           assetType: 'gold',
-          metadata: JSON.stringify({ category: 'Precious Metals Hedge' }),
+          metadata: { category: 'Precious Metals Hedge' },
           purchaseDate: today,
         });
       }
@@ -166,38 +190,69 @@ export function SmartRebalancerCard({
           name: 'HDFC High Yield FD (7.2% p.a.)',
           quantity: deploymentPlan.debt.rupees,
           pricePerUnit: 1,
-          transactionType: 'buy',
           assetType: 'fd',
-          metadata: JSON.stringify({ rate: 7.2, tenureMonths: 12 }),
+          metadata: { rate: 7.2, tenureMonths: 12 },
           purchaseDate: today,
         });
       }
 
-      // Execute trades via backend API
-      for (const trade of trades) {
-        const res = await fetch(`http://localhost:8080/api/public/portfolio/${userId}/trade`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(trade),
-        });
-        if (!res.ok) {
-          const errDetail = await res.text().catch(() => '');
-          console.error('Rebalance trade failed:', res.status, errDetail);
-          throw new Error(`Failed to record trade for ${trade.symbol}: ${res.statusText || 'Server error'}`);
-        }
+      const res = await fetch('/api/portfolio/rebalance-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'deploy',
+          amount: deployAmount,
+          trades,
+        }),
+      });
+
+      if (!res.ok) {
+        const errDetail = await res.json().catch(() => ({}));
+        throw new Error(errDetail.error || 'Failed to deploy rebalance plan');
       }
 
-      // Invalidate queries to reload portfolio and net worth
+      // Invalidate queries to reload portfolio, net worth, and rebalance plan
       queryClient.invalidateQueries({ queryKey: ['holdings'] });
       queryClient.invalidateQueries({ queryKey: ['networth'] });
+      queryClient.invalidateQueries({ queryKey: ['rebalance-plan'] });
 
-      setDeploySuccess(true);
-      setTimeout(() => setDeploySuccess(false), 8000);
+      setDeploySuccess(`Success! Rebalance plan of ₹${deployAmount.toLocaleString('en-IN')} is deployed. Previous allocations updated cleanly.`);
+      setTimeout(() => setDeploySuccess(null), 8000);
     } catch (err: any) {
       console.error('Rebalance execution error:', err);
       setErrorMessage(err.message || 'Error deploying rebalance plan.');
     } finally {
       setIsDeploying(false);
+    }
+  };
+
+  const handleResetRebalance = async () => {
+    setIsResetting(true);
+    setErrorMessage(null);
+
+    try {
+      const res = await fetch('/api/portfolio/rebalance-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset' }),
+      });
+
+      if (!res.ok) {
+        const errDetail = await res.json().catch(() => ({}));
+        throw new Error(errDetail.error || 'Failed to reset rebalance plan');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['holdings'] });
+      queryClient.invalidateQueries({ queryKey: ['networth'] });
+      queryClient.invalidateQueries({ queryKey: ['rebalance-plan'] });
+
+      setDeploySuccess('Rebalance plan successfully removed from portfolio.');
+      setTimeout(() => setDeploySuccess(null), 8000);
+    } catch (err: any) {
+      console.error('Rebalance reset error:', err);
+      setErrorMessage(err.message || 'Error resetting rebalance plan.');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -221,8 +276,14 @@ export function SmartRebalancerCard({
           </div>
         </div>
 
-        {/* Tactical Market Valuation Badge */}
-        <div className="flex items-center gap-2">
+        {/* Tactical Market Valuation & Active Plan Badges */}
+        <div className="flex flex-wrap items-center gap-2">
+          {activePlan && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11.5px] font-medium border bg-accent-brass/10 border-accent-brass/30 text-accent-brass font-mono">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Active Plan: {formatINR(activePlan.amount)}/mo</span>
+            </div>
+          )}
           <div className={cn('flex items-center gap-1.5 px-3 py-1 rounded-full text-[11.5px] font-medium border', marketValuation.badgeColor)}>
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>{marketValuation.badgeLabel}</span>
@@ -250,40 +311,43 @@ export function SmartRebalancerCard({
             <span className="text-text-faint font-mono text-[13px]">₹</span>
             <input
               type="number"
-              min={1000}
-              max={1000000}
-              step={1000}
+              min="1000"
+              max="500000"
+              step="1000"
               value={deployAmount}
-              onChange={(e) => setDeployAmount(Math.max(1000, Number(e.target.value)))}
-              className="w-28 bg-transparent text-right font-mono font-medium text-[15px] text-text-primary outline-none"
+              onChange={(e) => setDeployAmount(Math.max(0, parseInt(e.target.value) || 0))}
+              className="bg-transparent text-[14px] font-mono font-medium text-text-primary w-24 text-right focus:outline-none"
             />
           </div>
         </div>
 
         <input
           type="range"
-          min={5000}
-          max={200000}
-          step={2500}
-          value={deployAmount}
-          onChange={(e) => setDeployAmount(Number(e.target.value))}
-          className="w-full accent-[#C9A227] cursor-pointer h-2 bg-bg-surface-3 rounded-lg"
+          min="5000"
+          max="200000"
+          step="2500"
+          value={Math.min(200000, Math.max(5000, deployAmount))}
+          onChange={(e) => setDeployAmount(parseInt(e.target.value))}
+          className="w-full accent-accent-brass cursor-pointer"
         />
 
-        <div className="flex justify-between text-[11px] text-text-faint font-mono">
-          <span>₹5,000/mo</span>
-          <span>₹50,000/mo</span>
-          <span>₹1,00,000/mo</span>
-          <span>₹2,00,000/mo</span>
+        <div className="flex justify-between text-[11px] font-mono text-text-faint">
+          <span>₹5,000</span>
+          <span>₹50,000</span>
+          <span>₹1,00,000</span>
+          <span>₹2,00,000</span>
         </div>
       </div>
 
-      {/* Proportional Deployment Plan */}
+      {/* Recommended Deployment Breakdown Grid */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-eyebrow text-text-faint">Tactical Rupee Distribution</span>
-          <span className="text-[12px] font-mono text-text-faint">
-            Total to Deploy: <strong className="text-text-primary">{formatINR(deployAmount)}</strong>
+          <span className="text-eyebrow text-accent-brass flex items-center gap-1">
+            <Zap className="w-3 h-3" />
+            Tactically Rebalanced Allocation (Total: {formatINR(deployAmount)})
+          </span>
+          <span className="text-[11px] text-text-faint font-mono">
+            {marketValuation.equityAdjustmentPercent > 0 ? '+ Equity Tilted' : marketValuation.equityAdjustmentPercent < 0 ? '+ Defensive Tilted' : 'Neutral Balanced'}
           </span>
         </div>
 
@@ -293,14 +357,14 @@ export function SmartRebalancerCard({
             return (
               <div
                 key={key}
-                className="bg-bg-surface-2 border border-border-default rounded-[10px] p-3.5 space-y-2 relative overflow-hidden"
+                className="bg-bg-surface-2 border border-border-default rounded-[10px] p-4 flex flex-col justify-between space-y-2 relative overflow-hidden"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Icon className="w-4 h-4" style={{ color: item.color }} />
                     <span className="text-[12.5px] font-medium text-text-primary capitalize">{key}</span>
                   </div>
-                  <span className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-bg-surface text-text-secondary">
+                  <span className="text-[12px] font-mono font-medium" style={{ color: item.color }}>
                     {item.percent}%
                   </span>
                 </div>
@@ -324,32 +388,68 @@ export function SmartRebalancerCard({
 
       {/* Action Execution Button */}
       <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-[12px] text-text-secondary">
-          <CheckCircle2 className="w-4 h-4 text-positive" />
-          <span>Executing this plan will eliminate negative portfolio drift uniformly.</span>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2 text-[12px] text-text-secondary">
+            <CheckCircle2 className="w-4 h-4 text-positive shrink-0" />
+            <span>
+              {isPlanDeployed
+                ? isAmountModified
+                  ? `Updating from ${formatINR(activePlan.amount)} to ${formatINR(deployAmount)} will adjust your allocations without duplicate buys.`
+                  : `Monthly allocation plan of ${formatINR(activePlan.amount)} is active in your portfolio.`
+                : 'Executing this plan will eliminate negative portfolio drift uniformly.'}
+            </span>
+          </div>
         </div>
 
-        <button
-          onClick={handleExecuteRebalance}
-          disabled={isDeploying || deployAmount <= 0}
-          className={cn(
-            'flex items-center justify-center gap-2 px-6 py-2.5 rounded-[8px] font-medium text-[13.5px] transition-all shadow-sm w-full sm:w-auto',
-            'bg-accent-brass hover:bg-accent-brass-dim text-bg-base font-semibold',
-            'disabled:opacity-50 disabled:cursor-not-allowed'
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          {isPlanDeployed && (
+            <button
+              type="button"
+              onClick={handleResetRebalance}
+              disabled={isResetting || isDeploying}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-[8px] border border-negative/30 hover:border-negative/60 hover:bg-negative/10 text-negative text-[13px] font-medium transition-all disabled:opacity-50"
+              title="Reverts the monthly rebalance plan holdings from your portfolio"
+            >
+              {isResetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+              <span>Reset Plan</span>
+            </button>
           )}
-        >
-          {isDeploying ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Deploying to Portfolio...</span>
-            </>
-          ) : (
-            <>
-              <span>Deploy & Log Plan to Portfolio</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </button>
+
+          <button
+            onClick={handleExecuteRebalance}
+            disabled={isDeploying || deployAmount <= 0 || (isPlanDeployed && !isAmountModified)}
+            className={cn(
+              'flex items-center justify-center gap-2 px-6 py-2.5 rounded-[8px] font-medium text-[13.5px] transition-all shadow-sm w-full sm:w-auto font-semibold',
+              isPlanDeployed && !isAmountModified
+                ? 'bg-positive/15 text-positive border border-positive/30 cursor-default'
+                : 'bg-accent-brass hover:bg-accent-brass-dim text-bg-base disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+          >
+            {isDeploying ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Updating Portfolio...</span>
+              </>
+            ) : isPlanDeployed ? (
+              isAmountModified ? (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Update Plan to {formatINR(deployAmount)}</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Plan Deployed ({formatINR(activePlan.amount)}/mo)</span>
+                </>
+              )
+            ) : (
+              <>
+                <span>Deploy & Log Plan to Portfolio</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Success Notification */}
@@ -362,7 +462,7 @@ export function SmartRebalancerCard({
             className="p-3.5 rounded-[8px] bg-positive/10 border border-positive/30 text-positive text-[13px] flex items-center gap-2.5 font-medium"
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>Success! ₹{deployAmount.toLocaleString('en-IN')} has been deployed across your target asset classes and logged to your portfolio.</span>
+            <span>{deploySuccess}</span>
           </motion.div>
         )}
       </AnimatePresence>
