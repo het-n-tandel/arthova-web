@@ -82,11 +82,13 @@ export function usePortfolio(): PortfolioSummary {
 
     holdings.forEach((h: any) => {
       const meta    = parseMeta(h.metadata);
+      const isSalary = Boolean(meta?.isSalary || h.symbol === 'SALARY');
+      const isBrokerageCash = h.symbol === 'CASH';
       const rawQty  = parseFloat(h.quantity || '0');
       const metaAmt = parseFloat(meta.amount || '0');
-      const qty     = (h.assetType === 'cash' && rawQty <= 0 && metaAmt > 0) ? metaAmt : rawQty;
+      const qty     = rawQty > 0 ? rawQty : (metaAmt > 0 ? metaAmt : 0);
 
-      if (h.assetType !== 'cash' && h.assetType !== 'liability' && qty <= 0) return;
+      if (qty <= 0 && !isBrokerageCash && !isSalary) return;
 
       const avgCost = parseFloat(h.avgCost || '1');
 
@@ -101,15 +103,14 @@ export function usePortfolio(): PortfolioSummary {
       // ── Asset-class specific logic ─────────────────────────────────────
       if (h.assetType === 'cash') {
         if (meta.type === 'income') {
-          const monthly = metaAmt > 0 ? metaAmt : Math.max(0, qty);
+          const monthly = qty;
           const total   = monthly * (monthsElapsed + 1);
           invested = total;
           current  = total;
         } else {
           // Locker / Liquid Cash / Bank / Brokerage Cash
-          const amount = metaAmt > 0 ? metaAmt : Math.max(0, qty);
-          invested = amount;
-          current  = amount;
+          invested = qty;
+          current  = qty;
         }
         cashVal.invested += invested;
         cashVal.current  += current;
@@ -310,19 +311,23 @@ export function usePortfolio(): PortfolioSummary {
     const mapCashLiability = (assetType: string) => holdings
       .filter((h: any) => {
         if (h.assetType !== assetType) return false;
-        if (assetType === 'cash') {
-          // Cash & Income and Brokerage Cash / Liquid Cash accounts must NEVER be deleted or filtered out
-          return true;
-        }
-        const qtyN = parseFloat(h.quantity || '0');
         const meta = parseMeta(h.metadata);
-        return qtyN > 0 || parseFloat(meta.amount || '0') > 0;
+        const isSalary = Boolean(meta?.isSalary || h.symbol === 'SALARY');
+        const isBrokerageCash = h.symbol === 'CASH';
+        const rawQty  = parseFloat(h.quantity || '0');
+        const metaAmt = parseFloat(meta.amount || '0');
+        const qty     = rawQty > 0 ? rawQty : (metaAmt > 0 ? metaAmt : 0);
+
+        // Registration salary and Brokerage Cash wallet are always preserved
+        if (isBrokerageCash || isSalary) return true;
+        // Other holdings are only shown if they have a positive quantity/amount
+        return qty > 0;
       })
       .map((h: any) => {
         const meta       = parseMeta(h.metadata);
         const rawQty     = parseFloat(h.quantity || '0');
         const metaAmt    = parseFloat(meta.amount || '0');
-        const effectiveQty = (assetType === 'cash' && rawQty <= 0 && metaAmt > 0) ? metaAmt : rawQty;
+        const effectiveQty = rawQty > 0 ? rawQty : (metaAmt > 0 ? metaAmt : 0);
         const avgCostN   = parseFloat(h.avgCost || '1');
         const purchaseTs = new Date(h.purchaseDate || h.createdAt || Date.now()).getTime();
         const mElapsed   = Math.max(0, Math.floor((Date.now() - purchaseTs) / (1000 * 60 * 60 * 24 * 30)));
@@ -331,10 +336,9 @@ export function usePortfolio(): PortfolioSummary {
 
         if (assetType === 'cash') {
           if (meta.type === 'income') {
-            const monthly = metaAmt > 0 ? metaAmt : Math.max(0, effectiveQty);
-            computedValue = monthly * (mElapsed + 1);
+            computedValue = effectiveQty * (mElapsed + 1);
           } else {
-            computedValue = metaAmt > 0 ? metaAmt : Math.max(0, effectiveQty);
+            computedValue = effectiveQty;
           }
         } else if (assetType === 'liability') {
           const emi  = parseFloat(meta.emi || '0');

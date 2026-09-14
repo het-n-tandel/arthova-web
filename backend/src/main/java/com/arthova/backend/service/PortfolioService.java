@@ -139,4 +139,18 @@ public class PortfolioService {
 
         holdingRepository.save(cashHolding);
     }
+
+    @Transactional
+    public void deleteHolding(UUID userId, UUID holdingId) {
+        Optional<Holding> holdingOpt = holdingRepository.findById(holdingId);
+        if (holdingOpt.isPresent() && holdingOpt.get().getUserId().equals(userId)) {
+            Holding holding = holdingOpt.get();
+            String metadata = holding.getMetadata();
+            if (metadata != null && (metadata.contains("\"isSalary\":true") || metadata.contains("\"isSalary\":\"true\"") || "SALARY".equalsIgnoreCase(holding.getSymbol()))) {
+                throw new IllegalStateException("Primary registration salary cannot be deleted.");
+            }
+            transactionRepository.deleteByHoldingId(holdingId);
+            holdingRepository.delete(holding);
+        }
+    }
 }

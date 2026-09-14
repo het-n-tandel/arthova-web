@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   createColumnHelper,
   flexRender,
@@ -8,6 +8,8 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { formatINR, cn, formatDate } from '@/lib/formatters';
+import { Trash2, Loader2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ManualAsset {
   id: string;
@@ -31,6 +33,28 @@ interface ManualAssetTableProps {
 const columnHelper = createColumnHelper<ManualAsset>();
 
 export function ManualAssetTable({ data, className, type }: ManualAssetTableProps) {
+  const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (holdingId: string, name: string) => {
+    if (!window.confirm(`Permanently delete "${name}"? This action cannot be undone.`)) return;
+    setDeletingId(holdingId);
+    try {
+      const res = await fetch(`/api/holdings/${holdingId}`, { method: 'DELETE' });
+      if (res.ok) {
+        await queryClient.invalidateQueries();
+      } else {
+        const errMsg = await res.text();
+        alert(errMsg || 'Failed to delete holding');
+      }
+    } catch (err) {
+      console.error('Failed to delete holding:', err);
+      alert('Network error while deleting holding');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const columns = useMemo(() => {
     const cols = [];
 
@@ -100,8 +124,51 @@ export function ManualAssetTable({ data, className, type }: ManualAssetTableProp
       })
     );
 
+    cols.push(
+      columnHelper.display({
+        id: 'actions',
+        header: '',
+        size: 44,
+        cell: ({ row }) => {
+          const isSalary = Boolean(
+            row.original.metadata?.isSalary ||
+            row.original.symbol === 'SALARY' ||
+            row.original.name?.toLowerCase().includes('salary')
+          );
+
+          if (isSalary) {
+            return (
+              <span className="text-[11px] text-text-faint italic select-none" title="Primary Registration Salary cannot be deleted">
+                Fixed
+              </span>
+            );
+          }
+
+          const isDeleting = deletingId === row.original.id;
+
+          return (
+            <div className="flex justify-end pr-1">
+              <button
+                type="button"
+                onClick={() => handleDelete(row.original.id, row.original.name)}
+                disabled={isDeleting}
+                className="p-1.5 text-text-faint hover:text-negative hover:bg-negative/10 rounded-[6px] transition-colors disabled:opacity-50"
+                title="Permanently delete this entry"
+              >
+                {isDeleting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-negative" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5 hover:scale-110 transition-transform" />
+                )}
+              </button>
+            </div>
+          );
+        },
+      })
+    );
+
     return cols;
-  }, [type]);
+  }, [type, deletingId]);
 
   const table = useReactTable({
     data,

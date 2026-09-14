@@ -20,9 +20,9 @@ export async function GET(req: Request) {
     WHERE h.user_id = ${userId} 
       AND (
         h.quantity > 0 
-        OR h.asset_type IN ('cash', 'liability')
-        OR (h.metadata->>'type') = 'income'
-        OR (h.metadata->>'type') = 'locker'
+        OR h.symbol = 'CASH'
+        OR (h.metadata->>'isSalary') = 'true'
+        OR h.symbol = 'SALARY'
       );
   `);
 

@@ -8,4 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface AssetTransactionRepository extends JpaRepository<AssetTransaction, UUID> {
+    void deleteByHoldingId(UUID holdingId);
 }
