@@ -81,11 +81,14 @@ export function usePortfolio(): PortfolioSummary {
     const liveSilverINR = (rawSilverUSD * inrRate) / 31.1034768;
 
     holdings.forEach((h: any) => {
-      const qty     = parseFloat(h.quantity);
-      if (qty <= 0) return;
-
-      const avgCost = parseFloat(h.avgCost);
       const meta    = parseMeta(h.metadata);
+      const rawQty  = parseFloat(h.quantity || '0');
+      const metaAmt = parseFloat(meta.amount || '0');
+      const qty     = (h.assetType === 'cash' && rawQty <= 0 && metaAmt > 0) ? metaAmt : rawQty;
+
+      if (h.assetType !== 'cash' && h.assetType !== 'liability' && qty <= 0) return;
+
+      const avgCost = parseFloat(h.avgCost || '1');
 
       // Prefer user-supplied purchaseDate over system createdAt
       const purchaseTs    = new Date(h.purchaseDate || h.createdAt || Date.now()).getTime();
@@ -98,13 +101,13 @@ export function usePortfolio(): PortfolioSummary {
       // ── Asset-class specific logic ─────────────────────────────────────
       if (h.assetType === 'cash') {
         if (meta.type === 'income') {
-          const monthly = parseFloat(meta.amount || qty.toString());
+          const monthly = metaAmt > 0 ? metaAmt : Math.max(0, qty);
           const total   = monthly * (monthsElapsed + 1);
           invested = total;
           current  = total;
         } else {
-          // Locker
-          const amount = parseFloat(meta.amount || qty.toString());
+          // Locker / Liquid Cash / Bank / Brokerage Cash
+          const amount = metaAmt > 0 ? metaAmt : Math.max(0, qty);
           invested = amount;
           current  = amount;
         }
@@ -305,25 +308,37 @@ export function usePortfolio(): PortfolioSummary {
 
     // Cash & Liability
     const mapCashLiability = (assetType: string) => holdings
-      .filter((h: any) => h.assetType === assetType && parseFloat(h.quantity) > 0)
+      .filter((h: any) => {
+        if (h.assetType !== assetType) return false;
+        if (assetType === 'cash') {
+          // Cash & Income and Brokerage Cash / Liquid Cash accounts must NEVER be deleted or filtered out
+          return true;
+        }
+        const qtyN = parseFloat(h.quantity || '0');
+        const meta = parseMeta(h.metadata);
+        return qtyN > 0 || parseFloat(meta.amount || '0') > 0;
+      })
       .map((h: any) => {
         const meta       = parseMeta(h.metadata);
-        const qtyN       = parseFloat(h.quantity);
-        const avgCostN   = parseFloat(h.avgCost);
+        const rawQty     = parseFloat(h.quantity || '0');
+        const metaAmt    = parseFloat(meta.amount || '0');
+        const effectiveQty = (assetType === 'cash' && rawQty <= 0 && metaAmt > 0) ? metaAmt : rawQty;
+        const avgCostN   = parseFloat(h.avgCost || '1');
         const purchaseTs = new Date(h.purchaseDate || h.createdAt || Date.now()).getTime();
         const mElapsed   = Math.max(0, Math.floor((Date.now() - purchaseTs) / (1000 * 60 * 60 * 24 * 30)));
 
-        let computedValue = qtyN * avgCostN;
+        let computedValue = effectiveQty * avgCostN;
 
         if (assetType === 'cash') {
           if (meta.type === 'income') {
-            computedValue = parseFloat(meta.amount || '0') * (mElapsed + 1);
+            const monthly = metaAmt > 0 ? metaAmt : Math.max(0, effectiveQty);
+            computedValue = monthly * (mElapsed + 1);
           } else {
-            computedValue = parseFloat(meta.amount || qtyN.toString());
+            computedValue = metaAmt > 0 ? metaAmt : Math.max(0, effectiveQty);
           }
         } else if (assetType === 'liability') {
           const emi  = parseFloat(meta.emi || '0');
-          const loan = qtyN * avgCostN;
+          const loan = effectiveQty * avgCostN;
           computedValue = Math.max(0, loan - emi * (mElapsed + 1));
         }
 
@@ -331,7 +346,7 @@ export function usePortfolio(): PortfolioSummary {
           ...h,
           metadata: meta,
           avgCost:  avgCostN,
-          quantity: qtyN,
+          quantity: effectiveQty,
           cmp:      computedValue,
           computedValue,
           monthsElapsed: mElapsed,
