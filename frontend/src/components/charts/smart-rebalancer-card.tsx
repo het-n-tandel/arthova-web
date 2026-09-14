@@ -140,7 +140,7 @@ export function SmartRebalancerCard({
           name: 'Nifty 50 Index ETF',
           quantity: Math.max(1, Math.round(deploymentPlan.equity.rupees / 280)),
           pricePerUnit: 280,
-          transactionType: 'BUY',
+          transactionType: 'buy',
           assetType: 'stock',
           metadata: JSON.stringify({ category: 'Equity Rebalance' }),
           purchaseDate: today,
@@ -153,7 +153,7 @@ export function SmartRebalancerCard({
           name: 'Gold BeES ETF',
           quantity: Math.max(1, Math.round(deploymentPlan.gold.rupees / 75)),
           pricePerUnit: 75,
-          transactionType: 'BUY',
+          transactionType: 'buy',
           assetType: 'gold',
           metadata: JSON.stringify({ category: 'Precious Metals Hedge' }),
           purchaseDate: today,
@@ -166,7 +166,7 @@ export function SmartRebalancerCard({
           name: 'HDFC High Yield FD (7.2% p.a.)',
           quantity: deploymentPlan.debt.rupees,
           pricePerUnit: 1,
-          transactionType: 'BUY',
+          transactionType: 'buy',
           assetType: 'fd',
           metadata: JSON.stringify({ rate: 7.2, tenureMonths: 12 }),
           purchaseDate: today,
@@ -181,7 +181,9 @@ export function SmartRebalancerCard({
           body: JSON.stringify(trade),
         });
         if (!res.ok) {
-          throw new Error('Failed to record rebalance transactions');
+          const errDetail = await res.text().catch(() => '');
+          console.error('Rebalance trade failed:', res.status, errDetail);
+          throw new Error(`Failed to record trade for ${trade.symbol}: ${res.statusText || 'Server error'}`);
         }
       }
 

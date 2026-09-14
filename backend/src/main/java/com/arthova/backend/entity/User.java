@@ -3,6 +3,8 @@ package com.arthova.backend.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -37,6 +39,7 @@ public class User {
     @Column(name = "risk_tolerance")
     private String riskTolerance;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "profile_metadata", columnDefinition = "jsonb")
     private String profileMetadata;
 
