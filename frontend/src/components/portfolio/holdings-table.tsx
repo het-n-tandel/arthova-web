@@ -95,7 +95,7 @@ export function HoldingsTable({ data, className, onRowClick }: HoldingsTableProp
       columnHelper.accessor('cmp', {
         header: 'CMP',
         cell: (info) => {
-          const live = livePrices.get(info.row.original.symbol);
+          const live = useLedgerStore.getState().livePrices.get(info.row.original.symbol);
           return (
             <PriceCell
               price={info.getValue()}
@@ -143,7 +143,7 @@ export function HoldingsTable({ data, className, onRowClick }: HoldingsTableProp
         ),
       }),
     ],
-    [favorites, toggleFavorite, livePrices]
+    [favorites, toggleFavorite]
   );
 
   const table = useReactTable({

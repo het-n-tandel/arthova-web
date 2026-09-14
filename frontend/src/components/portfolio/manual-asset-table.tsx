@@ -1,12 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
+import { useState } from 'react';
 import { formatINR, cn, formatDate } from '@/lib/formatters';
 import { Trash2, Loader2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -29,8 +23,6 @@ interface ManualAssetTableProps {
   className?: string;
   type: 'cash' | 'liability' | 'fd' | 'property';
 }
-
-const columnHelper = createColumnHelper<ManualAsset>();
 
 export function ManualAssetTable({ data, className, type }: ManualAssetTableProps) {
   const queryClient = useQueryClient();
@@ -55,162 +47,111 @@ export function ManualAssetTable({ data, className, type }: ManualAssetTableProp
     }
   };
 
-  const columns = useMemo(() => {
-    const cols = [];
-
-    cols.push(
-      columnHelper.accessor('name', {
-        header: type === 'cash' ? 'Account / Income Name' : type === 'liability' ? 'Loan Name' : 'Asset Name',
-        cell: (info) => {
-          const isSalary = Boolean(info.row.original.metadata?.isSalary || info.row.original.name.toLowerCase().includes('salary'));
-          return (
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-[13px] font-medium text-text-primary">{info.getValue()}</p>
-                {isSalary && (
-                  <span className="text-[10.5px] bg-accent-brass/15 text-accent-brass border border-accent-brass/30 px-1.5 py-0.5 rounded font-medium">
-                    Primary Salary
-                  </span>
-                )}
-              </div>
-              {type === 'cash' && (
-                <p className="text-[11px] text-text-faint">
-                  {info.row.original.metadata?.type === 'income' ? 'Monthly Income (Recurring)' : 'Liquid Cash / Bank'}
-                </p>
-              )}
-            </div>
-          );
-        },
-      })
-    );
-
-    if (type === 'liability') {
-      cols.push(
-        columnHelper.display({
-          id: 'emi',
-          header: 'Monthly EMI',
-          cell: ({ row }) => (
-            <span className="text-[13px] text-text-secondary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>
-              {formatINR(parseFloat(row.original.metadata?.emi || 0))}
-            </span>
-          ),
-        })
-      );
-    }
-
-    cols.push(
-      columnHelper.accessor('createdAt', {
-        header: 'Added On',
-        cell: (info) => (
-          <span className="text-[13px] text-text-secondary">
-            {formatDate(info.getValue())}
-          </span>
-        ),
-      })
-    );
-
-    cols.push(
-      columnHelper.display({
-        id: 'totalValue',
-        header: type === 'liability' ? 'Remaining Loan' : 'Total Value',
-        cell: ({ row }) => {
-          const totalVal = row.original.computedValue ?? row.original.cmp ?? (row.original.quantity * row.original.avgCost);
-          return (
-            <span className="text-[13px] font-medium text-text-primary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>
-              {formatINR(totalVal)}
-            </span>
-          );
-        },
-      })
-    );
-
-    cols.push(
-      columnHelper.display({
-        id: 'actions',
-        header: '',
-        size: 44,
-        cell: ({ row }) => {
-          const isSalary = Boolean(
-            row.original.metadata?.isSalary ||
-            row.original.symbol === 'SALARY' ||
-            row.original.name?.toLowerCase().includes('salary')
-          );
-
-          if (isSalary) {
-            return (
-              <span className="text-[11px] text-text-faint italic select-none" title="Primary Registration Salary cannot be deleted">
-                Fixed
-              </span>
-            );
-          }
-
-          const isDeleting = deletingId === row.original.id;
-
-          return (
-            <div className="flex justify-end pr-1">
-              <button
-                type="button"
-                onClick={() => handleDelete(row.original.id, row.original.name)}
-                disabled={isDeleting}
-                className="p-1.5 text-text-faint hover:text-negative hover:bg-negative/10 rounded-[6px] transition-colors disabled:opacity-50"
-                title="Permanently delete this entry"
-              >
-                {isDeleting ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-negative" />
-                ) : (
-                  <Trash2 className="w-3.5 h-3.5 hover:scale-110 transition-transform" />
-                )}
-              </button>
-            </div>
-          );
-        },
-      })
-    );
-
-    return cols;
-  }, [type, deletingId]);
-
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
-
   return (
     <div className={cn('overflow-x-auto rounded-[12px] border border-border-default', className)}>
       <table className="w-full">
         <thead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id} className="bg-bg-surface-2">
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider"
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
-              ))}
-            </tr>
-          ))}
+          <tr className="bg-bg-surface-2">
+            <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider">
+              {type === 'cash' ? 'Account / Income Name' : type === 'liability' ? 'Loan Name' : 'Asset Name'}
+            </th>
+            {type === 'liability' && (
+              <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider">
+                Monthly EMI
+              </th>
+            )}
+            <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider">
+              Added On
+            </th>
+            <th className="px-4 py-3 text-left text-[11px] font-medium text-text-faint uppercase tracking-wider">
+              {type === 'liability' ? 'Remaining Loan' : 'Total Value'}
+            </th>
+            <th className="px-4 py-3 text-right text-[11px] font-medium text-text-faint uppercase tracking-wider w-[60px]">
+              Actions
+            </th>
+          </tr>
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr
-              key={row.id}
-              className="border-t border-border-default hover:bg-bg-surface-2 transition-colors duration-150 h-[52px]"
-            >
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="px-4 py-2">
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          {data.map((item) => {
+            const isSalary = Boolean(
+              item.metadata?.isSalary ||
+              item.symbol === 'SALARY' ||
+              item.name?.toLowerCase().includes('salary')
+            );
+            const totalVal = item.computedValue ?? item.cmp ?? (item.quantity * item.avgCost);
+            const isDeleting = deletingId === item.id;
+
+            return (
+              <tr
+                key={item.id}
+                className="border-t border-border-default hover:bg-bg-surface-2 transition-colors duration-150 h-[52px]"
+              >
+                <td className="px-4 py-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[13px] font-medium text-text-primary">{item.name}</p>
+                      {isSalary && (
+                        <span className="text-[10.5px] bg-accent-brass/15 text-accent-brass border border-accent-brass/30 px-1.5 py-0.5 rounded font-medium">
+                          Primary Salary
+                        </span>
+                      )}
+                    </div>
+                    {type === 'cash' && (
+                      <p className="text-[11px] text-text-faint">
+                        {item.metadata?.type === 'income' ? 'Monthly Income (Recurring)' : 'Liquid Cash / Bank'}
+                      </p>
+                    )}
+                  </div>
                 </td>
-              ))}
-            </tr>
-          ))}
+
+                {type === 'liability' && (
+                  <td className="px-4 py-2">
+                    <span className="text-[13px] text-text-secondary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>
+                      {formatINR(parseFloat(item.metadata?.emi || 0))}
+                    </span>
+                  </td>
+                )}
+
+                <td className="px-4 py-2">
+                  <span className="text-[13px] text-text-secondary">
+                    {formatDate(item.createdAt)}
+                  </span>
+                </td>
+
+                <td className="px-4 py-2">
+                  <span className="text-[13px] font-medium text-text-primary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>
+                    {formatINR(totalVal)}
+                  </span>
+                </td>
+
+                <td className="px-4 py-2 text-right">
+                  {isSalary ? (
+                    <span className="text-[11px] text-text-faint italic select-none" title="Primary Registration Salary cannot be deleted">
+                      Fixed
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item.id, item.name)}
+                      disabled={isDeleting}
+                      className="p-1.5 text-text-faint hover:text-negative hover:bg-negative/10 rounded-[6px] transition-colors disabled:opacity-50"
+                      title="Permanently delete this entry"
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-negative" />
+                      ) : (
+                        <Trash2 className="w-4 h-4 hover:scale-110 transition-transform" />
+                      )}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+
           {data.length === 0 && (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-[13px] text-text-faint">
+              <td colSpan={type === 'liability' ? 5 : 4} className="px-4 py-8 text-center text-[13px] text-text-faint">
                 No items found.
               </td>
             </tr>

@@ -5,7 +5,6 @@ import { useLedgerStore } from '@/lib/store';
 
 export function usePriceStream() {
   const updatePrice = useLedgerStore((s) => s.updatePrice);
-  const livePrices = useLedgerStore((s) => s.livePrices);
 
   useEffect(() => {
     // Only connect if we are in browser
@@ -19,7 +18,7 @@ export function usePriceStream() {
         if (data.type === 'PRICE_UPDATE' && data.payload) {
           const { symbol, price, change, changePercent, timestamp } = data.payload;
           
-          const currentPrice = livePrices.get(symbol)?.price || price;
+          const currentPrice = useLedgerStore.getState().livePrices.get(symbol)?.price || price;
           
           updatePrice({
             symbol,
