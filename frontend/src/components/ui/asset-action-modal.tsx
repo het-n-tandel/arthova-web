@@ -229,10 +229,11 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
       }
     } else if (!isManualAsset) {
       try {
-        const res = await fetch(`http://localhost:8080/api/public/market/quote?symbol=${asset.symbol}`);
+        const res = await fetch(`/api/market/quote?symbol=${asset.symbol}`);
         if (res.ok) {
-          const price = await res.text();
-          setPricePerUnit(price);
+          const q = await res.json();
+          const price = q.regularMarketPrice ?? q;
+          if (price) setPricePerUnit(price.toString());
         }
       } catch (e) {
         console.error(e);
@@ -284,11 +285,23 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
         purchaseDate: purchaseDate || new Date().toISOString().slice(0, 10),
       };
 
-      const res = await fetch(`http://localhost:8080/api/public/portfolio/${userId}/trade`, {
+      let res = await fetch('/api/portfolio/trade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, assetType })
       });
+
+      if (!res.ok) {
+        // Fallback to Spring Boot if available
+        try {
+          const fallbackRes = await fetch(`http://localhost:8080/api/public/portfolio/${userId}/trade`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...payload, assetType })
+          });
+          if (fallbackRes.ok) res = fallbackRes;
+        } catch (e) {}
+      }
       
       if (!res.ok) throw new Error('Transaction failed');
       return res.json();

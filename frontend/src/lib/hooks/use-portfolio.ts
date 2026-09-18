@@ -52,9 +52,15 @@ export function usePortfolio(): PortfolioSummary {
     queryFn: async () => {
       const userId = session?.user?.id;
       if (!userId) return [];
-      const res = await fetch(`http://localhost:8080/api/public/portfolio/${userId}`);
-      if (!res.ok) throw new Error('Failed to fetch holdings');
-      return res.json();
+      try {
+        const res = await fetch('/api/holdings');
+        if (res.ok) return res.json();
+      } catch (err) {
+        console.warn('Next.js /api/holdings failed, trying fallback:', err);
+      }
+      const fallbackRes = await fetch(`http://localhost:8080/api/public/portfolio/${userId}`);
+      if (!fallbackRes.ok) throw new Error('Failed to fetch holdings');
+      return fallbackRes.json();
     },
     enabled: !!session?.user?.id,
   });
