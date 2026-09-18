@@ -9,8 +9,7 @@ export async function GET(req: Request) {
   if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
   const userId = session.user.id;
 
-  // Use raw SQL for the join to get holdings with their latest prices
-  // Ensure Cash, Income, and Liabilities are never filtered out even if quantity is non-standard
+  // Fetch all holdings for user that either have positive quantity, or are cash/income/salary/liability
   const result = await db.execute(sql`
     SELECT 
       h.*, 
@@ -20,13 +19,26 @@ export async function GET(req: Request) {
     WHERE h.user_id = ${userId} 
       AND (
         h.quantity > 0 
+        OR h.asset_type IN ('cash', 'liability', 'fd', 'property', 'bond')
         OR h.symbol = 'CASH'
         OR (h.metadata->>'isSalary') = 'true'
         OR h.symbol = 'SALARY'
       );
   `);
 
-  return NextResponse.json(result.rows);
+  // Map snake_case DB columns → camelCase so use-portfolio.ts can read h.assetType, h.avgCost, etc.
+  const rows = result.rows.map((row: any) => ({
+    ...row,
+    assetType:    row.asset_type,
+    avgCost:      row.avg_cost,
+    createdAt:    row.created_at,
+    updatedAt:    row.updated_at,
+    purchaseDate: row.purchase_date,
+    userId:       row.user_id,
+    currentPrice: row.current_price,
+  }));
+
+  return NextResponse.json(rows);
 }
 
 export async function POST(req: Request) {
