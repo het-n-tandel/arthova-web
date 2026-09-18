@@ -17,17 +17,18 @@ export async function GET(req: Request) {
   if (symbolsParam) {
     symbols = symbolsParam.split(',').filter(Boolean);
   } else {
-    // Fetch user's actual database holdings to stream
+    // Fetch user's actual database holdings to stream directly from PostgreSQL
     const userId = session.user.id;
     try {
-      const res = await fetch(`http://localhost:8080/api/public/portfolio/${userId}`);
-      if (res.ok) {
-        const holdings = await res.json();
-        const dbSymbols = holdings
-            .filter((h: any) => h.assetType === 'stock' || h.assetType === 'mutual_fund')
-            .map((h: any) => h.symbol);
-        symbols = [...new Set([...dbSymbols, 'GC=F', 'SI=F', 'INR=X'])];
-      }
+      const { db } = await import('@/lib/db');
+      const { holdings } = await import('@/lib/db/schema');
+      const { eq } = await import('drizzle-orm');
+      
+      const userHoldings = await db.select().from(holdings).where(eq(holdings.userId, userId));
+      const dbSymbols = userHoldings
+        .filter((h: any) => (h.assetType === 'stock' || h.assetType === 'mutual_fund') && h.symbol)
+        .map((h: any) => h.symbol);
+      symbols = [...new Set([...dbSymbols, 'GC=F', 'SI=F', 'INR=X'])];
     } catch (e) {
       console.error('Failed to fetch DB holdings for stream', e);
     }
