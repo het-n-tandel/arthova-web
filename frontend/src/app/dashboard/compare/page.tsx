@@ -17,9 +17,15 @@ export default function ComparePage() {
     queryKey: ['compare-dynamic', symbols],
     queryFn: async () => {
       if (symbols.length === 0) return null;
-      const res = await fetch(`http://localhost:8080/api/public/compare/dynamic?symbols=${symbols.join(',')}`);
-      if (!res.ok) throw new Error('Failed to fetch comparison data');
-      return res.json();
+      try {
+        const res = await fetch(`/api/market/compare?symbols=${symbols.join(',')}`);
+        if (res.ok) return res.json();
+      } catch (e) {
+        console.warn('Local compare route failed, trying fallback');
+      }
+      const fallbackRes = await fetch(`http://localhost:8080/api/public/compare/dynamic?symbols=${symbols.join(',')}`);
+      if (!fallbackRes.ok) throw new Error('Failed to fetch comparison data');
+      return fallbackRes.json();
     },
     enabled: symbols.length > 0,
   });

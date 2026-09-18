@@ -271,13 +271,14 @@ export function usePortfolio(): PortfolioSummary {
         const monthsElapsedN = Math.max(0, Math.floor((Date.now() - purchaseTs) / (1000 * 60 * 60 * 24 * 30)));
         const yearsElapsedN  = Math.max(0, (Date.now() - purchaseTs) / (1000 * 60 * 60 * 24 * 365));
 
-        let computedCurrent = principal;
+        let interestAccrued = 0;
 
         if (assetType === 'fd') {
           const rate          = parseFloat(meta.interestRate || '0') / 100;
           const tenureMonths  = parseInt(meta.tenureMonths || '12');
           const elapsed       = Math.min(monthsElapsedN, tenureMonths);
-          computedCurrent     = principal + principal * rate * (elapsed / 12);
+          interestAccrued     = principal * rate * (elapsed / 12);
+          computedCurrent     = principal + interestAccrued;
         } else if (assetType === 'property') {
           const monthlyRent  = parseFloat(meta.monthlyRent || '0');
           computedCurrent    = principal + monthlyRent * monthsElapsedN;
@@ -290,6 +291,7 @@ export function usePortfolio(): PortfolioSummary {
           quantity: qtyN,
           cmp:      avgCostN,
           computedCurrent,
+          interestAccrued,
           monthsElapsed: monthsElapsedN,
           yearsElapsed:  yearsElapsedN,
           ...enrichDates(h, avgCostN),

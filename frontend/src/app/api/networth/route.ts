@@ -12,7 +12,13 @@ export async function GET(req: Request) {
     SELECT SUM(h.quantity * COALESCE(p.latest_price, h.avg_cost)) AS net_worth
     FROM holdings h
     LEFT JOIN latest_prices p ON p.symbol = h.symbol
-    WHERE h.user_id = ${userId} AND h.quantity > 0;
+    WHERE h.user_id = ${userId}
+      AND (
+        h.quantity > 0
+        OR h.asset_type IN ('cash', 'liability', 'fd', 'property', 'bond')
+        OR h.symbol = 'CASH'
+        OR (h.metadata->>'isSalary') = 'true'
+      );
   `);
 
   const netWorth = result.rows[0]?.net_worth || 0;

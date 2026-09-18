@@ -11,7 +11,7 @@ export async function POST(req: Request) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(3000), // 3s timeout
+        signal: AbortSignal.timeout(800), // 800ms — skip quickly if backend is offline
       });
 
       if (res.ok) {
