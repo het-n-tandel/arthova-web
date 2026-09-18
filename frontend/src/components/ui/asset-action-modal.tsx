@@ -74,6 +74,8 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
   const [purchaseDate, setPurchaseDate] = useState(todayStr);
   const [isFetchingHistoricalPrice, setIsFetchingHistoricalPrice] = useState(false);
   const [historicalPriceNotice, setHistoricalPriceNotice] = useState<string | null>(null);
+  const [aiTriggered, setAiTriggered] = useState(false);
+
 
   const fetchPastPrice = async (targetDate: string) => {
     if (!selectedAsset?.symbol || isManualAsset) return;
@@ -154,16 +156,21 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
       return res.json();
     },
     staleTime: 60000 * 5,
-    enabled: !isManualAsset && !isMetal
+    enabled: !isManualAsset && !isMetal && aiTriggered
+
   });
 
   const { data: historicalData, isLoading: isLoadingChart } = useQuery({
     queryKey: ['historical-chart', selectedAsset?.symbol],
     queryFn: async () => {
       if (!selectedAsset) return null;
-      const res = await fetch(`http://localhost:8080/api/public/compare/dynamic?symbols=${selectedAsset.symbol}`);
-      if (!res.ok) throw new Error('Failed to fetch chart data');
-      return res.json();
+      try {
+        const res = await fetch(`/api/market/compare?symbols=${selectedAsset.symbol}`);
+        if (res.ok) return res.json();
+      } catch (e) {}
+      const fallbackRes = await fetch(`http://localhost:8080/api/public/compare/dynamic?symbols=${selectedAsset.symbol}`);
+      if (!fallbackRes.ok) throw new Error('Failed to fetch chart data');
+      return fallbackRes.json();
     },
     enabled: view === 'trade' && !!selectedAsset && !isManualAsset,
   });
@@ -442,7 +449,7 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
           </div>
         )}
 
-        {/* Suggested Discoveries (AI Picks) */}
+        {/* Suggested Discoveries (AI Picks) — only shown after user clicks Calculate */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[13px] font-medium text-text-secondary flex items-center gap-2">
@@ -454,9 +461,18 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
             </span>
           </div>
           
-          {isLoadingSuggestions ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 text-text-faint animate-spin" />
+          {!aiTriggered ? (
+            <button
+              onClick={() => setAiTriggered(true)}
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-[10px] border border-dashed border-accent-brass/40 text-accent-brass text-[13px] font-medium hover:bg-accent-brass/5 transition-colors"
+            >
+              <Sparkles className="w-4 h-4" />
+              Calculate AI Engine
+            </button>
+          ) : isLoadingSuggestions ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-2">
+              <Loader2 className="w-6 h-6 text-accent-brass animate-spin" />
+              <span className="text-[12px] text-text-faint">Running AI strategy engine...</span>
             </div>
           ) : filteredSuggestions.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
@@ -603,7 +619,7 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
         </div>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className={cn("grid gap-4", isManualAsset && !isMetal ? "grid-cols-1" : "grid-cols-2")}>
             <div className="space-y-1.5">
               <label className="text-[12px] text-text-secondary flex justify-between">
                 {assetType === 'cash' && cashType === 'income' ? 'Monthly Amount (₹) *' : 
