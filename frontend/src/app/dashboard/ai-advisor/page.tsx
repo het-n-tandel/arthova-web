@@ -99,7 +99,7 @@ export default function AIAdvisorPage() {
     };
 
     initData();
-  }, [portfolio.totalCurrent]);
+  }, [portfolio.totalCurrent, portfolio.liabilityHoldings.length, portfolio.rawHoldings.length]);
 
   const fetchAiRecommendation = async (customPayload?: any) => {
     setIsLoading(true);
@@ -114,7 +114,9 @@ export default function AIAdvisorPage() {
       const goldVal = portfolio.goldHoldings.reduce((s, h) => s + (h.cmp || 0) * (h.quantity || 0), 0);
       const propVal = portfolio.propHoldings.reduce((s, h) => s + (h.computedCurrent || h.cmp || 0), 0);
       const cashVal = portfolio.cashHoldings.reduce((s, h) => s + (h.computedValue || h.quantity || 0), 0);
-      const liabVal = portfolio.liabilityHoldings.reduce((s, h) => s + (h.cmp || 0), 0);
+      const liabVal = portfolio.liabilityHoldings.reduce((s, h) => s + (h.computedValue ?? h.cmp ?? (h.quantity * h.avgCost)), 0);
+      const totalEmis = portfolio.liabilityHoldings.reduce((s, h) => s + parseFloat(h.metadata?.emi || '0'), 0);
+      const hasHighInterestDebt = portfolio.liabilityHoldings.some(h => parseFloat(h.metadata?.interestRate || '0') > 11.5);
 
       const salaryH = portfolio.cashHoldings.find(h => h.name.toLowerCase().includes('salary') || (h as any).isSalary);
       const salaryAmount = salaryH ? (salaryH.quantity || 0) : 100000;
@@ -130,7 +132,7 @@ export default function AIAdvisorPage() {
         financialCashflow: {
           monthlyIncome: salaryAmount,
           monthlyExpenses: Math.round(salaryAmount * 0.4),
-          monthlyEmis: 0,
+          monthlyEmis: totalEmis > 0 ? totalEmis : (userProfile?.financialCashflow?.monthlyEmis || 0),
           taxBracketPercent: salaryAmount > 125000 ? 30 : salaryAmount > 60000 ? 20 : 10,
         },
         netWorthBreakdown: {
@@ -142,8 +144,8 @@ export default function AIAdvisorPage() {
             realEstate: liveTotal > 0 ? (propVal / liveTotal) * 100 : 0,
             cash: liveTotal > 0 ? (cashVal / liveTotal) * 100 : 0,
           },
-          totalLiabilities: liabVal,
-          hasHighInterestDebt: false,
+          totalLiabilities: liabVal > 0 ? liabVal : (userProfile?.netWorthBreakdown?.totalLiabilities || 0),
+          hasHighInterestDebt: hasHighInterestDebt || Boolean(userProfile?.netWorthBreakdown?.hasHighInterestDebt),
         },
         riskAndInsurance: { riskAppetite: 'Medium', hasHealthInsurance: true, hasLifeInsurance: true, hasEmergencyFund: false },
         financialGoals: userProfile?.financialGoals || [],

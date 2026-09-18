@@ -16,6 +16,9 @@ export async function GET() {
     // 1. Fetch user demographics directly from PostgreSQL
     let userRow: any = null;
     let registeredSalary = 0;
+    let registeredLiabilities = 0;
+    let registeredEmis = 0;
+    let hasHighInterestDebt = false;
 
     try {
       const userList = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -23,11 +26,23 @@ export async function GET() {
         userRow = userList[0];
       }
 
-      // Check for user's primary salary holding
+      // Check for user's primary salary holding and liabilities
       const userHoldings = await db.select().from(holdings).where(eq(holdings.userId, userId));
       const salaryH = userHoldings.find(h => h.assetType === 'cash' && (h.name.toLowerCase().includes('salary') || (h.metadata as any)?.isSalary));
       if (salaryH) {
         registeredSalary = parseFloat(salaryH.quantity.toString()) || 0;
+      }
+
+      const liabilityHoldings = userHoldings.filter(h => h.assetType === 'liability');
+      for (const lh of liabilityHoldings) {
+        const qty = parseFloat(lh.quantity?.toString() || '0');
+        const avg = parseFloat(lh.avgCost?.toString() || '1');
+        const meta = typeof lh.metadata === 'object' && lh.metadata !== null ? lh.metadata : (lh.metadata ? JSON.parse(lh.metadata as string) : {});
+        const emi = parseFloat(meta.emi || '0');
+        const rate = parseFloat(meta.interestRate || '0');
+        registeredLiabilities += (qty * avg);
+        registeredEmis += emi;
+        if (rate > 11.5) hasHighInterestDebt = true;
       }
     } catch (dbErr) {
       console.warn('DB user query error:', dbErr);
@@ -70,14 +85,14 @@ export async function GET() {
         financialCashflow: {
           monthlyIncome: registeredSalary > 0 ? registeredSalary : 100000,
           monthlyExpenses: registeredSalary > 0 ? Math.round(registeredSalary * 0.4) : 40000,
-          monthlyEmis: 0,
+          monthlyEmis: registeredEmis,
           taxBracketPercent: registeredSalary > 125000 ? 30 : registeredSalary > 60000 ? 20 : 10,
         },
         netWorthBreakdown: {
           totalCurrentAssets: 0,
           assetBreakdownPercent: { equity: 0, fdDebt: 0, gold: 0, realEstate: 0 },
-          totalLiabilities: 0,
-          hasHighInterestDebt: false,
+          totalLiabilities: registeredLiabilities,
+          hasHighInterestDebt: hasHighInterestDebt,
         },
         riskAndInsurance: {
           riskAppetite: userRow?.riskTolerance || 'Medium',
@@ -99,6 +114,19 @@ export async function GET() {
         profile.financialCashflow = {
           ...profile.financialCashflow,
           monthlyIncome: registeredSalary,
+        };
+      }
+      if (registeredEmis > 0) {
+        profile.financialCashflow = {
+          ...profile.financialCashflow,
+          monthlyEmis: registeredEmis,
+        };
+      }
+      if (registeredLiabilities > 0) {
+        profile.netWorthBreakdown = {
+          ...profile.netWorthBreakdown,
+          totalLiabilities: registeredLiabilities,
+          hasHighInterestDebt: hasHighInterestDebt || Boolean(profile.netWorthBreakdown?.hasHighInterestDebt),
         };
       }
     }
