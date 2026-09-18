@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     let resultHolding: any;
 
     await db.transaction(async (tx) => {
-      // 1. Automatic Cash Sweep for market trades (stock, mutual_fund, crypto)
+      // 1. Automatic Cash Sweep ONLY for liquid market trades (stock, mutual_fund, crypto)
       if (assetType === 'stock' || assetType === 'mutual_fund' || assetType === 'crypto') {
         const totalTradeCost = qty * price;
         const [cashHolding] = await tx
@@ -57,9 +57,14 @@ export async function POST(req: Request) {
         }
       }
 
-      // 2. Find existing holding by symbol
+      // 2. Find existing holding:
+      // SALARY and CASH are singleton symbols — always update the existing row, never duplicate.
+      // Other manual assets (named FD, property, named cash accounts) each get their own distinct row.
+      const isSingletonSymbol = symbol === 'SALARY' || symbol === 'CASH';
+      const isManual = (assetType === 'cash' || assetType === 'liability' || assetType === 'fd' || assetType === 'property') && !isSingletonSymbol;
       let existingHolding: any = null;
-      if (symbol) {
+
+      if ((!isManual || isSingletonSymbol) && symbol) {
         const matches = await tx
           .select()
           .from(holdings)
@@ -103,11 +108,22 @@ export async function POST(req: Request) {
         }
       } else if (transactionType === 'sell' || transactionType === 'withdraw') {
         if (!existingHolding) {
-          throw new Error('Cannot sell an asset you do not own.');
+          // If selling a manual asset by name or symbol
+          const matches = await tx
+            .select()
+            .from(holdings)
+            .where(and(eq(holdings.userId, userId), eq(holdings.name, name)))
+            .limit(1);
+          if (matches.length > 0) existingHolding = matches[0];
         }
+
+        if (!existingHolding) {
+          throw new Error('Cannot remove an asset you do not own.');
+        }
+
         const oldQty = parseFloat(existingHolding.quantity?.toString() || '0');
         if (oldQty < qty) {
-          throw new Error('Insufficient quantity to sell.');
+          throw new Error('Insufficient balance to withdraw.');
         }
         const newQty = oldQty - qty;
         const [updated] = await tx
