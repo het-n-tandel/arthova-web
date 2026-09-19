@@ -407,6 +407,7 @@ export default function AIAdvisorPage() {
             recommended={aiData.recommendedAllocation}
             netWorth={portfolio.totalCurrent}
             defaultMonthlySurplus={aiData.netMonthlySurplus || 25000}
+            goals={aiData.goalExecutionPlan || []}
           />
         </motion.div>
       )}

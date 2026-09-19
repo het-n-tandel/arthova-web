@@ -178,7 +178,9 @@ export async function POST(req: Request) {
             metadata: {
               ...((existing.metadata as any) || {}),
               source: 'smart_rebalance',
-              category: trade.assetType === 'stock' ? 'Equity Rebalance' : trade.assetType === 'gold' ? 'Precious Metals Hedge' : 'Debt Reserve',
+              category: trade.metadata?.category || (trade.assetType === 'stock' ? 'Equity Rebalance' : trade.assetType === 'gold' ? 'Precious Metals Hedge' : 'Debt Reserve'),
+              goal: trade.metadata?.goal,
+              horizonYears: trade.metadata?.horizonYears,
             },
             updatedAt: new Date(),
           }).where(eq(holdings.id, existing.id));
@@ -196,7 +198,7 @@ export async function POST(req: Request) {
             metadata: {
               ...(typeof trade.metadata === 'object' ? trade.metadata : {}),
               source: 'smart_rebalance',
-              category: trade.assetType === 'stock' ? 'Equity Rebalance' : trade.assetType === 'gold' ? 'Precious Metals Hedge' : 'Debt Reserve',
+              category: trade.metadata?.category || (trade.assetType === 'stock' ? 'Equity Rebalance' : trade.assetType === 'gold' ? 'Precious Metals Hedge' : 'Debt Reserve'),
             },
           }).returning();
 

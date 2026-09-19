@@ -22,6 +22,15 @@ import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { formatINR, formatINRCompact, cn } from '@/lib/formatters';
 import { getMarketValuationInfo } from '@/lib/market-valuation-service';
 
+export interface GoalItem {
+  goal: string;
+  originalTarget: number;
+  inflationAdjustedTarget: number;
+  horizonYears: number;
+  suggestedAssetClass: string;
+  requiredMonthlySip: number;
+}
+
 interface Props {
   current: {
     equityPercent: number;
@@ -37,6 +46,7 @@ interface Props {
   };
   netWorth: number;
   defaultMonthlySurplus?: number;
+  goals?: GoalItem[];
   className?: string;
 }
 
@@ -45,6 +55,7 @@ export function SmartRebalancerCard({
   recommended,
   netWorth,
   defaultMonthlySurplus = 25000,
+  goals = [],
   className
 }: Props) {
   const { data: session } = useSession();
@@ -56,6 +67,92 @@ export function SmartRebalancerCard({
   const [deploySuccess, setDeploySuccess] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasInitializedFromPlan, setHasInitializedFromPlan] = useState(false);
+
+  // Analyze primary goal horizon from user's configured goals
+  const goalContext = useMemo(() => {
+    if (!goals || goals.length === 0) {
+      return {
+        primaryGoal: 'Wealth Compounding',
+        horizonYears: 15,
+        horizonType: 'long' as const, // 'short' | 'medium' | 'long'
+        equityInstrument: {
+          symbol: 'NIFTYBEES.NS',
+          name: 'Nifty 50 Index ETF',
+          assetType: 'stock' as const,
+          description: 'Long-term low-cost index compounding',
+        },
+        debtInstrument: {
+          symbol: 'FD-HDFC-SEC',
+          name: 'High Yield Fixed Deposit (7.2% p.a.)',
+          assetType: 'fd' as const,
+          description: 'Emergency liquidity & capital foundation',
+        },
+      };
+    }
+
+    // Sort by shortest horizon first (goals that need money first get highest priority)
+    const sorted = [...goals].sort((a, b) => a.horizonYears - b.horizonYears);
+    const topGoal = sorted[0];
+
+    if (topGoal.horizonYears <= 3) {
+      // Short-Term (< 3y): Capital Preservation is supreme
+      return {
+        primaryGoal: topGoal.goal,
+        horizonYears: topGoal.horizonYears,
+        horizonType: 'short' as const,
+        equityInstrument: {
+          symbol: 'HDFCBANK.NS',
+          name: 'HDFC Bank Ltd (Low-Beta Defensive)',
+          assetType: 'stock' as const,
+          description: `Capital defense for short-term goal: ${topGoal.goal} (${topGoal.horizonYears}y)`,
+        },
+        debtInstrument: {
+          symbol: 'FD-HDFC-SEC',
+          name: 'Short-Term Fixed Deposit (7.1% p.a.)',
+          assetType: 'fd' as const,
+          description: `Guaranteed capital safety for: ${topGoal.goal}`,
+        },
+      };
+    } else if (topGoal.horizonYears <= 7) {
+      // Medium-Term (3-7y): Balanced Growth & Defense
+      return {
+        primaryGoal: topGoal.goal,
+        horizonYears: topGoal.horizonYears,
+        horizonType: 'medium' as const,
+        equityInstrument: {
+          symbol: '122639', // Parag Parikh Flexi Cap Fund
+          name: 'Parag Parikh Flexi Cap Fund - Direct Growth',
+          assetType: 'mutual_fund' as const,
+          description: `Multi-cap dynamic growth for: ${topGoal.goal} (${topGoal.horizonYears}y)`,
+        },
+        debtInstrument: {
+          symbol: 'FD-HDFC-SEC',
+          name: 'Corporate AAA Debt Reserve (7.2% p.a.)',
+          assetType: 'fd' as const,
+          description: `Stability hedge for: ${topGoal.goal}`,
+        },
+      };
+    } else {
+      // Long-Term (> 7y): Maximum Wealth Compounding
+      return {
+        primaryGoal: topGoal.goal,
+        horizonYears: topGoal.horizonYears,
+        horizonType: 'long' as const,
+        equityInstrument: {
+          symbol: 'RELIANCE.NS',
+          name: 'Reliance Industries (Alpha Compounding)',
+          assetType: 'stock' as const,
+          description: `Max long-term compounding for: ${topGoal.goal} (${topGoal.horizonYears}y)`,
+        },
+        debtInstrument: {
+          symbol: 'FD-HDFC-SEC',
+          name: 'Fixed Income Safety Cushion (7.2% p.a.)',
+          assetType: 'fd' as const,
+          description: `Volatilty anchor for: ${topGoal.goal}`,
+        },
+      };
+    }
+  }, [goals]);
 
   // Fetch active saved rebalance plan from server
   const { data: rebalancePlanData, isLoading: isLoadingPlan } = useQuery({
@@ -82,7 +179,7 @@ export function SmartRebalancerCard({
   // Market Valuation Tactical Overlay
   const marketValuation = useMemo(() => getMarketValuationInfo(), []);
 
-  // Compute Deficits & Tactical Weights
+  // Compute Deficits & Tactical Weights tailored to Goal & Market
   const deploymentPlan = useMemo(() => {
     const equityDeficit = Math.max(0, recommended.equityPercent - current.equityPercent);
     const goldDeficit = Math.max(0, recommended.goldPercent - current.goldPercent);
@@ -96,6 +193,16 @@ export function SmartRebalancerCard({
     let goldWeight = totalDeficit > 0 ? goldDeficit / totalDeficit : recommended.goldPercent / 100;
     let debtWeight = totalDeficit > 0 ? debtDeficit / totalDeficit : recommended.debtPercent / 100;
     let cashWeight = totalDeficit > 0 ? cashDeficit / totalDeficit : recommended.cashPercent / 100;
+
+    // Goal-specific weight fine-tuning:
+    // If user's top goal is short-term (< 3y), tilt extra towards debt preservation
+    if (goalContext.horizonType === 'short') {
+      debtWeight += 0.15;
+      eqWeight = Math.max(0.1, eqWeight - 0.15);
+      const s = eqWeight + goldWeight + debtWeight + cashWeight;
+      eqWeight /= s;
+      debtWeight /= s;
+    }
 
     // Apply Tactical Market Valuation Overlay
     if (marketValuation.equityAdjustmentPercent !== 0) {
@@ -118,21 +225,24 @@ export function SmartRebalancerCard({
       equity: {
         percent: Math.round(eqWeight * 100),
         rupees: equityRupees,
-        instrument: 'Nifty 50 Index Fund / Top AI Bluechip Pick',
+        instrument: `${goalContext.equityInstrument.name}`,
+        subtext: goalContext.equityInstrument.description,
         icon: TrendingUp,
         color: '#C9A227',
       },
       gold: {
         percent: Math.round(goldWeight * 100),
         rupees: goldRupees,
-        instrument: 'Nippon India Gold BeES / Sovereign Gold',
+        instrument: 'Nippon India Gold BeES (Crisis & Currency Hedge)',
+        subtext: '0.5g - 1g physical gold backing',
         icon: Coins,
         color: '#7C8AD4',
       },
       debt: {
         percent: Math.round(debtWeight * 100),
         rupees: debtRupees,
-        instrument: 'Corporate Bond / Fixed Deposit (7.2% p.a.)',
+        instrument: `${goalContext.debtInstrument.name}`,
+        subtext: goalContext.debtInstrument.description,
         icon: Landmark,
         color: '#3FA88A',
       },
@@ -140,11 +250,27 @@ export function SmartRebalancerCard({
         percent: Math.round(cashWeight * 100),
         rupees: cashRupees,
         instrument: 'Auto-Sweep Liquid Savings Reserve',
+        subtext: 'Instant access emergency liquidity',
         icon: Banknote,
         color: '#D9705C',
       },
     };
-  }, [current, recommended, deployAmount, marketValuation]);
+  }, [current, recommended, deployAmount, marketValuation, goalContext]);
+
+  // Helper to fetch live quote with fallbacks
+  const fetchLiveQuote = async (symbol: string, defaultPrice: number): Promise<number> => {
+    try {
+      const res = await fetch(`/api/market/quote?symbol=${encodeURIComponent(symbol)}`);
+      if (res.ok) {
+        const data = await res.json();
+        const price = Number(data.regularMarketPrice || data.price || defaultPrice);
+        if (price > 0) return price;
+      }
+    } catch (e) {
+      console.warn(`Could not fetch live quote for ${symbol}, using reference price`, e);
+    }
+    return defaultPrice;
+  };
 
   const handleExecuteRebalance = async () => {
     const userId = session?.user?.id;
@@ -160,38 +286,66 @@ export function SmartRebalancerCard({
       const today = new Date().toISOString().slice(0, 10);
       const trades = [];
 
+      // 1. Dynamic Equity Allocation using Goal-tailored instrument and live market price
       if (deploymentPlan.equity.rupees > 0) {
+        const eqInst = goalContext.equityInstrument;
+        let defaultP = eqInst.symbol === 'RELIANCE.NS' ? 2980 : eqInst.symbol === 'HDFCBANK.NS' ? 1640 : eqInst.symbol === '122639' ? 82.5 : 280;
+        const livePrice = await fetchLiveQuote(eqInst.symbol, defaultP);
+        const qty = Math.max(1, Math.round(deploymentPlan.equity.rupees / livePrice));
+
         trades.push({
-          symbol: 'NIFTYBEES.NS',
-          name: 'Nifty 50 Index ETF',
-          quantity: Math.max(1, Math.round(deploymentPlan.equity.rupees / 280)),
-          pricePerUnit: 280,
-          assetType: 'stock',
-          metadata: { category: 'Equity Rebalance' },
+          symbol: eqInst.symbol,
+          name: eqInst.name,
+          quantity: qty,
+          pricePerUnit: livePrice,
+          assetType: eqInst.assetType,
+          metadata: {
+            category: 'Equity Rebalance',
+            goal: goalContext.primaryGoal,
+            horizonYears: goalContext.horizonYears,
+            source: 'smart_rebalance',
+          },
           purchaseDate: today,
         });
       }
 
+      // 2. Dynamic Gold Allocation using live Gold ETF quote
       if (deploymentPlan.gold.rupees > 0) {
+        const goldPrice = await fetchLiveQuote('GOLDBEES.NS', 75);
+        const goldQty = Math.max(1, Math.round(deploymentPlan.gold.rupees / goldPrice));
+
         trades.push({
           symbol: 'GOLDBEES.NS',
           name: 'Gold BeES ETF',
-          quantity: Math.max(1, Math.round(deploymentPlan.gold.rupees / 75)),
-          pricePerUnit: 75,
+          quantity: goldQty,
+          pricePerUnit: goldPrice,
           assetType: 'gold',
-          metadata: { category: 'Precious Metals Hedge' },
+          metadata: {
+            category: 'Precious Metals Hedge',
+            goal: goalContext.primaryGoal,
+            horizonYears: goalContext.horizonYears,
+            source: 'smart_rebalance',
+          },
           purchaseDate: today,
         });
       }
 
+      // 3. Dynamic Debt Reserve Allocation
       if (deploymentPlan.debt.rupees > 0) {
+        const debtInst = goalContext.debtInstrument;
         trades.push({
-          symbol: 'FD-HDFC-SEC',
-          name: 'HDFC High Yield FD (7.2% p.a.)',
+          symbol: debtInst.symbol,
+          name: debtInst.name,
           quantity: deploymentPlan.debt.rupees,
           pricePerUnit: 1,
           assetType: 'fd',
-          metadata: { rate: 7.2, tenureMonths: 12 },
+          metadata: {
+            rate: 7.2,
+            tenureMonths: goalContext.horizonType === 'short' ? 12 : 36,
+            goal: goalContext.primaryGoal,
+            horizonYears: goalContext.horizonYears,
+            source: 'smart_rebalance',
+          },
           purchaseDate: today,
         });
       }
@@ -216,7 +370,7 @@ export function SmartRebalancerCard({
       queryClient.invalidateQueries({ queryKey: ['networth'] });
       queryClient.invalidateQueries({ queryKey: ['rebalance-plan'] });
 
-      setDeploySuccess(`Success! Rebalance plan of ₹${deployAmount.toLocaleString('en-IN')} is deployed. Previous allocations updated cleanly.`);
+      setDeploySuccess(`Success! Rebalanced ₹${deployAmount.toLocaleString('en-IN')} dynamically for "${goalContext.primaryGoal}" (${goalContext.horizonYears}y horizon). Live prices recorded.`);
       setTimeout(() => setDeploySuccess(null), 8000);
     } catch (err: any) {
       console.error('Rebalance execution error:', err);
@@ -278,6 +432,11 @@ export function SmartRebalancerCard({
 
         {/* Tactical Market Valuation & Active Plan Badges */}
         <div className="flex flex-wrap items-center gap-2">
+          {goalContext.primaryGoal && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11.5px] font-medium border bg-info-indigo-bg/30 border-info-indigo/40 text-info-indigo font-mono">
+              <span>🎯 Goal: {goalContext.primaryGoal} ({goalContext.horizonYears}y)</span>
+            </div>
+          )}
           {activePlan && (
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11.5px] font-medium border bg-accent-brass/10 border-accent-brass/30 text-accent-brass font-mono">
               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -295,8 +454,10 @@ export function SmartRebalancerCard({
       <div className="bg-bg-surface-2 border border-border-default rounded-[10px] p-3.5 flex items-start gap-3">
         <Info className="w-4 h-4 text-accent-brass shrink-0 mt-0.5" />
         <div className="text-[12px] leading-relaxed">
-          <span className="font-medium text-text-primary">Market Valuation Context (Nifty 50 P/E: {marketValuation.niftyPE}): </span>
-          <span className="text-text-secondary">{marketValuation.rationale} {marketValuation.actionGuidance}</span>
+          <span className="font-medium text-text-primary">Goal & Market Valuation Guidance: </span>
+          <span className="text-text-secondary">
+            Allocations are dynamically optimized for <strong className="text-text-primary">{goalContext.primaryGoal}</strong> with a <strong className="text-accent-brass">{goalContext.horizonYears}-year timeline</strong>. {marketValuation.rationale}
+          </span>
         </div>
       </div>
 
@@ -373,9 +534,16 @@ export function SmartRebalancerCard({
                   {formatINR(item.rupees)}
                 </div>
 
-                <p className="text-[11px] text-text-faint leading-tight line-clamp-2">
-                  {item.instrument}
-                </p>
+                <div>
+                  <p className="text-[12px] font-medium text-text-primary leading-tight">
+                    {item.instrument}
+                  </p>
+                  {item.subtext && (
+                    <p className="text-[10.5px] text-text-faint leading-snug mt-0.5">
+                      {item.subtext}
+                    </p>
+                  )}
+                </div>
 
                 <div className="w-full h-1 bg-bg-surface rounded-full overflow-hidden mt-1">
                   <div className="h-full rounded-full" style={{ width: `${item.percent}%`, backgroundColor: item.color }} />
