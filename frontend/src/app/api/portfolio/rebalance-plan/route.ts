@@ -78,16 +78,24 @@ export async function POST(req: Request) {
             continue;
           }
 
-          const [existingHolding] = await tx.select()
+          // Match either by holdingId or symbol
+          const matchingHoldings = await tx.select()
             .from(holdings)
-            .where(and(eq(holdings.userId, userId), eq(holdings.symbol, prevTrade.symbol)))
-            .limit(1);
+            .where(and(
+              eq(holdings.userId, userId),
+              prevTrade.holdingId 
+                ? eq(holdings.id, prevTrade.holdingId)
+                : eq(holdings.symbol, prevTrade.symbol)
+            ));
 
-          if (existingHolding) {
+          for (const existingHolding of matchingHoldings) {
+            const rawMeta = existingHolding.metadata;
+            const meta = typeof rawMeta === 'string' ? JSON.parse(rawMeta || '{}') : (rawMeta || {});
+
             // EXPLICIT GUARD: Never delete or alter Cash, Savings, Salary, or Income
             const isCashOrIncome = existingHolding.assetType === 'cash' ||
-              (existingHolding.metadata as any)?.type === 'income' ||
-              (existingHolding.metadata as any)?.type === 'locker' ||
+              meta?.type === 'income' ||
+              meta?.type === 'locker' ||
               existingHolding.symbol === 'CASH' ||
               existingHolding.name?.toLowerCase().includes('salary') ||
               existingHolding.name?.toLowerCase().includes('income') ||
@@ -97,10 +105,11 @@ export async function POST(req: Request) {
               continue;
             }
 
-            const isPureRebalance = (existingHolding.metadata as any)?.source === 'smart_rebalance' ||
-              (existingHolding.metadata as any)?.category === 'Equity Rebalance' ||
-              (existingHolding.metadata as any)?.category === 'Precious Metals Hedge' ||
-              existingHolding.symbol === 'FD-HDFC-SEC';
+            const isPureRebalance = meta?.source === 'smart_rebalance' ||
+              meta?.category === 'Equity Rebalance' ||
+              meta?.category === 'Precious Metals Hedge' ||
+              existingHolding.symbol === 'FD-HDFC-SEC' ||
+              existingHolding.symbol === prevTrade.symbol;
 
             const curQty = Number(existingHolding.quantity);
             const planQty = Number(prevTrade.quantity);
@@ -111,29 +120,39 @@ export async function POST(req: Request) {
               await tx.delete(holdings).where(eq(holdings.id, existingHolding.id));
             } else {
               // Subtract plan quantity
-              const newQty = curQty - planQty;
-              await tx.update(holdings)
-                .set({ quantity: newQty.toString(), updatedAt: new Date() })
-                .where(eq(holdings.id, existingHolding.id));
+              const newQty = Math.max(0, curQty - planQty);
+              if (newQty === 0) {
+                await tx.delete(assetTransactions).where(eq(assetTransactions.holdingId, existingHolding.id));
+                await tx.delete(holdings).where(eq(holdings.id, existingHolding.id));
+              } else {
+                await tx.update(holdings)
+                  .set({ quantity: newQty.toString(), updatedAt: new Date() })
+                  .where(eq(holdings.id, existingHolding.id));
+              }
             }
           }
         }
       }
 
       // Also clean up any orphan rebalance holdings (strictly protecting Cash & Income)
-      const orphanRebalanceHoldings = await tx.select()
+      const userAllHoldings = await tx.select()
         .from(holdings)
-        .where(and(
-          eq(holdings.userId, userId),
-          sql`(metadata->>'source' = 'smart_rebalance')`,
-          sql`asset_type != 'cash'`,
-          sql`symbol NOT IN ('CASH', 'SAVING', 'SAVINGS', 'SALARY', 'SALARY-')`,
-          sql`(metadata->>'type') IS DISTINCT FROM 'income'`
-        ));
+        .where(eq(holdings.userId, userId));
 
-      for (const orphan of orphanRebalanceHoldings) {
-        await tx.delete(assetTransactions).where(eq(assetTransactions.holdingId, orphan.id));
-        await tx.delete(holdings).where(eq(holdings.id, orphan.id));
+      for (const h of userAllHoldings) {
+        const rawMeta = h.metadata;
+        const meta = typeof rawMeta === 'string' ? JSON.parse(rawMeta || '{}') : (rawMeta || {});
+        if (
+          meta?.source === 'smart_rebalance' &&
+          h.assetType !== 'cash' &&
+          h.symbol !== 'CASH' &&
+          !h.symbol?.toLowerCase().includes('salary') &&
+          !h.name?.toLowerCase().includes('salary') &&
+          meta?.type !== 'income'
+        ) {
+          await tx.delete(assetTransactions).where(eq(assetTransactions.holdingId, h.id));
+          await tx.delete(holdings).where(eq(holdings.id, h.id));
+        }
       }
 
       // 3. IF ACTION IS RESET, CLEAR METADATA AND RETURN

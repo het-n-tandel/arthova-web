@@ -396,10 +396,7 @@ export function SmartRebalancerCard({
         throw new Error(errDetail.error || 'Failed to reset rebalance plan');
       }
 
-      queryClient.invalidateQueries({ queryKey: ['holdings'] });
-      queryClient.invalidateQueries({ queryKey: ['networth'] });
-      queryClient.invalidateQueries({ queryKey: ['rebalance-plan'] });
-
+      await queryClient.invalidateQueries();
       setDeploySuccess('Rebalance plan successfully removed from portfolio.');
       setTimeout(() => setDeploySuccess(null), 8000);
     } catch (err: any) {
