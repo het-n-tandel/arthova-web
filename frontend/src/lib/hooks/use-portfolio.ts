@@ -272,6 +272,7 @@ export function usePortfolio(): PortfolioSummary {
         const yearsElapsedN  = Math.max(0, (Date.now() - purchaseTs) / (1000 * 60 * 60 * 24 * 365));
 
         let interestAccrued = 0;
+        let computedCurrent = principal;
 
         if (assetType === 'fd') {
           const rate          = parseFloat(meta.interestRate || '0') / 100;
