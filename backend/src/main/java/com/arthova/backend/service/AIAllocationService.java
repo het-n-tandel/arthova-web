@@ -31,8 +31,9 @@ public class AIAllocationService {
         List<FinancialGoalItem> goals = payload.getFinancialGoals() != null ? payload.getFinancialGoals() : new ArrayList<>();
 
         // ── LAYER 1: CASH FLOW & TAX GUARDRAILS ─────────────────────────────
-        double surplus = cashflow.getMonthlyIncome() - cashflow.getMonthlyExpenses() - cashflow.getMonthlyEmis();
-        response.setNetMonthlySurplus(Math.max(0, surplus));
+        double rawSurplus = cashflow.getMonthlyIncome() - cashflow.getMonthlyExpenses() - cashflow.getMonthlyEmis();
+        double surplus = Math.max(0.0, rawSurplus);
+        response.setNetMonthlySurplus(surplus);
 
         double requiredEmergencyBuffer = cashflow.getMonthlyExpenses() * 6.0;
         double emergencyNeeded = riskIns.isHasEmergencyFund() ? 0.0 : Math.min(requiredEmergencyBuffer, netWorth.getTotalCurrentAssets());
@@ -232,10 +233,9 @@ public class AIAllocationService {
 
         // ── NET WORTH TRAJECTORY SIMULATION WITH EXPLICIT GOAL DIPS ─────────
         List<NetWorthYearPoint> trajectory = new ArrayList<>();
-        double currentAssets = netWorth.getTotalCurrentAssets();
-        double currentLiabilities = netWorth.getTotalLiabilities();
+        double currentAssets = Math.max(0.0, netWorth.getTotalCurrentAssets());
+        double currentLiabilities = Math.max(0.0, netWorth.getTotalLiabilities());
 
-        double annualInvestCapacity = surplus * 12.0;
         double expectedRate = (targetEquity * 0.13 + targetDebt * 0.07 + targetGold * 0.09) / 100.0;
         double pessimisticRate = expectedRate - 0.035;
         double optimisticRate = expectedRate + 0.035;
@@ -247,7 +247,10 @@ public class AIAllocationService {
         for (int y = 0; y <= yearsToRetire; y++) {
             int currentPointAge = age + y;
             int currentPointYear = 2026 + y;
-            double paydownLiabilities = Math.max(0, currentLiabilities - (cashflow.getMonthlyEmis() * 12.0 * y));
+
+            double remainingDebt = Math.max(0.0, currentLiabilities - (cashflow.getMonthlyEmis() * 12.0 * y));
+            double activeMonthlyEmi = remainingDebt > 0 ? cashflow.getMonthlyEmis() : 0.0;
+            double yearlySurplus = Math.max(0.0, (cashflow.getMonthlyIncome() - cashflow.getMonthlyExpenses() - activeMonthlyEmi) * 12.0);
 
             // Check if any goal matures in this year
             double goalOutflowInYear = 0.0;
@@ -265,16 +268,16 @@ public class AIAllocationService {
                 pt.setAge(currentPointAge);
                 pt.setYear(currentPointYear);
                 pt.setAgeLabel("Age " + currentPointAge);
-                pt.setExpectedNetWorth(Math.round(expectedAssets - paydownLiabilities));
-                pt.setPessimisticNetWorth(Math.round(pessimisticAssets - paydownLiabilities));
-                pt.setOptimisticNetWorth(Math.round(optimisticAssets - paydownLiabilities));
+                pt.setExpectedNetWorth(Math.round(expectedAssets - remainingDebt));
+                pt.setPessimisticNetWorth(Math.round(pessimisticAssets - remainingDebt));
+                pt.setOptimisticNetWorth(Math.round(optimisticAssets - remainingDebt));
                 pt.setGoalDip(false);
                 trajectory.add(pt);
             } else {
-                // Compound assets for the year
-                expectedAssets = (expectedAssets + annualInvestCapacity) * (1 + expectedRate);
-                pessimisticAssets = (pessimisticAssets + annualInvestCapacity) * (1 + pessimisticRate);
-                optimisticAssets = (optimisticAssets + annualInvestCapacity) * (1 + optimisticRate);
+                // Compound assets for the year with active new surplus investments
+                expectedAssets = expectedAssets * (1 + expectedRate) + yearlySurplus;
+                pessimisticAssets = pessimisticAssets * (1 + pessimisticRate) + yearlySurplus;
+                optimisticAssets = optimisticAssets * (1 + optimisticRate) + yearlySurplus;
 
                 if (goalOutflowInYear > 0) {
                     // 1. Record PRE-GOAL PEAK POINT
@@ -282,16 +285,17 @@ public class AIAllocationService {
                     prePt.setAge(currentPointAge);
                     prePt.setYear(currentPointYear);
                     prePt.setAgeLabel("Age " + currentPointAge + " (Pre-Goal)");
-                    prePt.setExpectedNetWorth(Math.round(expectedAssets - paydownLiabilities));
-                    prePt.setPessimisticNetWorth(Math.round(pessimisticAssets - paydownLiabilities));
-                    prePt.setOptimisticNetWorth(Math.round(optimisticAssets - paydownLiabilities));
+                    prePt.setExpectedNetWorth(Math.round(expectedAssets - remainingDebt));
+                    prePt.setPessimisticNetWorth(Math.round(pessimisticAssets - remainingDebt));
+                    prePt.setOptimisticNetWorth(Math.round(optimisticAssets - remainingDebt));
                     prePt.setGoalDip(false);
                     trajectory.add(prePt);
 
-                    // Deduct goal capital outflow
-                    expectedAssets = Math.max(0, expectedAssets - goalOutflowInYear);
-                    pessimisticAssets = Math.max(0, pessimisticAssets - goalOutflowInYear);
-                    optimisticAssets = Math.max(0, optimisticAssets - goalOutflowInYear);
+                    // Deduct goal capital outflow (capped at available assets so assets cannot become negative)
+                    double outflow = Math.min(expectedAssets, goalOutflowInYear);
+                    expectedAssets -= outflow;
+                    pessimisticAssets = Math.max(0.0, pessimisticAssets - outflow);
+                    optimisticAssets = Math.max(0.0, optimisticAssets - outflow);
 
                     // 2. Record POST-GOAL DIP POINT (GRAPH VISIBLY PLUNGES DOWN HERE!)
                     NetWorthYearPoint dipPt = new NetWorthYearPoint();
@@ -299,21 +303,21 @@ public class AIAllocationService {
                     dipPt.setYear(currentPointYear);
                     String goalTitle = String.join(", ", outflowNames);
                     dipPt.setAgeLabel("Age " + currentPointAge + " (" + goalTitle + " Outflow)");
-                    dipPt.setExpectedNetWorth(Math.round(expectedAssets - paydownLiabilities));
-                    dipPt.setPessimisticNetWorth(Math.round(pessimisticAssets - paydownLiabilities));
-                    dipPt.setOptimisticNetWorth(Math.round(optimisticAssets - paydownLiabilities));
+                    dipPt.setExpectedNetWorth(Math.round(expectedAssets - remainingDebt));
+                    dipPt.setPessimisticNetWorth(Math.round(pessimisticAssets - remainingDebt));
+                    dipPt.setOptimisticNetWorth(Math.round(optimisticAssets - remainingDebt));
                     dipPt.setGoalDip(true);
                     dipPt.setGoalDipName(goalTitle);
-                    dipPt.setGoalOutflowAmount(Math.round(goalOutflowInYear));
+                    dipPt.setGoalOutflowAmount(Math.round(outflow));
                     trajectory.add(dipPt);
                 } else {
                     NetWorthYearPoint pt = new NetWorthYearPoint();
                     pt.setAge(currentPointAge);
                     pt.setYear(currentPointYear);
                     pt.setAgeLabel("Age " + currentPointAge);
-                    pt.setExpectedNetWorth(Math.round(expectedAssets - paydownLiabilities));
-                    pt.setPessimisticNetWorth(Math.round(pessimisticAssets - paydownLiabilities));
-                    pt.setOptimisticNetWorth(Math.round(optimisticAssets - paydownLiabilities));
+                    pt.setExpectedNetWorth(Math.round(expectedAssets - remainingDebt));
+                    pt.setPessimisticNetWorth(Math.round(pessimisticAssets - remainingDebt));
+                    pt.setOptimisticNetWorth(Math.round(optimisticAssets - remainingDebt));
                     pt.setGoalDip(false);
                     trajectory.add(pt);
                 }

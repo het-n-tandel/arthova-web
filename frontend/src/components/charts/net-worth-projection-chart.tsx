@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceDot,
+  ReferenceLine,
 } from 'recharts';
 import { formatINRCompact, cn } from '@/lib/formatters';
 import { TrendingUp, ShieldCheck, ArrowDownRight } from 'lucide-react';
@@ -57,7 +58,12 @@ export function NetWorthProjectionChart({ data, retirementAge, projectedRetireme
         </div>
         <div className="bg-bg-surface-2 px-3 py-1.5 rounded-[8px] border border-border-default text-right">
           <span className="text-[10px] text-text-faint uppercase tracking-wider block">Projected Net Worth (Age {retirementAge})</span>
-          <span className="text-[18px] font-mono text-positive font-medium">{formatINRCompact(projectedRetirementNetWorth)}</span>
+          <span className={cn(
+            "text-[18px] font-mono font-medium",
+            projectedRetirementNetWorth >= 0 ? "text-positive" : "text-warning"
+          )}>
+            {formatINRCompact(projectedRetirementNetWorth)}
+          </span>
         </div>
       </div>
 
@@ -75,6 +81,7 @@ export function NetWorthProjectionChart({ data, retirementAge, projectedRetireme
               </linearGradient>
             </defs>
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+            <ReferenceLine y={0} stroke="var(--border-strong)" strokeDasharray="3 3" />
             <XAxis
               dataKey="ageLabel"
               axisLine={false}
@@ -135,6 +142,7 @@ export function NetWorthProjectionChart({ data, retirementAge, projectedRetireme
             <Area
               type="monotone"
               dataKey="optimisticNetWorth"
+              baseValue="dataMin"
               stroke="var(--positive)"
               strokeWidth={1}
               strokeDasharray="4 4"
@@ -144,6 +152,7 @@ export function NetWorthProjectionChart({ data, retirementAge, projectedRetireme
             <Area
               type="monotone"
               dataKey="expectedNetWorth"
+              baseValue="dataMin"
               stroke="var(--accent-brass)"
               strokeWidth={2.5}
               fill="url(#colorExpected)"
@@ -152,6 +161,7 @@ export function NetWorthProjectionChart({ data, retirementAge, projectedRetireme
             <Area
               type="monotone"
               dataKey="pessimisticNetWorth"
+              baseValue="dataMin"
               stroke="var(--text-faint)"
               strokeWidth={1.5}
               fill="none"

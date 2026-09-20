@@ -535,12 +535,11 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
 
   // NET WORTH TRAJECTORY WITH REALISTIC GOAL DIPS
   const trajectory: NetWorthYearPoint[] = [];
-  let expectedAssets = netWorth.totalCurrentAssets;
-  let pessimisticAssets = netWorth.totalCurrentAssets;
-  let optimisticAssets = netWorth.totalCurrentAssets;
-  const currentLiabilities = netWorth.totalLiabilities || 0;
+  let expectedAssets = Math.max(0, netWorth.totalCurrentAssets);
+  let pessimisticAssets = Math.max(0, netWorth.totalCurrentAssets);
+  let optimisticAssets = Math.max(0, netWorth.totalCurrentAssets);
+  const currentLiabilities = Math.max(0, netWorth.totalLiabilities || 0);
 
-  const annualInvestCapacity = surplus * 12.0;
   const expectedRate = (targetEquity * 0.13 + targetDebt * 0.07 + targetGold * 0.09) / 100.0;
   const pessimisticRate = expectedRate - 0.035;
   const optimisticRate = expectedRate + 0.035;
@@ -548,7 +547,10 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
   for (let y = 0; y <= yearsToRetire; y++) {
     const currentPointAge = age + y;
     const currentPointYear = 2026 + y;
-    const paydownLiabilities = Math.max(0, currentLiabilities - (cashflow.monthlyEmis * 12.0 * y));
+
+    const remainingDebt = Math.max(0, currentLiabilities - (cashflow.monthlyEmis * 12.0 * y));
+    const activeMonthlyEmi = remainingDebt > 0 ? cashflow.monthlyEmis : 0;
+    const yearlySurplus = Math.max(0, (cashflow.monthlyIncome - cashflow.monthlyExpenses - activeMonthlyEmi) * 12.0);
 
     // Check if any goal matures this year
     let goalOutflowInYear = 0;
@@ -566,16 +568,16 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
         age: currentPointAge,
         year: currentPointYear,
         ageLabel: `Age ${currentPointAge}`,
-        expectedNetWorth: Math.round(expectedAssets - paydownLiabilities),
-        pessimisticNetWorth: Math.round(pessimisticAssets - paydownLiabilities),
-        optimisticNetWorth: Math.round(optimisticAssets - paydownLiabilities),
+        expectedNetWorth: Math.round(expectedAssets - remainingDebt),
+        pessimisticNetWorth: Math.round(pessimisticAssets - remainingDebt),
+        optimisticNetWorth: Math.round(optimisticAssets - remainingDebt),
         isGoalDip: false,
       });
     } else {
-      // Compound assets for the year
-      expectedAssets = (expectedAssets + annualInvestCapacity) * (1 + expectedRate);
-      pessimisticAssets = (pessimisticAssets + annualInvestCapacity) * (1 + pessimisticRate);
-      optimisticAssets = (optimisticAssets + annualInvestCapacity) * (1 + optimisticRate);
+      // Compound assets for the year with active new surplus investments
+      expectedAssets = expectedAssets * (1 + expectedRate) + yearlySurplus;
+      pessimisticAssets = pessimisticAssets * (1 + pessimisticRate) + yearlySurplus;
+      optimisticAssets = optimisticAssets * (1 + optimisticRate) + yearlySurplus;
 
       if (goalOutflowInYear > 0) {
         // 1. PRE-GOAL PEAK POINT
@@ -583,16 +585,17 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
           age: currentPointAge,
           year: currentPointYear,
           ageLabel: `Age ${currentPointAge} (Pre-Goal)`,
-          expectedNetWorth: Math.round(expectedAssets - paydownLiabilities),
-          pessimisticNetWorth: Math.round(pessimisticAssets - paydownLiabilities),
-          optimisticNetWorth: Math.round(optimisticAssets - paydownLiabilities),
+          expectedNetWorth: Math.round(expectedAssets - remainingDebt),
+          pessimisticNetWorth: Math.round(pessimisticAssets - remainingDebt),
+          optimisticNetWorth: Math.round(optimisticAssets - remainingDebt),
           isGoalDip: false,
         });
 
-        // Deduct goal capital outflow
-        expectedAssets = Math.max(0, expectedAssets - goalOutflowInYear);
-        pessimisticAssets = Math.max(0, pessimisticAssets - goalOutflowInYear);
-        optimisticAssets = Math.max(0, optimisticAssets - goalOutflowInYear);
+        // Deduct goal capital outflow (capped at available assets so assets cannot become negative)
+        const outflow = Math.min(expectedAssets, goalOutflowInYear);
+        expectedAssets -= outflow;
+        pessimisticAssets = Math.max(0, pessimisticAssets - outflow);
+        optimisticAssets = Math.max(0, optimisticAssets - outflow);
 
         // 2. POST-GOAL DIP POINT (GRAPH PLUNGES DOWN HERE)
         const goalTitle = outflowNames.join(', ');
@@ -600,21 +603,21 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
           age: currentPointAge,
           year: currentPointYear,
           ageLabel: `Age ${currentPointAge} (${goalTitle} Outflow)`,
-          expectedNetWorth: Math.round(expectedAssets - paydownLiabilities),
-          pessimisticNetWorth: Math.round(pessimisticAssets - paydownLiabilities),
-          optimisticNetWorth: Math.round(optimisticAssets - paydownLiabilities),
+          expectedNetWorth: Math.round(expectedAssets - remainingDebt),
+          pessimisticNetWorth: Math.round(pessimisticAssets - remainingDebt),
+          optimisticNetWorth: Math.round(optimisticAssets - remainingDebt),
           isGoalDip: true,
           goalDipName: goalTitle,
-          goalOutflowAmount: Math.round(goalOutflowInYear),
+          goalOutflowAmount: Math.round(outflow),
         });
       } else {
         trajectory.push({
           age: currentPointAge,
           year: currentPointYear,
           ageLabel: `Age ${currentPointAge}`,
-          expectedNetWorth: Math.round(expectedAssets - paydownLiabilities),
-          pessimisticNetWorth: Math.round(pessimisticAssets - paydownLiabilities),
-          optimisticNetWorth: Math.round(optimisticAssets - paydownLiabilities),
+          expectedNetWorth: Math.round(expectedAssets - remainingDebt),
+          pessimisticNetWorth: Math.round(pessimisticAssets - remainingDebt),
+          optimisticNetWorth: Math.round(optimisticAssets - remainingDebt),
           isGoalDip: false,
         });
       }

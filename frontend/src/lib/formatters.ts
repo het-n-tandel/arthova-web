@@ -29,15 +29,17 @@ export function formatINR(value: number): string {
 }
 
 export function formatINRCompact(value: number): string {
-  // Intl compact uses T/B/M — convert for Indian audience
-  if (Math.abs(value) >= 1_00_00_000) {
-    return `₹${(value / 1_00_00_000).toFixed(1)}Cr`;
+  const isNeg = value < 0;
+  const abs = Math.abs(value);
+  const prefix = isNeg ? '-₹' : '₹';
+  if (abs >= 1_00_00_000) {
+    return `${prefix}${(abs / 1_00_00_000).toFixed(1)}Cr`;
   }
-  if (Math.abs(value) >= 1_00_000) {
-    return `₹${(value / 1_00_000).toFixed(1)}L`;
+  if (abs >= 1_00_000) {
+    return `${prefix}${(abs / 1_00_000).toFixed(1)}L`;
   }
-  if (Math.abs(value) >= 1_000) {
-    return `₹${(value / 1_000).toFixed(1)}K`;
+  if (abs >= 1_000) {
+    return `${prefix}${(abs / 1_000).toFixed(1)}K`;
   }
   return formatINR(value);
 }
