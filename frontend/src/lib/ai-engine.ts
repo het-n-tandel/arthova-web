@@ -1,3 +1,5 @@
+import { getStockFactorProfile } from './factor-scoring';
+
 export interface UserDemographics {
   age: number;
   targetRetirementAge: number;
@@ -47,6 +49,15 @@ export interface UserProfilePayload {
   netWorthBreakdown: NetWorthBreakdown;
   riskAndInsurance: RiskAndInsurance;
   financialGoals: FinancialGoalItem[];
+  holdings?: Array<{
+    symbol: string;
+    name: string;
+    assetType: string;
+    quantity: number;
+    avgCost: number;
+    cmp?: number;
+    metadata?: any;
+  }>;
 }
 
 export interface RecommendedAllocation {
@@ -96,6 +107,240 @@ export interface NetWorthYearPoint {
   goalOutflowAmount?: number;
 }
 
+export interface MarketCapTarget {
+  category: 'Large Cap' | 'Mid Cap' | 'Small Cap';
+  targetPercent: number;
+  minFloorPercent: number;
+  maxCeilingPercent: number;
+  rationale: string;
+}
+
+export interface ConcentrationRiskAlert {
+  type: 'SINGLE_STOCK' | 'SECTOR' | 'SMALL_CAP_DRIFT';
+  severity: 'HIGH' | 'MEDIUM' | 'SAFE';
+  title: string;
+  description: string;
+  safeLimit: string;
+  currentValue: string;
+}
+
+export interface MarketCapAllocationAnalysis {
+  targets: {
+    largeCap: MarketCapTarget;
+    midCap: MarketCapTarget;
+    smallCap: MarketCapTarget;
+  };
+  currentRatio: {
+    largeCapPercent: number;
+    midCapPercent: number;
+    smallCapPercent: number;
+  };
+  concentrationAlerts: ConcentrationRiskAlert[];
+  sectorBreakdown: Array<{ sector: string; percent: number; isBreached: boolean }>;
+}
+
+export function calculateMarketCapAllocation(
+  age: number,
+  riskAppetite: 'Low' | 'Medium' | 'High',
+  horizonYears: number
+): MarketCapAllocationAnalysis['targets'] {
+  // Conservative profile: Age >= 50 or Low risk or horizon <= 3 years
+  if (age >= 50 || riskAppetite === 'Low' || horizonYears <= 3) {
+    return {
+      largeCap: {
+        category: 'Large Cap',
+        targetPercent: 75,
+        minFloorPercent: 65,
+        maxCeilingPercent: 90,
+        rationale: 'Capital preservation prioritized via bluechip Nifty 50 leaders with high balance sheet strength.',
+      },
+      midCap: {
+        category: 'Mid Cap',
+        targetPercent: 20,
+        minFloorPercent: 10,
+        maxCeilingPercent: 30,
+        rationale: 'Controlled compounding through established market leaders with low default risk.',
+      },
+      smallCap: {
+        category: 'Small Cap',
+        targetPercent: 5,
+        minFloorPercent: 0,
+        maxCeilingPercent: 5,
+        rationale: 'Strict institutional cap to prevent severe drawdown and illiquidity exposure.',
+      },
+    };
+  }
+
+  // Aggressive profile: Age < 32 and High risk and horizon >= 7 years
+  if (age < 32 && riskAppetite === 'High' && horizonYears >= 7) {
+    return {
+      largeCap: {
+        category: 'Large Cap',
+        targetPercent: 40,
+        minFloorPercent: 30,
+        maxCeilingPercent: 55,
+        rationale: 'Foundation anchor providing downside cushion and liquidity buffer during bear cycles.',
+      },
+      midCap: {
+        category: 'Mid Cap',
+        targetPercent: 35,
+        minFloorPercent: 25,
+        maxCeilingPercent: 45,
+        rationale: 'Aggressive alpha engine targeting rapid market share gainers and high ROCE innovators.',
+      },
+      smallCap: {
+        category: 'Small Cap',
+        targetPercent: 25,
+        minFloorPercent: 10,
+        maxCeilingPercent: 25,
+        rationale: 'High-beta allocation for exponential long-term compounding with strict 25% max ceiling.',
+      },
+    };
+  }
+
+  // Moderate profile: Default for balanced wealth creation
+  return {
+    largeCap: {
+      category: 'Large Cap',
+      targetPercent: 55,
+      minFloorPercent: 45,
+      maxCeilingPercent: 70,
+      rationale: 'Core portfolio anchor in bluechip balance sheets with steady dividend reinvestment.',
+    },
+    midCap: {
+      category: 'Mid Cap',
+      targetPercent: 30,
+      minFloorPercent: 20,
+      maxCeilingPercent: 40,
+      rationale: 'Key growth engine across expanding Indian industrial and domestic consumption sectors.',
+    },
+    smallCap: {
+      category: 'Small Cap',
+      targetPercent: 15,
+      minFloorPercent: 5,
+      maxCeilingPercent: 15,
+      rationale: 'Satellite high-alpha exposure strictly contained within 15% risk boundary.',
+    },
+  };
+}
+
+export function analyzeConcentrationAndDrift(
+  holdings: Array<{
+    symbol: string;
+    name: string;
+    assetType: string;
+    quantity: number;
+    avgCost: number;
+    cmp?: number;
+  }> | undefined,
+  targets: MarketCapAllocationAnalysis['targets']
+): {
+  currentRatio: { largeCapPercent: number; midCapPercent: number; smallCapPercent: number };
+  concentrationAlerts: ConcentrationRiskAlert[];
+  sectorBreakdown: Array<{ sector: string; percent: number; isBreached: boolean }>;
+} {
+  const stockHoldings = (holdings || []).filter(h => h.assetType === 'STOCK' || !h.assetType);
+  let totalEquityValue = 0;
+  let largeCapValue = 0;
+  let midCapValue = 0;
+  let smallCapValue = 0;
+
+  const sectorValues: Record<string, number> = {};
+  const stockValues: Array<{ symbol: string; value: number }> = [];
+
+  for (const item of stockHoldings) {
+    const price = item.cmp && item.cmp > 0 ? item.cmp : (item.avgCost || 0);
+    const value = price * (item.quantity || 0);
+    if (value <= 0) continue;
+
+    totalEquityValue += value;
+    stockValues.push({ symbol: item.symbol, value });
+
+    const profile = getStockFactorProfile(item.symbol);
+    if (profile.category === 'Large Cap') largeCapValue += value;
+    else if (profile.category === 'Mid Cap') midCapValue += value;
+    else smallCapValue += value;
+
+    const sec = profile.sector || 'Diversified';
+    sectorValues[sec] = (sectorValues[sec] || 0) + value;
+  }
+
+  const alerts: ConcentrationRiskAlert[] = [];
+
+  // Default baseline if no equity holdings
+  if (totalEquityValue === 0) {
+    return {
+      currentRatio: {
+        largeCapPercent: targets.largeCap.targetPercent,
+        midCapPercent: targets.midCap.targetPercent,
+        smallCapPercent: targets.smallCap.targetPercent,
+      },
+      concentrationAlerts: [],
+      sectorBreakdown: [],
+    };
+  }
+
+  const currentLargePct = Math.round((largeCapValue / totalEquityValue) * 100);
+  const currentMidPct = Math.round((midCapValue / totalEquityValue) * 100);
+  const currentSmallPct = Math.max(0, 100 - currentLargePct - currentMidPct);
+
+  // 1. Single-Stock Concentration Limit (> 10%)
+  for (const st of stockValues) {
+    const pct = (st.value / totalEquityValue) * 100;
+    if (pct > 10.0) {
+      alerts.push({
+        type: 'SINGLE_STOCK',
+        severity: 'HIGH',
+        title: `Overconcentration: ${st.symbol}`,
+        description: `${st.symbol} represents ${pct.toFixed(1)}% of your equity portfolio, exceeding the institutional 10% risk ceiling. A single-company adverse event poses disproportionate risk.`,
+        safeLimit: 'Max 10.0%',
+        currentValue: `${pct.toFixed(1)}%`,
+      });
+    }
+  }
+
+  // 2. Sector Concentration Limit (> 25%)
+  const sectorBreakdown: Array<{ sector: string; percent: number; isBreached: boolean }> = [];
+  for (const [sector, val] of Object.entries(sectorValues)) {
+    const pct = Math.round((val / totalEquityValue) * 100);
+    const isBreached = pct > 25.0;
+    sectorBreakdown.push({ sector, percent: pct, isBreached });
+    if (isBreached) {
+      alerts.push({
+        type: 'SECTOR',
+        severity: 'HIGH',
+        title: `Sector Concentration: ${sector}`,
+        description: `${sector} commands ${pct}% of your equity portfolio, exceeding the 25% institutional sector guardrail.`,
+        safeLimit: 'Max 25.0%',
+        currentValue: `${pct}%`,
+      });
+    }
+  }
+  sectorBreakdown.sort((a, b) => b.percent - a.percent);
+
+  // 3. Small-Cap Drift Check
+  if (currentSmallPct > targets.smallCap.maxCeilingPercent) {
+    alerts.push({
+      type: 'SMALL_CAP_DRIFT',
+      severity: 'HIGH',
+      title: 'Small-Cap Allocation Breach',
+      description: `Your small-cap exposure is ${currentSmallPct}%, which breaches your profile safety ceiling of ${targets.smallCap.maxCeilingPercent}%. Downside volatility risk is elevated.`,
+      safeLimit: `Max ${targets.smallCap.maxCeilingPercent}%`,
+      currentValue: `${currentSmallPct}%`,
+    });
+  }
+
+  return {
+    currentRatio: {
+      largeCapPercent: currentLargePct,
+      midCapPercent: currentMidPct,
+      smallCapPercent: currentSmallPct,
+    },
+    concentrationAlerts: alerts,
+    sectorBreakdown,
+  };
+}
+
 export interface AIRecommendationResponse {
   currentAllocation: RecommendedAllocation;
   recommendedAllocation: RecommendedAllocation;
@@ -108,6 +353,7 @@ export interface AIRecommendationResponse {
   assetRecommendations: AssetRecommendationReason[];
   netWorthTrajectory: NetWorthYearPoint[];
   rebalanceActions: string[];
+  marketCapAllocation?: MarketCapAllocationAnalysis;
 }
 
 export function calculateAIRecommendation(payload: UserProfilePayload): AIRecommendationResponse {
@@ -377,6 +623,18 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
 
   const projectedRetirementNetWorth = trajectory.length > 0 ? trajectory[trajectory.length - 1].expectedNetWorth : 0;
 
+  // LAYER 2.5: MARKET-CAP TIERING & CONCENTRATION DRIFT
+  const longestHorizon = goals.length > 0 ? Math.max(...goals.map(g => g.horizonYears || 5)) : yearsToRetire;
+  const marketCapTargets = calculateMarketCapAllocation(age, riskIns.riskAppetite, longestHorizon);
+  const concentrationAnalysis = analyzeConcentrationAndDrift(payload.holdings, marketCapTargets);
+
+  const marketCapAllocation: MarketCapAllocationAnalysis = {
+    targets: marketCapTargets,
+    currentRatio: concentrationAnalysis.currentRatio,
+    concentrationAlerts: concentrationAnalysis.concentrationAlerts,
+    sectorBreakdown: concentrationAnalysis.sectorBreakdown,
+  };
+
   // REBALANCE ACTIONS
   const rebalanceActions: string[] = [];
   if (emergencyNeeded > 0) {
@@ -397,6 +655,11 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
     rebalanceActions.push(`Deploy monthly SIP of ₹${goalExecutionPlan[0].requiredMonthlySip.toLocaleString('en-IN')} towards "${goalExecutionPlan[0].goal}" in ${goalExecutionPlan[0].suggestedAssetClass}.`);
   }
 
+  // Add concentration risk alerts to rebalance actions
+  for (const alert of concentrationAnalysis.concentrationAlerts) {
+    rebalanceActions.push(`[${alert.type}] ${alert.title}: ${alert.description}`);
+  }
+
   return {
     currentAllocation,
     recommendedAllocation,
@@ -409,5 +672,6 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
     assetRecommendations,
     netWorthTrajectory: trajectory,
     rebalanceActions,
+    marketCapAllocation,
   };
 }

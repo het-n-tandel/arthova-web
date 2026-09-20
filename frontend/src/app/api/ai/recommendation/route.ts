@@ -16,6 +16,18 @@ export async function POST(req: Request) {
 
       if (res.ok) {
         const data = await res.json();
+        if (!data.marketCapAllocation) {
+          const localCalc = calculateAIRecommendation(body);
+          data.marketCapAllocation = localCalc.marketCapAllocation;
+          if (localCalc.marketCapAllocation?.concentrationAlerts?.length) {
+            data.rebalanceActions = [
+              ...(data.rebalanceActions || []),
+              ...localCalc.marketCapAllocation.concentrationAlerts.map(
+                (a: any) => `[${a.type}] ${a.title}: ${a.description}`
+              ),
+            ];
+          }
+        }
         return NextResponse.json(data);
       }
     } catch (e) {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import YahooFinance from 'yahoo-finance2';
+import { getStockFactorProfile } from '@/lib/factor-scoring';
 
 const yahooFinance = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
 
@@ -12,26 +13,29 @@ interface AIStockMeta {
 }
 
 const AI_WATCHLIST_STOCKS: AIStockMeta[] = [
-  { symbol: 'RELIANCE.NS', name: 'Reliance Industries Ltd', aiRationale: 'AI Pick: Free Cash Flow & Energy/Retail Leadership', defaultPrice: 2980.50, defaultChange: 1.45 },
-  { symbol: 'TCS.NS', name: 'Tata Consultancy Services', aiRationale: 'AI Pick: High Return on Equity & Tech Resilience', defaultPrice: 4250.00, defaultChange: 0.92 },
-  { symbol: 'HDFCBANK.NS', name: 'HDFC Bank Ltd', aiRationale: 'AI Pick: Credit Expansion & Low NPA Quality Banking', defaultPrice: 1640.20, defaultChange: 0.78 },
-  { symbol: 'INFY.NS', name: 'Infosys Ltd', aiRationale: 'AI Pick: Cloud AI Deal Pipeline & Strong Dividends', defaultPrice: 1820.75, defaultChange: 1.85 },
-  { symbol: 'ICICIBANK.NS', name: 'ICICI Bank Ltd', aiRationale: 'AI Pick: High Net Interest Margin & Retail Growth', defaultPrice: 1210.30, defaultChange: 1.20 },
-  { symbol: 'SBIN.NS', name: 'State Bank of India', aiRationale: 'AI Pick: Public Banking Valuation Discount Alpha', defaultPrice: 845.60, defaultChange: -0.40 },
-  { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel Ltd', aiRationale: 'AI Pick: Telecommunication ARPU Expansion', defaultPrice: 1480.00, defaultChange: 2.35 },
-  { symbol: 'ITC.NS', name: 'ITC Ltd', aiRationale: 'AI Pick: Defensive FMCG Moat & High Dividend Yield', defaultPrice: 495.20, defaultChange: 0.55 },
-  { symbol: 'L&T.NS', name: 'Larsen & Toubro Ltd', aiRationale: 'AI Pick: National Infrastructure Capex Supercycle', defaultPrice: 3620.00, defaultChange: -0.30 },
-  { symbol: 'BAJFINANCE.NS', name: 'Bajaj Finance Ltd', aiRationale: 'AI Pick: Leading FinTech Consumer Credit Engine', defaultPrice: 6890.00, defaultChange: 1.60 },
-  { symbol: 'TATAMOTORS.NS', name: 'Tata Motors Ltd', aiRationale: 'AI Pick: EV Market Dominance & JLR Margin Expansion', defaultPrice: 960.00, defaultChange: 3.40 },
+  // Large Cap
+  { symbol: 'RELIANCE.NS', name: 'Reliance Industries Ltd', aiRationale: 'Large Cap: Free Cash Flow & Energy/Retail Leadership', defaultPrice: 2980.50, defaultChange: 1.45 },
+  { symbol: 'TCS.NS', name: 'Tata Consultancy Services', aiRationale: 'Large Cap: High Return on Equity (51%) & Pristine Quality', defaultPrice: 4250.00, defaultChange: 0.92 },
+  { symbol: 'HDFCBANK.NS', name: 'HDFC Bank Ltd', aiRationale: 'Large Cap: Credit Expansion & Low NPA Quality Banking', defaultPrice: 1640.20, defaultChange: 0.78 },
+  { symbol: 'INFY.NS', name: 'Infosys Ltd', aiRationale: 'Large Cap: Cloud AI Deal Pipeline & Strong Dividends', defaultPrice: 1820.75, defaultChange: 1.85 },
+  { symbol: 'ICICIBANK.NS', name: 'ICICI Bank Ltd', aiRationale: 'Large Cap: High Net Interest Margin & Retail Growth', defaultPrice: 1210.30, defaultChange: 1.20 },
+  { symbol: 'ITC.NS', name: 'ITC Ltd', aiRationale: 'Large Cap: Defensive FMCG Moat & High Dividend Yield', defaultPrice: 495.20, defaultChange: 0.55 },
+  // Mid Cap
+  { symbol: 'TATAMOTORS.NS', name: 'Tata Motors Ltd', aiRationale: 'Mid Cap: High Momentum + JLR Margin Turnaround', defaultPrice: 960.00, defaultChange: 3.40 },
+  { symbol: 'POLYCAB.NS', name: 'Polycab India Ltd', aiRationale: 'Mid Cap: Capex Beneficiary with 28% ROCE Leadership', defaultPrice: 6580.00, defaultChange: 1.75 },
+  { symbol: 'PERSISTENT.NS', name: 'Persistent Systems Ltd', aiRationale: 'Mid Cap: High-Growth Mid-Cap Tech & Enterprise AI', defaultPrice: 5120.00, defaultChange: 2.10 },
+  // Small Cap
+  { symbol: 'CDSL.NS', name: 'Central Depository Services Ltd', aiRationale: 'Small Cap: Monopoly Demat Infrastructure & Zero Debt', defaultPrice: 1540.00, defaultChange: 2.80 },
+  { symbol: 'ANGELONE.NS', name: 'Angel One Ltd', aiRationale: 'Small Cap: 42% ROE Digital FinTech at Fair 20x PE', defaultPrice: 2850.00, defaultChange: 1.90 },
 ];
 
 const TOP_PERFORMERS_STOCKS = [
-  { symbol: 'TATAMOTORS.NS', name: 'Tata Motors Ltd', performerTag: '🔥 Top NSE Gainer Today (+3.4%)', defaultPrice: 960.00, defaultChange: 3.40 },
-  { symbol: 'BHARTIARTL.NS', name: 'Bharti Airtel Ltd', performerTag: '🚀 5G ARPU Surge (+2.35%)', defaultPrice: 1480.00, defaultChange: 2.35 },
-  { symbol: 'INFY.NS', name: 'Infosys Ltd', performerTag: '⚡ Enterprise AI Win (+1.85%)', defaultPrice: 1820.75, defaultChange: 1.85 },
-  { symbol: 'BAJFINANCE.NS', name: 'Bajaj Finance Ltd', performerTag: '📈 Credit Expansion (+1.6%)', defaultPrice: 6890.00, defaultChange: 1.60 },
-  { symbol: 'RELIANCE.NS', name: 'Reliance Industries Ltd', performerTag: '💎 Retail Cash Flow (+1.45%)', defaultPrice: 2980.50, defaultChange: 1.45 },
-  { symbol: 'ICICIBANK.NS', name: 'ICICI Bank Ltd', performerTag: '🏦 High Margin Banking (+1.2%)', defaultPrice: 1210.30, defaultChange: 1.20 },
+  { symbol: 'CDSL.NS', name: 'Central Depository Services Ltd', performerTag: '🚀 Small Cap Alpha (+2.80%) • 9/9 Piotroski', defaultPrice: 1540.00, defaultChange: 2.80 },
+  { symbol: 'TATAMOTORS.NS', name: 'Tata Motors Ltd', performerTag: '🔥 Mid Cap Leader (+3.40%) • High Momentum', defaultPrice: 960.00, defaultChange: 3.40 },
+  { symbol: 'PERSISTENT.NS', name: 'Persistent Systems Ltd', performerTag: '⚡ Mid Cap Tech (+2.10%) • High Growth', defaultPrice: 5120.00, defaultChange: 2.10 },
+  { symbol: 'INFY.NS', name: 'Infosys Ltd', performerTag: '💎 Large Cap AI Deal (+1.85%)', defaultPrice: 1820.75, defaultChange: 1.85 },
+  { symbol: 'RELIANCE.NS', name: 'Reliance Industries Ltd', performerTag: '🛡️ Large Cap Anchor (+1.45%)', defaultPrice: 2980.50, defaultChange: 1.45 },
+  { symbol: 'ANGELONE.NS', name: 'Angel One Ltd', performerTag: '📈 Small Cap FinTech (+1.90%) • 42% ROE', defaultPrice: 2850.00, defaultChange: 1.90 },
 ];
 
 const POPULAR_FUNDS = [
@@ -111,12 +115,26 @@ async function getLiveStocksWithAI(): Promise<any[]> {
         }
       }
 
+      const profile = getStockFactorProfile(meta.symbol);
+
       return {
         symbol: meta.symbol,
         name: meta.name,
         price: Number(price.toFixed(2)),
         change,
         aiRationale: meta.aiRationale,
+        category: profile.category,
+        sector: profile.sector,
+        factorData: {
+          compositeQVM: profile.factorBreakdown.compositeQVM,
+          rating: profile.factorBreakdown.rating,
+          ratingColor: profile.factorBreakdown.ratingColor,
+          qualityScore: profile.factorBreakdown.qualityScore,
+          valuationScore: profile.factorBreakdown.valuationScore,
+          momentumScore: profile.factorBreakdown.momentumScore,
+          piotroskiFScore: profile.factorBreakdown.piotroskiFScore,
+          altmanZone: profile.factorBreakdown.altmanZone,
+        },
       };
     });
 
@@ -124,13 +142,28 @@ async function getLiveStocksWithAI(): Promise<any[]> {
     return enriched;
   } catch (err) {
     console.error('Failed to query live stocks:', err);
-    return AI_WATCHLIST_STOCKS.map((s) => ({
-      symbol: s.symbol,
-      name: s.name,
-      price: s.defaultPrice,
-      change: s.defaultChange,
-      aiRationale: s.aiRationale,
-    }));
+    return AI_WATCHLIST_STOCKS.map((s) => {
+      const profile = getStockFactorProfile(s.symbol);
+      return {
+        symbol: s.symbol,
+        name: s.name,
+        price: s.defaultPrice,
+        change: s.defaultChange,
+        aiRationale: s.aiRationale,
+        category: profile.category,
+        sector: profile.sector,
+        factorData: {
+          compositeQVM: profile.factorBreakdown.compositeQVM,
+          rating: profile.factorBreakdown.rating,
+          ratingColor: profile.factorBreakdown.ratingColor,
+          qualityScore: profile.factorBreakdown.qualityScore,
+          valuationScore: profile.factorBreakdown.valuationScore,
+          momentumScore: profile.factorBreakdown.momentumScore,
+          piotroskiFScore: profile.factorBreakdown.piotroskiFScore,
+          altmanZone: profile.factorBreakdown.altmanZone,
+        },
+      };
+    });
   }
 }
 
@@ -215,10 +248,23 @@ export async function GET(req: Request) {
     // Top performers with live quote prices
     const topPerformers = TOP_PERFORMERS_STOCKS.map((tp) => {
       const live = liveStocks.find((ls) => ls.symbol === tp.symbol);
+      const profile = getStockFactorProfile(tp.symbol);
       return {
         ...tp,
         price: live?.price ?? tp.defaultPrice,
         change: live?.change ?? tp.defaultChange,
+        category: profile.category,
+        sector: profile.sector,
+        factorData: {
+          compositeQVM: profile.factorBreakdown.compositeQVM,
+          rating: profile.factorBreakdown.rating,
+          ratingColor: profile.factorBreakdown.ratingColor,
+          qualityScore: profile.factorBreakdown.qualityScore,
+          valuationScore: profile.factorBreakdown.valuationScore,
+          momentumScore: profile.factorBreakdown.momentumScore,
+          piotroskiFScore: profile.factorBreakdown.piotroskiFScore,
+          altmanZone: profile.factorBreakdown.altmanZone,
+        },
       };
     });
 
@@ -304,6 +350,7 @@ export async function GET(req: Request) {
 
         const matchedMeta = AI_WATCHLIST_STOCKS.find((s) => s.symbol === item.symbol);
         const aiRationale = matchedMeta?.aiRationale || 'NSE/BSE Active Listed Security';
+        const profile = type !== 'crypto' ? getStockFactorProfile(item.symbol) : null;
 
         return {
           symbol: item.symbol,
@@ -311,6 +358,22 @@ export async function GET(req: Request) {
           price: livePrice,
           change,
           aiRationale,
+          ...(profile
+            ? {
+                category: profile.category,
+                sector: profile.sector,
+                factorData: {
+                  compositeQVM: profile.factorBreakdown.compositeQVM,
+                  rating: profile.factorBreakdown.rating,
+                  ratingColor: profile.factorBreakdown.ratingColor,
+                  qualityScore: profile.factorBreakdown.qualityScore,
+                  valuationScore: profile.factorBreakdown.valuationScore,
+                  momentumScore: profile.factorBreakdown.momentumScore,
+                  piotroskiFScore: profile.factorBreakdown.piotroskiFScore,
+                  altmanZone: profile.factorBreakdown.altmanZone,
+                },
+              }
+            : {}),
         };
       })
     );

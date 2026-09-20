@@ -24,11 +24,13 @@ import {
 } from 'lucide-react';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { AllocationDriftCard } from '@/components/charts/allocation-drift-card';
+import { MarketCapBreakdownCard } from '@/components/charts/market-cap-breakdown-card';
 import { SmartRebalancerCard } from '@/components/charts/smart-rebalancer-card';
 import { GoalExecutionCards } from '@/components/portfolio/goal-execution-cards';
 import { NetWorthProjectionChart } from '@/components/charts/net-worth-projection-chart';
 import { AIOnboardingWizard } from '@/components/onboarding/ai-onboarding-wizard';
 import { AIInsightCard } from '@/components/portfolio/ai-insight-card';
+import { QVMScoringCard } from '@/components/portfolio/qvm-scoring-card';
 import { aiInsights as staticAiInsights } from '@/lib/mock-data';
 import { formatINR, formatINRCompact } from '@/lib/formatters';
 
@@ -84,13 +86,16 @@ export default function AIAdvisorPage() {
         setUserProfile(loadedProfile);
       }
 
-      // 3. Check for cached AI recommendation data
+      // 3. Check for cached AI recommendation data (must include marketCapAllocation)
       const savedData = localStorage.getItem('arthova_ai_data');
       if (savedData) {
         try {
-          setAiData(JSON.parse(savedData));
-          setIsLoading(false);
-          return;
+          const parsed = JSON.parse(savedData);
+          if (parsed && parsed.marketCapAllocation) {
+            setAiData(parsed);
+            setIsLoading(false);
+            return;
+          }
         } catch (e) {}
       }
 
@@ -121,7 +126,7 @@ export default function AIAdvisorPage() {
       const salaryH = portfolio.cashHoldings.find(h => h.name.toLowerCase().includes('salary') || (h as any).isSalary);
       const salaryAmount = salaryH ? (salaryH.quantity || 0) : 100000;
 
-      const payload = customPayload || {
+      const basePayload = customPayload || {
         userDemographics: {
           age: userProfile?.userDemographics?.age || userProfile?.calculatedAge || 28,
           targetRetirementAge: userProfile?.userDemographics?.targetRetirementAge || 55,
@@ -149,6 +154,11 @@ export default function AIAdvisorPage() {
         },
         riskAndInsurance: { riskAppetite: 'Medium', hasHealthInsurance: true, hasLifeInsurance: true, hasEmergencyFund: false },
         financialGoals: userProfile?.financialGoals || [],
+      };
+
+      const payload = {
+        ...basePayload,
+        holdings: customPayload?.holdings || portfolio.stockHoldings,
       };
 
       const res = await fetch('/api/ai/recommendation', {
@@ -399,6 +409,16 @@ export default function AIAdvisorPage() {
         </motion.div>
       )}
 
+      {/* Institutional Market-Cap Tiering & Guardrails */}
+      {!isLoading && aiData?.marketCapAllocation && (
+        <motion.div variants={itemVariants}>
+          <MarketCapBreakdownCard
+            marketCapAllocation={aiData.marketCapAllocation}
+            isLoading={isLoading}
+          />
+        </motion.div>
+      )}
+
       {/* Smart Monthly Rebalancer with 1-Click Execution */}
       {!isLoading && aiData && (
         <motion.div variants={itemVariants}>
@@ -492,6 +512,13 @@ export default function AIAdvisorPage() {
               );
             })}
           </div>
+        </motion.div>
+      )}
+
+      {/* Institutional QVM Multi-Factor Quant Model */}
+      {!isLoading && (
+        <motion.div variants={itemVariants}>
+          <QVMScoringCard />
         </motion.div>
       )}
 
