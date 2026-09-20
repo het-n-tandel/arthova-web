@@ -568,9 +568,9 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
         age: currentPointAge,
         year: currentPointYear,
         ageLabel: `Age ${currentPointAge}`,
-        expectedNetWorth: Math.round(expectedAssets - remainingDebt),
-        pessimisticNetWorth: Math.round(pessimisticAssets - remainingDebt),
-        optimisticNetWorth: Math.round(optimisticAssets - remainingDebt),
+        expectedNetWorth: Math.round(Math.max(0, expectedAssets)),
+        pessimisticNetWorth: Math.round(Math.max(0, pessimisticAssets)),
+        optimisticNetWorth: Math.round(Math.max(0, optimisticAssets)),
         isGoalDip: false,
       });
     } else {
@@ -585,9 +585,9 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
           age: currentPointAge,
           year: currentPointYear,
           ageLabel: `Age ${currentPointAge} (Pre-Goal)`,
-          expectedNetWorth: Math.round(expectedAssets - remainingDebt),
-          pessimisticNetWorth: Math.round(pessimisticAssets - remainingDebt),
-          optimisticNetWorth: Math.round(optimisticAssets - remainingDebt),
+          expectedNetWorth: Math.round(Math.max(0, expectedAssets)),
+          pessimisticNetWorth: Math.round(Math.max(0, pessimisticAssets)),
+          optimisticNetWorth: Math.round(Math.max(0, optimisticAssets)),
           isGoalDip: false,
         });
 
@@ -603,9 +603,9 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
           age: currentPointAge,
           year: currentPointYear,
           ageLabel: `Age ${currentPointAge} (${goalTitle} Outflow)`,
-          expectedNetWorth: Math.round(expectedAssets - remainingDebt),
-          pessimisticNetWorth: Math.round(pessimisticAssets - remainingDebt),
-          optimisticNetWorth: Math.round(optimisticAssets - remainingDebt),
+          expectedNetWorth: Math.round(Math.max(0, expectedAssets)),
+          pessimisticNetWorth: Math.round(Math.max(0, pessimisticAssets)),
+          optimisticNetWorth: Math.round(Math.max(0, optimisticAssets)),
           isGoalDip: true,
           goalDipName: goalTitle,
           goalOutflowAmount: Math.round(outflow),
@@ -615,9 +615,9 @@ export function calculateAIRecommendation(payload: UserProfilePayload): AIRecomm
           age: currentPointAge,
           year: currentPointYear,
           ageLabel: `Age ${currentPointAge}`,
-          expectedNetWorth: Math.round(expectedAssets - remainingDebt),
-          pessimisticNetWorth: Math.round(pessimisticAssets - remainingDebt),
-          optimisticNetWorth: Math.round(optimisticAssets - remainingDebt),
+          expectedNetWorth: Math.round(Math.max(0, expectedAssets)),
+          pessimisticNetWorth: Math.round(Math.max(0, pessimisticAssets)),
+          optimisticNetWorth: Math.round(Math.max(0, optimisticAssets)),
           isGoalDip: false,
         });
       }

@@ -268,9 +268,9 @@ public class AIAllocationService {
                 pt.setAge(currentPointAge);
                 pt.setYear(currentPointYear);
                 pt.setAgeLabel("Age " + currentPointAge);
-                pt.setExpectedNetWorth(Math.round(expectedAssets - remainingDebt));
-                pt.setPessimisticNetWorth(Math.round(pessimisticAssets - remainingDebt));
-                pt.setOptimisticNetWorth(Math.round(optimisticAssets - remainingDebt));
+                pt.setExpectedNetWorth(Math.round(Math.max(0.0, expectedAssets)));
+                pt.setPessimisticNetWorth(Math.round(Math.max(0.0, pessimisticAssets)));
+                pt.setOptimisticNetWorth(Math.round(Math.max(0.0, optimisticAssets)));
                 pt.setGoalDip(false);
                 trajectory.add(pt);
             } else {
@@ -285,9 +285,9 @@ public class AIAllocationService {
                     prePt.setAge(currentPointAge);
                     prePt.setYear(currentPointYear);
                     prePt.setAgeLabel("Age " + currentPointAge + " (Pre-Goal)");
-                    prePt.setExpectedNetWorth(Math.round(expectedAssets - remainingDebt));
-                    prePt.setPessimisticNetWorth(Math.round(pessimisticAssets - remainingDebt));
-                    prePt.setOptimisticNetWorth(Math.round(optimisticAssets - remainingDebt));
+                    prePt.setExpectedNetWorth(Math.round(Math.max(0.0, expectedAssets)));
+                    prePt.setPessimisticNetWorth(Math.round(Math.max(0.0, pessimisticAssets)));
+                    prePt.setOptimisticNetWorth(Math.round(Math.max(0.0, optimisticAssets)));
                     prePt.setGoalDip(false);
                     trajectory.add(prePt);
 
@@ -303,9 +303,9 @@ public class AIAllocationService {
                     dipPt.setYear(currentPointYear);
                     String goalTitle = String.join(", ", outflowNames);
                     dipPt.setAgeLabel("Age " + currentPointAge + " (" + goalTitle + " Outflow)");
-                    dipPt.setExpectedNetWorth(Math.round(expectedAssets - remainingDebt));
-                    dipPt.setPessimisticNetWorth(Math.round(pessimisticAssets - remainingDebt));
-                    dipPt.setOptimisticNetWorth(Math.round(optimisticAssets - remainingDebt));
+                    dipPt.setExpectedNetWorth(Math.round(Math.max(0.0, expectedAssets)));
+                    dipPt.setPessimisticNetWorth(Math.round(Math.max(0.0, pessimisticAssets)));
+                    dipPt.setOptimisticNetWorth(Math.round(Math.max(0.0, optimisticAssets)));
                     dipPt.setGoalDip(true);
                     dipPt.setGoalDipName(goalTitle);
                     dipPt.setGoalOutflowAmount(Math.round(outflow));
@@ -315,9 +315,9 @@ public class AIAllocationService {
                     pt.setAge(currentPointAge);
                     pt.setYear(currentPointYear);
                     pt.setAgeLabel("Age " + currentPointAge);
-                    pt.setExpectedNetWorth(Math.round(expectedAssets - remainingDebt));
-                    pt.setPessimisticNetWorth(Math.round(pessimisticAssets - remainingDebt));
-                    pt.setOptimisticNetWorth(Math.round(optimisticAssets - remainingDebt));
+                    pt.setExpectedNetWorth(Math.round(Math.max(0.0, expectedAssets)));
+                    pt.setPessimisticNetWorth(Math.round(Math.max(0.0, pessimisticAssets)));
+                    pt.setOptimisticNetWorth(Math.round(Math.max(0.0, optimisticAssets)));
                     pt.setGoalDip(false);
                     trajectory.add(pt);
                 }
