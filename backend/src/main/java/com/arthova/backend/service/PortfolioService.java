@@ -38,6 +38,7 @@ public class PortfolioService {
         LocalDate effectivePurchaseDate = request.getPurchaseDate() != null
                 ? request.getPurchaseDate()
                 : LocalDate.now();
+        LocalDateTime effectivePurchaseDateTime = effectivePurchaseDate.atStartOfDay();
 
         // Automatic Cash Sweep ONLY applies to market trades (stocks, mutual funds, crypto)
         if (request.getAssetType() == com.arthova.backend.entity.AssetType.stock
@@ -64,8 +65,8 @@ public class PortfolioService {
                 holding.setAvgCost(newAvgCost);
 
                 // Keep the earliest purchase date (whichever buy happened first)
-                if (holding.getPurchaseDate() == null || effectivePurchaseDate.isBefore(holding.getPurchaseDate())) {
-                    holding.setPurchaseDate(effectivePurchaseDate);
+                if (holding.getPurchaseDate() == null || effectivePurchaseDateTime.isBefore(holding.getPurchaseDate())) {
+                    holding.setPurchaseDate(effectivePurchaseDateTime);
                 }
             } else {
                 holding = new Holding();
@@ -76,7 +77,7 @@ public class PortfolioService {
                 holding.setQuantity(request.getQuantity());
                 holding.setAvgCost(request.getPricePerUnit());
                 holding.setMetadata(request.getMetadata() != null ? request.getMetadata() : "{}");
-                holding.setPurchaseDate(effectivePurchaseDate);
+                holding.setPurchaseDate(effectivePurchaseDateTime);
             }
         } else if (request.getTransactionType() == TransactionType.sell) {
             if (existingHolding.isEmpty()) {

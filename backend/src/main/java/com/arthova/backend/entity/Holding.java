@@ -45,7 +45,7 @@ public class Holding {
      * Used for holding period calculation (STCG vs LTCG tax classification).
      */
     @Column(name = "purchase_date")
-    private LocalDate purchaseDate;
+    private LocalDateTime purchaseDate;
 
     @JdbcTypeCode(SqlTypes.JSON)
     private String metadata;
