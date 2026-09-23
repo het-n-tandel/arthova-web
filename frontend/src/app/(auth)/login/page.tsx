@@ -67,22 +67,9 @@ export default function LoginPage() {
         </p>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/25 text-rose-300 px-4 py-3 rounded-xl text-[13px] mb-5 font-medium flex items-center justify-between gap-2 animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
-              <span>{error}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('demo@arthova.com');
-                setPassword('password123');
-                setError(null);
-              }}
-              className="text-[11px] underline text-emerald-400 hover:text-emerald-300 cursor-pointer shrink-0"
-            >
-              Fill Demo Login
-            </button>
+          <div className="bg-rose-500/10 border border-rose-500/25 text-rose-300 px-4 py-3 rounded-xl text-[13px] mb-5 font-medium flex items-center gap-2 animate-in fade-in">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
