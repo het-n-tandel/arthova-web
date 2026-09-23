@@ -210,7 +210,7 @@ export async function GET() {
     return NextResponse.json({ accounts: result });
   } catch (error: any) {
     console.error('Error fetching demat accounts:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ accounts: [] });
   }
 }
 

@@ -14,6 +14,10 @@ import { PriceCell } from '@/components/ui/price-cell';
 import { SummaryCard } from '@/components/ui/summary-card';
 import { PriceCandlestick } from '@/components/charts/price-candlestick';
 import { AIInsightCard } from '@/components/portfolio/ai-insight-card';
+import { evaluateQuantitativeSignal } from '@/lib/strategies/technical-signals';
+import { AlgoSignalBadge } from '@/components/portfolio/algo-signal-badge';
+import { SentimentCatalystCard } from '@/components/portfolio/sentiment-catalyst-card';
+import { Cpu, ShieldCheck } from 'lucide-react';
 
 export default function StockDetailPage() {
   const params = useParams();
@@ -48,6 +52,12 @@ export default function StockDetailPage() {
   const candlestickData = useMemo(() => generateCandlestickData(90), []);
   const relatedInsights = aiInsights.filter((i) => i.relatedSymbol === stock.symbol);
 
+  // Phase 1: Pure Quantitative Signal Evaluation (Dey et al., 2025)
+  const algoSignal = useMemo(() => {
+    const historicalCloses = candlestickData.map(c => c.close);
+    return evaluateQuantitativeSignal(stock.symbol, price, historicalCloses);
+  }, [stock.symbol, price, candlestickData]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -66,6 +76,7 @@ export default function StockDetailPage() {
             <button onClick={() => toggleFavorite(stock.symbol)} className="p-1">
               <Star className={cn('w-5 h-5', favorites.has(stock.symbol) ? 'fill-accent-brass text-accent-brass' : 'text-text-faint')} />
             </button>
+            <AlgoSignalBadge signal={algoSignal} showDetails />
           </div>
           <div className="flex items-center gap-3 mt-1">
             <span className="text-[13px] text-text-faint" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{stock.symbol}</span>
@@ -129,14 +140,64 @@ export default function StockDetailPage() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-[16px] font-medium text-text-primary">AI Analysis</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-[16px] font-medium text-text-primary flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-emerald-500" />
+              ML Quant Strategy Engine (Dey et al.)
+            </h2>
+            <span className="text-[11px] font-mono uppercase text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+              PPO Policy Active
+            </span>
+          </div>
+
+          <div className="bg-bg-surface border border-border-default rounded-[12px] p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-border-default pb-3">
+              <div>
+                <p className="text-[12px] text-text-faint uppercase font-mono">Regime Category</p>
+                <p className="text-[14px] font-semibold text-text-primary capitalize">{algoSignal.category.replace('_', ' ')}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[12px] text-text-faint uppercase font-mono">Policy Confidence</p>
+                <p className="text-[14px] font-bold text-emerald-400 font-mono">{algoSignal.confidencePercent}%</p>
+              </div>
+            </div>
+
+            <p className="text-[13px] text-text-secondary leading-relaxed">
+              {algoSignal.reasoning}
+            </p>
+
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border-default text-center">
+              <div className="bg-bg-surface-2 p-2.5 rounded-lg">
+                <span className="text-[11px] text-text-faint block font-mono">RSI (14)</span>
+                <span className={cn('text-[13.5px] font-mono font-bold', algoSignal.indicators.rsi14 < 35 ? 'text-emerald-400' : algoSignal.indicators.rsi14 > 68 ? 'text-rose-400' : 'text-text-primary')}>
+                  {algoSignal.indicators.rsi14}
+                </span>
+              </div>
+              <div className="bg-bg-surface-2 p-2.5 rounded-lg">
+                <span className="text-[11px] text-text-faint block font-mono">Z-Score (20)</span>
+                <span className={cn('text-[13.5px] font-mono font-bold', Math.abs(algoSignal.indicators.zScore20) >= 1.8 ? 'text-amber-400' : 'text-text-primary')}>
+                  {algoSignal.indicators.zScore20 > 0 ? `+${algoSignal.indicators.zScore20}` : algoSignal.indicators.zScore20}σ
+                </span>
+              </div>
+              <div className="bg-bg-surface-2 p-2.5 rounded-lg">
+                <span className="text-[11px] text-text-faint block font-mono">MACD Accel</span>
+                <span className={cn('text-[13.5px] font-mono font-bold', algoSignal.indicators.macd.histogram >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                  {algoSignal.indicators.macd.histogram >= 0 ? '+' : ''}{algoSignal.indicators.macd.histogram}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <SentimentCatalystCard symbol={stock.symbol} />
+
+          <h2 className="text-[16px] font-medium text-text-primary pt-2">AI Market Insights</h2>
           {relatedInsights.length > 0 ? (
             relatedInsights.map((insight) => (
               <AIInsightCard key={insight.id} insight={insight} />
             ))
           ) : (
             <div className="bg-bg-surface border border-border-default rounded-[12px] p-5">
-              <p className="text-[13px] text-text-faint">No specific AI insights for {stock.symbol} at this time.</p>
+              <p className="text-[13px] text-text-faint">No specific news alerts for {stock.symbol} at this time.</p>
             </div>
           )}
         </div>

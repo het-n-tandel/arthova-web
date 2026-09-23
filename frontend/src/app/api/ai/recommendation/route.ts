@@ -28,6 +28,18 @@ export async function POST(req: Request) {
             ];
           }
         }
+        // Sanitize trajectory to guarantee non-negative values
+        if (Array.isArray(data.netWorthTrajectory)) {
+          data.netWorthTrajectory = data.netWorthTrajectory.map((pt: any) => ({
+            ...pt,
+            expectedNetWorth: Math.max(0, Math.round(pt.expectedNetWorth || 0)),
+            bullNetWorth: Math.max(0, Math.round(pt.bullNetWorth || 0)),
+            bearNetWorth: Math.max(0, Math.round(pt.bearNetWorth || 0)),
+          }));
+        }
+        if (data.projectedRetirementNetWorth !== undefined) {
+          data.projectedRetirementNetWorth = Math.max(0, Math.round(data.projectedRetirementNetWorth || 0));
+        }
         return NextResponse.json(data);
       }
     } catch (e) {
@@ -37,6 +49,17 @@ export async function POST(req: Request) {
 
     // 2. High-performance TypeScript calculation fallback
     const result = calculateAIRecommendation(body);
+    if (Array.isArray(result.netWorthTrajectory)) {
+      result.netWorthTrajectory = result.netWorthTrajectory.map((pt: any) => ({
+        ...pt,
+        expectedNetWorth: Math.max(0, Math.round(pt.expectedNetWorth || 0)),
+        bullNetWorth: Math.max(0, Math.round(pt.bullNetWorth || 0)),
+        bearNetWorth: Math.max(0, Math.round(pt.bearNetWorth || 0)),
+      }));
+    }
+    if (result.projectedRetirementNetWorth !== undefined) {
+      result.projectedRetirementNetWorth = Math.max(0, Math.round(result.projectedRetirementNetWorth || 0));
+    }
     return NextResponse.json(result);
   } catch (err: any) {
     console.error('AI Recommendation Route Error:', err);

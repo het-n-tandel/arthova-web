@@ -4,24 +4,29 @@ import { auth } from '@/auth';
 import { sql } from 'drizzle-orm';
 
 export async function GET(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
-  const userId = session.user.id;
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
+    const userId = session.user.id;
 
-  const result = await db.execute(sql`
-    SELECT SUM(h.quantity * COALESCE(p.latest_price, h.avg_cost)) AS net_worth
-    FROM holdings h
-    LEFT JOIN latest_prices p ON p.symbol = h.symbol
-    WHERE h.user_id = ${userId}
-      AND (
-        h.quantity > 0
-        OR h.asset_type IN ('cash', 'liability', 'fd', 'property', 'bond')
-        OR h.symbol = 'CASH'
-        OR (h.metadata->>'isSalary') = 'true'
-      );
-  `);
+    const result = await db.execute(sql`
+      SELECT SUM(h.quantity * COALESCE(p.latest_price, h.avg_cost)) AS net_worth
+      FROM holdings h
+      LEFT JOIN latest_prices p ON p.symbol = h.symbol
+      WHERE h.user_id = ${userId}
+        AND (
+          h.quantity > 0
+          OR h.asset_type IN ('cash', 'liability', 'fd', 'property', 'bond')
+          OR h.symbol = 'CASH'
+          OR (h.metadata->>'isSalary') = 'true'
+        );
+    `);
 
-  const netWorth = result.rows[0]?.net_worth || 0;
+    const netWorth = result.rows[0]?.net_worth || 0;
 
-  return NextResponse.json({ netWorth: Number(netWorth) });
+    return NextResponse.json({ netWorth: Number(netWorth) });
+  } catch (err: any) {
+    console.error('Error fetching networth from database:', err);
+    return NextResponse.json({ netWorth: 0 });
+  }
 }

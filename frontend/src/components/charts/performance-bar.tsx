@@ -42,9 +42,9 @@ export function PerformanceBar({ data, className, height = 250 }: PerformanceBar
               if (!payload?.length) return null;
               const item = payload[0].payload;
               return (
-                <div className="bg-bg-surface-3 px-3 py-2 rounded-[6px] text-[12px]" style={{ boxShadow: 'var(--shadow-md)' }}>
-                  <p className="text-text-primary font-medium">{item.name}</p>
-                  <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums', color: item.value >= 0 ? 'var(--positive)' : 'var(--negative)' }}>
+                <div className="glass-card-elevated px-3 py-2 rounded-lg text-[12px] border border-border shadow-xl z-50">
+                  <p className="text-text-primary font-semibold">{item.name}</p>
+                  <p style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums', color: item.value >= 0 ? 'var(--positive)' : 'var(--negative)' }} className="font-bold mt-0.5">
                     {formatPercentRaw(item.value)}
                   </p>
                 </div>

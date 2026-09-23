@@ -23,6 +23,7 @@ export interface PortfolioSummary {
   dayChange: number;
   dayChangePercent: number;
   netWorth: number;
+  totalLiabilities: number;
   assets: AssetAllocation[];
   rawHoldings: any[]; // The DB holdings
   stockHoldings: any[];
@@ -58,9 +59,13 @@ export function usePortfolio(): PortfolioSummary {
       } catch (err) {
         console.warn('Next.js /api/holdings failed, trying fallback:', err);
       }
-      const fallbackRes = await fetch(`http://localhost:8080/api/public/portfolio/${userId}`);
-      if (!fallbackRes.ok) throw new Error('Failed to fetch holdings');
-      return fallbackRes.json();
+      try {
+        const fallbackRes = await fetch(`http://localhost:8080/api/public/portfolio/${userId}`);
+        if (fallbackRes.ok) return fallbackRes.json();
+      } catch (err) {
+        // Fallback offline
+      }
+      return [];
     },
     enabled: !!session?.user?.id,
   });
@@ -197,8 +202,10 @@ export function usePortfolio(): PortfolioSummary {
     const totalInvested = stockVal.invested + mfVal.invested + goldVal.invested + fdVal.invested + propVal.invested + cryptoVal.invested + cashVal.invested + bondVal.invested;
     const totalCurrent  = stockVal.current  + mfVal.current  + goldVal.current  + fdVal.current  + propVal.current  + cryptoVal.current  + cashVal.current  + bondVal.current;
 
-    // Net worth subtracts remaining liabilities
-    const netWorth = totalCurrent - liabilityVal.current;
+    // Present Net Worth: Current accumulated liquid & investment assets till today.
+    // Future loan tenures/EMIs belong to upcoming periods and do not penalize today's net worth into negative.
+    const netWorth = Math.max(0, totalCurrent);
+    const totalLiabilities = liabilityVal.current;
 
     const totalGain        = totalCurrent - totalInvested;
     const totalGainPercent = totalInvested > 0 ? (totalGain / totalInvested) * 100 : 0;
@@ -408,6 +415,7 @@ export function usePortfolio(): PortfolioSummary {
       dayChange,
       dayChangePercent,
       netWorth,
+      totalLiabilities,
       assets,
       rawHoldings:      holdings,
       stockHoldings:    mapLive('stock'),

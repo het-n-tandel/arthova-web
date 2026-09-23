@@ -17,6 +17,8 @@ import { useLedgerStore } from '@/lib/store';
 import { DeltaBadge } from '@/components/ui/delta-badge';
 import { PriceCell } from '@/components/ui/price-cell';
 import { formatINR, cn } from '@/lib/formatters';
+import { evaluateQuantitativeSignal } from '@/lib/strategies/technical-signals';
+import { AlgoSignalBadge } from './algo-signal-badge';
 
 interface HoldingsTableProps {
   data: StockHolding[];
@@ -135,6 +137,14 @@ export function HoldingsTable({ data, className, onRowClick }: HoldingsTableProp
       columnHelper.accessor('dayChangePercent', {
         header: 'Day',
         cell: (info) => <DeltaBadge value={info.getValue()} />,
+      }),
+      columnHelper.display({
+        id: 'algoSignal',
+        header: 'ML Signal (Dey et al.)',
+        cell: ({ row }) => {
+          const signal = evaluateQuantitativeSignal(row.original.symbol, row.original.cmp, [row.original.avgCost, row.original.cmp]);
+          return <AlgoSignalBadge signal={signal} />;
+        },
       }),
       columnHelper.accessor('sector', {
         header: 'Sector',

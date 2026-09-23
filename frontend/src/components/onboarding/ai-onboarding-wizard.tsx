@@ -216,7 +216,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
           fdDebt: Number(fdDebtPct),
           gold: Number(goldPct),
           realEstate: Number(realEstatePct),
-          cash: Number(realEstatePct),
+          cash: Math.max(0, 100 - Number(equityPct) - Number(fdDebtPct) - Number(goldPct) - Number(realEstatePct)),
         },
         totalLiabilities: Number(totalLiabilities),
         hasHighInterestDebt,
@@ -248,7 +248,7 @@ export function AIOnboardingWizard({ isOpen, onClose, onSuccess, initialProfile 
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem('arthova_ai_data', JSON.stringify(data));
-        if (onSuccess) onSuccess(data, payload);
+        if (onSuccess) onSuccess(payload, data);
         onClose();
       }
     } catch (err) {

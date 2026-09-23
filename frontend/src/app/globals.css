@@ -7,47 +7,64 @@
 
 /* ---- Dark Mode (Default) ---- */
 :root {
-  /* Core Backgrounds (Deep Charcoal/Black) */
-  --bg-base: #0F172A;
-  --bg-surface: #1E293B;
-  --bg-surface-2: #334155;
-  --bg-surface-3: #475569;
+  /* Core Backgrounds (Deep Obsidian / Midnight Charcoal) */
+  --bg-base: #080C14;
+  --bg-surface: #0E1524;
+  --bg-surface-2: #162032;
+  --bg-surface-3: #1E2B42;
 
-  /* Borders */
-  --border: #334155;
-  --border-strong: #475569;
+  /* Borders & Specular Highlights */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-glow: rgba(16, 185, 129, 0.35);
 
   /* Typography */
-  --text-primary: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --text-faint: #94A3B8;
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --text-faint: #64748B;
 
-  /* Accents (Primary Green) */
+  /* Accents (Luminous Emerald & Brass) */
   --accent-brass: #10B981; 
-  --accent-brass-dim: #34D399;
+  --accent-brass-dim: #059669;
+  --accent-brass-light: #34D399;
 
   /* Semantic Colors */
   --positive: #10B981;
-  --positive-bg: rgba(16, 185, 129, 0.15);
+  --positive-bg: rgba(16, 185, 129, 0.14);
+  --positive-border: rgba(16, 185, 129, 0.28);
   
-  --negative: #EF4444; 
-  --negative-bg: rgba(239, 68, 68, 0.15);
+  --negative: #F43F5E; 
+  --negative-bg: rgba(244, 63, 94, 0.14);
+  --negative-border: rgba(244, 63, 94, 0.28);
 
   --warning: #F59E0B;
-  --warning-bg: rgba(245, 158, 11, 0.15);
+  --warning-bg: rgba(245, 158, 11, 0.14);
+  --warning-border: rgba(245, 158, 11, 0.28);
 
-  --info-indigo: #3B82F6;
-  --info-indigo-bg: rgba(59, 130, 246, 0.15);
+  --info-indigo: #38BDF8;
+  --info-indigo-bg: rgba(56, 189, 248, 0.14);
+  --info-indigo-border: rgba(56, 189, 248, 0.28);
 
-  /* Shadows — floating elements only */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+  /* Shadows — High-depth elevation with subtle ambient spread */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.65), 0 2px 6px -1px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  --shadow-lg: 0 12px 40px -4px rgba(0, 0, 0, 0.8), 0 4px 12px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  --shadow-glow: 0 0 25px -4px rgba(16, 185, 129, 0.25);
 
   /* Radius scale */
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+
+  /* Glass tokens (Dark - High-translucency Frosted Obsidian) */
+  --glass-bg: linear-gradient(145deg, rgba(14, 21, 36, 0.6) 0%, rgba(9, 13, 22, 0.5) 100%);
+  --glass-bg-elevated: linear-gradient(145deg, rgba(22, 32, 50, 0.7) 0%, rgba(14, 21, 36, 0.6) 100%);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-elevated: rgba(255, 255, 255, 0.12);
+  --glass-inset-glow: none;
+  --glass-text-contrast: #FFFFFF;
+  --glass-subtext-contrast: #94A3B8;
 
   /* Color scheme */
   color-scheme: dark;
@@ -56,41 +73,58 @@
 /* ---- Light Mode ---- */
 .light,
 [data-theme="light"] {
-  /* Light Gray Background & Pure White Canvas */
+  /* Crisp Frosted Canvas & Pearl Background */
   --bg-base: #F8FAFC;
-  --bg-surface: #FFFFFF;
-  --bg-surface-2: #F1F5F9;
-  --bg-surface-3: #E2E8F0;
+  --bg-surface: rgba(255, 255, 255, 0.8);
+  --bg-surface-2: #E2E8F0;
+  --bg-surface-3: #CBD5E1;
 
-  /* Border Gray */
-  --border: #E2E8F0;
-  --border-strong: #CBD5E1;
+  /* Border Gray & Highlights */
+  --border: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.15);
+  --border-subtle: rgba(15, 23, 42, 0.04);
+  --border-glow: rgba(5, 150, 105, 0.35);
 
-  /* Deep Charcoal Typography */
+  /* High-Contrast Charcoal Typography */
   --text-primary: #0F172A; 
-  --text-secondary: #475569; 
+  --text-secondary: #334155; 
   --text-faint: #64748B;
 
   /* Primary Green Accents */
-  --accent-brass: #10B981; 
-  --accent-brass-dim: #059669;
+  --accent-brass: #059669; 
+  --accent-brass-dim: #047857;
+  --accent-brass-light: #10B981;
 
   /* Semantic Colors */
-  --positive: #10B981; 
-  --positive-bg: #D1FAE5; /* Light Accent Green */
+  --positive: #059669; 
+  --positive-bg: rgba(5, 150, 105, 0.12);
+  --positive-border: rgba(5, 150, 105, 0.3);
   
-  --negative: #EF4444; 
-  --negative-bg: #FEE2E2;
+  --negative: #E11D48; 
+  --negative-bg: rgba(225, 29, 72, 0.12);
+  --negative-border: rgba(225, 29, 72, 0.3);
 
-  --warning: #F59E0B;
-  --warning-bg: #FEF3C7;
+  --warning: #D97706;
+  --warning-bg: rgba(217, 119, 6, 0.12);
+  --warning-border: rgba(217, 119, 6, 0.3);
 
-  --info-indigo: #3B82F6;
-  --info-indigo-bg: #DBEAFE;
+  --info-indigo: #0284C7;
+  --info-indigo-bg: rgba(2, 132, 199, 0.12);
+  --info-indigo-border: rgba(2, 132, 199, 0.3);
 
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 16px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+  --shadow-glow: 0 0 22px -3px rgba(5, 150, 105, 0.22);
+
+  /* Glass tokens (Light - Frosted Crystal Acrylic) */
+  --glass-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.72) 0%, rgba(248, 250, 252, 0.6) 100%);
+  --glass-bg-elevated: linear-gradient(145deg, rgba(255, 255, 255, 0.85) 0%, rgba(241, 245, 249, 0.75) 100%);
+  --glass-border: rgba(15, 23, 42, 0.09);
+  --glass-border-elevated: rgba(15, 23, 42, 0.14);
+  --glass-inset-glow: none;
+  --glass-text-contrast: #0F172A;
+  --glass-subtext-contrast: #475569;
 
   color-scheme: light;
 }
@@ -204,6 +238,122 @@ body {
 .text-display-sm { font-size: 28px; }
 .text-display { font-size: 36px; }
 .text-display-lg { font-size: 52px; }
+
+/* ============================================================
+   PREMIUM FINTECH GLASS & GLOW UTILITIES (Theme-Adaptive)
+   ============================================================ */
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md);
+  color: var(--text-primary);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-elevated {
+  background: var(--glass-bg-elevated);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border-elevated);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.25);
+}
+
+.glow-emerald-sm {
+  box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.2);
+}
+
+.glow-cyan-sm {
+  box-shadow: 0 0 15px -3px rgba(56, 189, 248, 0.2);
+}
+
+/* Light & Dark Adaptive Text Gradients */
+.text-gradient-emerald {
+  background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent-brass) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, var(--text-primary) 40%, var(--warning) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-subtle {
+  background: linear-gradient(180deg, var(--text-primary) 20%, var(--text-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.border-specular {
+  /* Disabled to remove artificial white highlight lines */
+}
+
+/* ============================================================
+   AUTH & HERO BACKGROUND PATTERNS
+   ============================================================ */
+
+.auth-mesh-bg {
+  background-color: var(--bg-base);
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, rgba(56, 189, 248, 0.10) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 85%, rgba(147, 51, 234, 0.06) 0px, transparent 50%);
+}
+
+.auth-grid-overlay {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+.light .auth-grid-overlay,
+[data-theme="light"] .auth-grid-overlay {
+  background-image: 
+    linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    transform: scale(1) translate(0px, 0px);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.1) translate(15px, -15px);
+    opacity: 0.65;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 10s ease-in-out infinite;
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: scale(1) translate(0px, 0px);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.08) translate(-20px, 20px);
+    opacity: 0.55;
+  }
+}
+
+.animate-float-reverse {
+  animation: float-reverse 12s ease-in-out infinite;
+}
 
 /* ============================================================
    SKELETON LOADER — Shimmer Animation

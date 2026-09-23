@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { auth } from '@/auth';
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
@@ -8,6 +9,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
     <div className="min-h-screen bg-bg-base text-text-primary flex flex-col">
       <header className="h-20 border-b border-border-default flex items-center justify-between px-6 lg:px-12 bg-bg-surface sticky top-0 z-50">
         <Link href="/" className="flex items-center gap-3">
+          <Image src="/logo.jpg" alt="Arthova" width={34} height={34} className="rounded-lg shadow-sm" />
           <span className="font-brand text-[28px] tracking-tight">ARTHOVA</span>
         </Link>
         <div className="flex items-center gap-4">

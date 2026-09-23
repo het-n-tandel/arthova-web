@@ -36,11 +36,17 @@ interface Props {
 export function NetWorthProjectionChart({ data, retirementAge, projectedRetirementNetWorth, className }: Props) {
   if (!data || data.length === 0) return null;
 
-  // Ensure ageLabel fallback if missing
-  const formattedData = data.map((d) => ({
+  // Ensure all data points are non-negative and have fallback labels
+  const formattedData = (data || []).map((d) => ({
     ...d,
+    expectedNetWorth: Math.max(0, Math.round(d.expectedNetWorth || 0)),
+    optimisticNetWorth: Math.max(0, Math.round(d.optimisticNetWorth || 0)),
+    pessimisticNetWorth: Math.max(0, Math.round(d.pessimisticNetWorth || 0)),
     ageLabel: d.ageLabel || `Age ${d.age}`,
   }));
+
+  const lastExpected = formattedData.length > 0 ? formattedData[formattedData.length - 1].expectedNetWorth : 0;
+  const safeProjectedNetWorth = Math.max(0, projectedRetirementNetWorth > 0 ? projectedRetirementNetWorth : lastExpected);
 
   const goalDipPoints = formattedData.filter((d) => d.isGoalDip || (d.goalDipName && d.goalOutflowAmount));
 
@@ -58,11 +64,8 @@ export function NetWorthProjectionChart({ data, retirementAge, projectedRetireme
         </div>
         <div className="bg-bg-surface-2 px-3 py-1.5 rounded-[8px] border border-border-default text-right">
           <span className="text-[10px] text-text-faint uppercase tracking-wider block">Projected Net Worth (Age {retirementAge})</span>
-          <span className={cn(
-            "text-[18px] font-mono font-medium",
-            projectedRetirementNetWorth >= 0 ? "text-positive" : "text-warning"
-          )}>
-            {formatINRCompact(projectedRetirementNetWorth)}
+          <span className="text-[18px] font-mono font-medium text-positive">
+            {formatINRCompact(safeProjectedNetWorth)}
           </span>
         </div>
       </div>
@@ -81,7 +84,6 @@ export function NetWorthProjectionChart({ data, retirementAge, projectedRetireme
               </linearGradient>
             </defs>
             <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-            <ReferenceLine y={0} stroke="var(--border-strong)" strokeDasharray="3 3" />
             <XAxis
               dataKey="ageLabel"
               axisLine={false}
@@ -97,8 +99,10 @@ export function NetWorthProjectionChart({ data, retirementAge, projectedRetireme
             <YAxis
               axisLine={false}
               tickLine={false}
+              domain={[0, 'auto']}
+              allowDataOverflow={false}
               tick={{ fill: 'var(--text-faint)', fontSize: 11, fontFamily: 'IBM Plex Mono' }}
-              tickFormatter={(v) => formatINRCompact(v)}
+              tickFormatter={(v) => formatINRCompact(Math.max(0, v))}
               width={65}
             />
             <Tooltip

@@ -32,11 +32,33 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="bg-bg-surface border border-border-default rounded-[16px] p-8 shadow-2xl max-h-[90vh] overflow-y-auto w-[460px] max-w-full custom-scrollbar">
-      <h1 className="font-display text-[28px] text-text-primary mb-2">Create Account</h1>
-      <p className="text-text-secondary text-[14px] mb-8">Join ARTHOVA and unify your portfolio.</p>
+    <div className="w-full max-w-[500px] relative my-auto">
+      {/* Decorative Outer Aura */}
+      <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-emerald-500/20 via-teal-500/10 to-sky-500/20 blur-xl opacity-75 pointer-events-none" />
 
-      {error && <div className="bg-negative-bg border border-negative text-negative px-4 py-2.5 rounded-[8px] text-[13px] mb-4 font-medium">{error}</div>}
+      <div className="relative overflow-hidden rounded-2xl bg-bg-surface/75 backdrop-blur-2xl p-7 sm:p-9 shadow-2xl border border-white/10 dark:border-white/[0.08] max-h-[85vh] overflow-y-auto custom-scrollbar">
+        {/* Subtle interior glow */}
+        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+            Institutional Onboarding
+          </span>
+        </div>
+
+        <h1 className="font-display text-[30px] font-bold text-text-primary tracking-tight text-gradient-emerald mt-1">
+          Create Account
+        </h1>
+        <p className="text-text-secondary text-[13.5px] mt-1 mb-7 leading-relaxed">
+          Join ARTHOVA to unify your wealth, holdings & quant execution.
+        </p>
+
+        {error && (
+          <div className="bg-rose-500/10 border border-rose-500/25 text-rose-300 px-4 py-3 rounded-xl text-[13px] mb-5 font-medium flex items-center gap-2 animate-in fade-in">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+            {error}
+          </div>
+        )}
 
       <form onSubmit={handleRegister} className="space-y-4">
         {/* Must-Have Fields */}
@@ -204,14 +226,22 @@ export default function RegisterPage() {
           <input type="hidden" name="dematBroker" value={selectedBroker || ''} />
         </div>
 
-        <button disabled={loading} type="submit" className="w-full bg-accent-brass text-bg-base hover:bg-accent-brass-dim py-2.5 rounded-[8px] font-medium text-[14px] transition-colors mt-6 disabled:opacity-50">
-          {loading ? 'Creating Account...' : 'Create Account'}
+        <button 
+          disabled={loading} 
+          type="submit" 
+          className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-semibold py-2.5 rounded-xl text-[14px] shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all duration-200 mt-6 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+        >
+          {loading ? 'Creating Account...' : 'Create Institutional Account'}
         </button>
       </form>
 
-      <p className="text-center text-[13px] text-text-secondary mt-8">
-        Already have an account? <Link href="/login" className="text-text-primary hover:text-accent-brass font-medium">Sign in</Link>
+      <p className="text-center text-[13px] text-text-secondary mt-7">
+        Already have an account?{' '}
+        <Link href="/login" className="text-emerald-400 hover:text-emerald-300 font-medium hover:underline transition-colors">
+          Sign in
+        </Link>
       </p>
     </div>
+  </div>
   );
 }

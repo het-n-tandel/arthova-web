@@ -11,277 +11,319 @@ import {
   BarChart3,
   Search,
   SlidersHorizontal,
+  PiggyBank,
+  Award,
+  Layers
 } from 'lucide-react';
 import {
   INDIAN_EQUITY_FACTOR_REGISTRY,
   getStockFactorProfile,
   StockFactorData,
   MarketCapCategory,
+  INDIAN_MUTUAL_FUND_REGISTRY,
+  getTopMutualFundsByCategory,
+  MutualFundFactorData,
 } from '@/lib/factor-scoring';
+import { formatINR, cn } from '@/lib/formatters';
 
 export function QVMScoringCard() {
+  const [assetType, setAssetType] = useState<'stocks' | 'mutual_funds'>('stocks');
   const [selectedCategory, setSelectedCategory] = useState<MarketCapCategory | 'ALL'>('ALL');
   const [activeStockSymbol, setActiveStockSymbol] = useState<string>('TCS.NS');
+  const [activeMFCode, setActiveMFCode] = useState<string>('122639');
 
+  // Stocks data
   const allSymbols = Object.keys(INDIAN_EQUITY_FACTOR_REGISTRY);
   const stockProfiles: StockFactorData[] = allSymbols.map((sym) => getStockFactorProfile(sym));
-
   const filteredStocks = stockProfiles.filter((s) => {
     if (selectedCategory === 'ALL') return true;
     return s.category === selectedCategory;
   });
+  const activeStock = stockProfiles.find((s) => s.symbol === activeStockSymbol) || filteredStocks[0] || stockProfiles[0];
 
-  const activeProfile =
-    stockProfiles.find((s) => s.symbol === activeStockSymbol) ||
-    filteredStocks[0] ||
-    stockProfiles[0];
+  // Mutual funds data
+  const allMFs: MutualFundFactorData[] = [
+    ...getTopMutualFundsByCategory('Large Cap'),
+    ...getTopMutualFundsByCategory('Mid Cap'),
+    ...getTopMutualFundsByCategory('Small Cap'),
+  ];
+  const filteredMFs = allMFs.filter((m) => {
+    if (selectedCategory === 'ALL') return true;
+    return m.category === selectedCategory;
+  });
+  const activeMF = allMFs.find((m) => m.schemeCode === activeMFCode) || filteredMFs[0] || allMFs[0];
 
-  const { factorBreakdown } = activeProfile;
+  const isMF = assetType === 'mutual_funds';
+  const factorBreakdown = isMF ? activeMF.factorBreakdown : activeStock.factorBreakdown;
 
   return (
-    <div className="rounded-2xl border border-border-default bg-bg-surface p-6 shadow-sm">
+    <div className="rounded-2xl border border-border-default bg-bg-surface p-6 shadow-sm space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6 pb-4 border-b border-border-default">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border-default">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-accent-brass/10 border border-accent-brass/20 text-accent-brass">
+          <div className="p-2.5 rounded-xl bg-accent-brass/10 border border-border-default text-accent-brass">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-text-primary flex items-center gap-2">
               QVM Multi-Factor Quant Model
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-accent-brass/15 text-accent-brass border border-accent-brass/30">
-                Piotroski (0-9) &amp; Altman Z
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-accent-brass/10 text-accent-brass border border-border-default">
+                {isMF ? 'Sharpe & Alpha Screened' : 'Piotroski (0-9) & Altman Z'}
               </span>
             </h3>
             <p className="text-xs text-text-secondary mt-0.5">
-              40% Quality (ROE/ROCE/Balance Sheet) + 30% Valuation (Margin of Safety) + 30% Momentum (Relative Strength)
+              40% Quality (ROE / Sharpe) + 30% Valuation (TER / PE Margin of Safety) + 30% Momentum (Relative Strength)
             </p>
           </div>
         </div>
 
-        {/* Category Filter Tabs */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-bg-surface-2 border border-border-default text-xs">
-          {(['ALL', 'Large Cap', 'Mid Cap', 'Small Cap'] as const).map((cat) => (
+        {/* Vehicle Switcher & Category Filters */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Asset Type Toggle */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-bg-surface-2 border border-border-default text-xs">
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-                selectedCategory === cat
-                  ? 'bg-bg-surface text-text-primary shadow-sm'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
+              onClick={() => setAssetType('stocks')}
+              className={cn(
+                'flex items-center gap-1 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer',
+                !isMF ? 'bg-accent-brass text-bg-base font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
+              )}
             >
-              {cat === 'ALL' ? 'All Tiers' : cat}
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>Direct Stocks</span>
             </button>
-          ))}
+            <button
+              onClick={() => setAssetType('mutual_funds')}
+              className={cn(
+                'flex items-center gap-1 px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer',
+                isMF ? 'bg-accent-brass text-bg-base font-semibold shadow-sm' : 'text-text-secondary hover:text-text-primary'
+              )}
+            >
+              <PiggyBank className="w-3.5 h-3.5" />
+              <span>Mutual Funds</span>
+            </button>
+          </div>
+
+          {/* Market Cap Filter Tabs */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-bg-surface-2 border border-border-default text-xs">
+            {(['ALL', 'Large Cap', 'Mid Cap', 'Small Cap'] as const).map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer',
+                  selectedCategory === cat
+                    ? 'bg-bg-surface text-text-primary shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                )}
+              >
+                {cat === 'ALL' ? 'All Tiers' : cat}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Stock Factor Selector List (5 Cols) */}
+        {/* Left: Selector List (5 Cols) */}
         <div className="lg:col-span-5 flex flex-col gap-2 max-h-[460px] overflow-y-auto pr-1">
-          {filteredStocks.map((stock) => {
-            const isSelected = stock.symbol === activeProfile.symbol;
-            const qvm = stock.factorBreakdown.compositeQVM;
-
-            return (
-              <div
-                key={stock.symbol}
-                onClick={() => setActiveStockSymbol(stock.symbol)}
-                className={`p-3.5 rounded-xl border cursor-pointer transition-all duration-150 flex items-center justify-between ${
-                  isSelected
-                    ? 'border-accent-brass bg-accent-brass/5 ring-1 ring-accent-brass/30'
-                    : 'border-border-default bg-bg-surface-2/50 hover:bg-bg-surface-2 hover:border-border-strong'
-                }`}
-              >
-                <div className="min-w-0 flex-1 pr-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-xs text-text-primary truncate">
-                      {stock.name}
-                    </span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${
-                        stock.category === 'Large Cap'
-                          ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                          : stock.category === 'Mid Cap'
-                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      }`}
-                    >
-                      {stock.category}
-                    </span>
+          {isMF ? (
+            filteredMFs.map((mf) => {
+              const isSelected = mf.schemeCode === activeMF.schemeCode;
+              const qvm = mf.factorBreakdown.compositeQVM;
+              return (
+                <div
+                  key={mf.schemeCode}
+                  onClick={() => setActiveMFCode(mf.schemeCode)}
+                  className={cn(
+                    'p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between',
+                    isSelected
+                      ? 'border-accent-brass bg-accent-brass/5 ring-1 ring-accent-brass/30'
+                      : 'border-border-default bg-bg-surface-2/50 hover:bg-bg-surface-2 hover:border-border-strong'
+                  )}
+                >
+                  <div className="min-w-0 flex-1 pr-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-xs text-text-primary truncate">
+                        {mf.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-text-faint font-mono">
+                      <span>{mf.category}</span>
+                      <span>•</span>
+                      <span className="text-positive font-medium">3Y: {mf.cagr3Y}%</span>
+                      <span>•</span>
+                      <span>TER: {mf.expenseRatio}%</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-text-faint">
-                    <span>{stock.sector}</span>
-                    <span>•</span>
-                    <span className="font-mono">P/E {stock.pe}x</span>
+                  <div className="text-right shrink-0">
+                    <span className="text-[12px] font-mono font-bold text-accent-brass block">
+                      {qvm}/100
+                    </span>
+                    <span className="text-[10px] text-text-faint font-mono">
+                      Sharpe {mf.sharpeRatio}
+                    </span>
                   </div>
                 </div>
+              );
+            })
+          ) : (
+            filteredStocks.map((stock) => {
+              const isSelected = stock.symbol === activeStock.symbol;
+              const qvm = stock.factorBreakdown.compositeQVM;
 
-                <div className="text-right shrink-0">
-                  <div className="text-sm font-bold font-mono text-text-primary flex items-center justify-end gap-1">
-                    <span>{qvm}</span>
-                    <span className="text-[10px] font-normal text-text-faint">/100</span>
+              return (
+                <div
+                  key={stock.symbol}
+                  onClick={() => setActiveStockSymbol(stock.symbol)}
+                  className={cn(
+                    'p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between',
+                    isSelected
+                      ? 'border-accent-brass bg-accent-brass/5 ring-1 ring-accent-brass/30'
+                      : 'border-border-default bg-bg-surface-2/50 hover:bg-bg-surface-2 hover:border-border-strong'
+                  )}
+                >
+                  <div className="min-w-0 flex-1 pr-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-xs text-text-primary truncate">
+                        {stock.name}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-mono text-text-faint bg-bg-surface border border-border-default">
+                        {stock.symbol.replace('.NS', '')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-text-faint font-mono">
+                      <span>{stock.category}</span>
+                      <span>•</span>
+                      <span>{stock.sector}</span>
+                    </div>
                   </div>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded border inline-block mt-0.5 ${stock.factorBreakdown.ratingColor}`}>
-                    {stock.factorBreakdown.rating.split('/')[0]}
-                  </span>
+                  <div className="text-right shrink-0">
+                    <span className="text-[12px] font-mono font-bold text-accent-brass block">
+                      {qvm}/100
+                    </span>
+                    <span className="text-[10px] text-text-faint font-mono">
+                      F-Score {stock.piotroskiFScore}/9
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
-        {/* Right: Detailed Factor Diagnostics (7 Cols) */}
-        <div className="lg:col-span-7 rounded-xl border border-border-default bg-bg-surface-2/30 p-5 flex flex-col justify-between">
-          <div>
-            {/* Active Stock Title & Composite Gauge */}
-            <div className="flex items-start justify-between gap-3 mb-5 pb-4 border-b border-border-default">
+        {/* Right: Detailed Deep Dive Card (7 Cols) */}
+        <div className="lg:col-span-7 flex flex-col gap-4">
+          {/* Active Summary Banner */}
+          <div className="p-4 rounded-xl border border-border-default bg-bg-surface-2/60">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
               <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-base font-bold text-text-primary">{activeProfile.name}</h4>
-                  <span className="font-mono text-xs text-text-faint">({activeProfile.symbol})</span>
-                </div>
-                <div className="text-xs text-text-secondary mt-1">
-                  {activeProfile.category} • {activeProfile.sector} • ₹{(activeProfile.marketCapCr / 1000).toFixed(1)}k Cr M-Cap
-                </div>
+                <h4 className="text-sm font-semibold text-text-primary">
+                  {isMF ? activeMF.name : activeStock.name}
+                </h4>
+                <p className="text-xs text-text-faint font-mono mt-0.5">
+                  {isMF
+                    ? `${activeMF.category} • ${activeMF.fundHouse} • AUM: ₹${activeMF.aumCr.toLocaleString('en-IN')} Cr`
+                    : `${activeStock.symbol} • ${activeStock.category} • ${activeStock.sector}`}
+                </p>
               </div>
+              <span className={cn('text-xs font-mono font-semibold px-2.5 py-1 rounded-full border self-start sm:self-auto', factorBreakdown.ratingColor)}>
+                {factorBreakdown.rating}
+              </span>
+            </div>
+            <p className="text-xs text-text-secondary leading-relaxed italic border-t border-border-default pt-2 mt-2">
+              &ldquo;{isMF ? activeMF.analystSummary : activeStock.analystSummary}&rdquo;
+            </p>
+          </div>
 
-              <div className="text-right">
-                <div className="text-2xl font-black font-mono text-accent-brass leading-none">
-                  {factorBreakdown.compositeQVM}
-                  <span className="text-xs font-normal text-text-faint ml-1">QVM Index</span>
-                </div>
-                <div className={`text-[11px] font-medium px-2 py-0.5 rounded border inline-block mt-1.5 ${factorBreakdown.ratingColor}`}>
-                  {factorBreakdown.rating}
-                </div>
+          {/* Tri-Factor Gauges (Quality, Valuation, Momentum) */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 rounded-xl border border-border-default bg-bg-surface-2/40 space-y-1">
+              <span className="text-[11px] font-mono uppercase text-text-faint block">Quality (40%)</span>
+              <div className="text-lg font-bold font-mono text-positive">
+                {factorBreakdown.qualityScore}/100
+              </div>
+              <div className="w-full h-1.5 bg-bg-surface rounded-full overflow-hidden">
+                <div className="h-full bg-positive rounded-full" style={{ width: `${factorBreakdown.qualityScore}%` }} />
               </div>
             </div>
 
-            {/* Tri-Factor Breakdown Bars (Quality 40%, Valuation 30%, Momentum 30%) */}
-            <div className="space-y-3.5 mb-5">
-              {/* Quality */}
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-semibold text-text-primary flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-                    Quality Factor (40% Weight)
-                  </span>
-                  <span className="font-mono font-bold text-blue-400">{factorBreakdown.qualityScore}/100</span>
-                </div>
-                <div className="h-2 bg-bg-surface-3 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                    style={{ width: `${factorBreakdown.qualityScore}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] text-text-faint mt-1 font-mono">
-                  <span>ROE: {activeProfile.roe}%</span>
-                  <span>ROCE: {activeProfile.roce}%</span>
-                  <span>Debt/Eq: {activeProfile.debtToEquity}</span>
-                </div>
+            <div className="p-3 rounded-xl border border-border-default bg-bg-surface-2/40 space-y-1">
+              <span className="text-[11px] font-mono uppercase text-text-faint block">Valuation / Cost (30%)</span>
+              <div className="text-lg font-bold font-mono text-accent-brass">
+                {factorBreakdown.valuationScore}/100
               </div>
-
-              {/* Valuation */}
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-semibold text-text-primary flex items-center gap-1.5">
-                    <Percent className="w-3.5 h-3.5 text-amber-400" />
-                    Valuation Factor (30% Weight)
-                  </span>
-                  <span className="font-mono font-bold text-amber-400">{factorBreakdown.valuationScore}/100</span>
-                </div>
-                <div className="h-2 bg-bg-surface-3 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-amber-500 rounded-full transition-all duration-500"
-                    style={{ width: `${factorBreakdown.valuationScore}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] text-text-faint mt-1 font-mono">
-                  <span>P/E: {activeProfile.pe}x</span>
-                  <span>Industry P/E: {activeProfile.industryPE}x</span>
-                  <span>
-                    {activeProfile.pe <= activeProfile.industryPE
-                      ? `${Math.round(((activeProfile.industryPE - activeProfile.pe) / activeProfile.industryPE) * 100)}% Discount`
-                      : `${Math.round(((activeProfile.pe - activeProfile.industryPE) / activeProfile.industryPE) * 100)}% Premium`}
-                  </span>
-                </div>
-              </div>
-
-              {/* Momentum */}
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-semibold text-text-primary flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                    Momentum Factor (30% Weight)
-                  </span>
-                  <span className="font-mono font-bold text-emerald-400">{factorBreakdown.momentumScore}/100</span>
-                </div>
-                <div className="h-2 bg-bg-surface-3 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                    style={{ width: `${factorBreakdown.momentumScore}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] text-text-faint mt-1 font-mono">
-                  <span>3M Trend: {activeProfile.momentum3M > 0 ? '+' : ''}{activeProfile.momentum3M}%</span>
-                  <span>6M Relative: {activeProfile.momentum6M > 0 ? '+' : ''}{activeProfile.momentum6M}%</span>
-                </div>
+              <div className="w-full h-1.5 bg-bg-surface rounded-full overflow-hidden">
+                <div className="h-full bg-accent-brass rounded-full" style={{ width: `${factorBreakdown.valuationScore}%` }} />
               </div>
             </div>
 
-            {/* Forensic Checkpoint Cards: Piotroski & Altman */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="p-3 rounded-xl border border-border-default bg-bg-surface flex items-start gap-2.5">
-                <div className="p-1.5 rounded-lg bg-accent-brass/10 text-accent-brass shrink-0 mt-0.5">
-                  <CheckCircle2 className="w-4 h-4" />
+            <div className="p-3 rounded-xl border border-border-default bg-bg-surface-2/40 space-y-1">
+              <span className="text-[11px] font-mono uppercase text-text-faint block">Momentum (30%)</span>
+              <div className="text-lg font-bold font-mono text-info-indigo">
+                {factorBreakdown.momentumScore}/100
+              </div>
+              <div className="w-full h-1.5 bg-bg-surface rounded-full overflow-hidden">
+                <div className="h-full bg-info-indigo rounded-full" style={{ width: `${factorBreakdown.momentumScore}%` }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Forensic / Fund Metrics Grid */}
+          {isMF ? (
+            <div className="p-4 rounded-xl border border-border-default bg-bg-surface-2/40 space-y-3">
+              <span className="text-[11px] font-mono uppercase text-text-faint block">Institutional Fund Metrics</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <span className="text-text-faint block text-[10.5px]">Expense Ratio</span>
+                  <span className="font-mono font-medium text-positive">{activeMF.expenseRatio}% p.a.</span>
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-text-primary">Piotroski F-Score</div>
-                  <div className="text-lg font-mono font-bold text-text-primary mt-0.5">
-                    {factorBreakdown.piotroskiFScore} <span className="text-xs font-normal text-text-faint">/ 9</span>
-                  </div>
-                  <div className="text-[10px] text-text-secondary mt-0.5">
-                    {factorBreakdown.piotroskiFScore >= 8
-                      ? 'Pristine financial health (Stanford Check)'
-                      : factorBreakdown.piotroskiFScore >= 6
-                      ? 'Stable operating metrics'
-                      : 'Accounting caution flag'}
-                  </div>
+                  <span className="text-text-faint block text-[10.5px]">Sharpe Ratio</span>
+                  <span className="font-mono font-medium text-text-primary">{activeMF.sharpeRatio}</span>
+                </div>
+                <div>
+                  <span className="text-text-faint block text-[10.5px]">Alpha vs Index</span>
+                  <span className="font-mono font-medium text-positive">+{activeMF.alpha}%</span>
+                </div>
+                <div>
+                  <span className="text-text-faint block text-[10.5px]">Beta (Volatility)</span>
+                  <span className="font-mono font-medium text-text-primary">{activeMF.beta}</span>
                 </div>
               </div>
-
-              <div className="p-3 rounded-xl border border-border-default bg-bg-surface flex items-start gap-2.5">
-                <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 shrink-0 mt-0.5">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-text-primary">Altman Z-Score</div>
-                  <div className="text-lg font-mono font-bold text-text-primary mt-0.5">
-                    {activeProfile.altmanZScore.toFixed(1)}{' '}
-                    <span className={`text-xs px-1.5 py-0.2 rounded font-normal ${
-                      factorBreakdown.altmanZone === 'Safe'
-                        ? 'bg-positive/15 text-positive'
-                        : factorBreakdown.altmanZone === 'Grey'
-                        ? 'bg-warning/15 text-warning'
-                        : 'bg-negative/15 text-negative'
-                    }`}>
-                      {factorBreakdown.altmanZone}
+              <div className="pt-2 border-t border-border-default">
+                <span className="text-[10.5px] font-mono text-text-faint block mb-1">Top Holdings:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeMF.topHoldings.map((h) => (
+                    <span key={h} className="text-[11px] px-2 py-0.5 rounded bg-bg-surface border border-border-default text-text-secondary">
+                      {h}
                     </span>
-                  </div>
-                  <div className="text-[10px] text-text-secondary mt-0.5">
-                    Solvency: Zero 2-year bankruptcy probability
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Institutional Commentary */}
-          <div className="p-3 rounded-xl border border-border-default bg-bg-surface text-xs text-text-secondary leading-relaxed">
-            <span className="font-semibold text-text-primary mr-1.5">Institutional Summary:</span>
-            {activeProfile.analystSummary}
-          </div>
+          ) : (
+            <div className="p-4 rounded-xl border border-border-default bg-bg-surface-2/40 space-y-3">
+              <span className="text-[11px] font-mono uppercase text-text-faint block">Forensic Accounting Checkpoints</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <span className="text-text-faint block text-[10.5px]">Piotroski F-Score</span>
+                  <span className="font-mono font-medium text-positive">{activeStock.piotroskiFScore} / 9</span>
+                </div>
+                <div>
+                  <span className="text-text-faint block text-[10.5px]">Altman Z-Zone</span>
+                  <span className="font-mono font-medium text-positive">{activeStock.factorBreakdown.altmanZone} ({activeStock.altmanZScore})</span>
+                </div>
+                <div>
+                  <span className="text-text-faint block text-[10.5px]">ROE / ROCE</span>
+                  <span className="font-mono font-medium text-text-primary">{activeStock.roe}% / {activeStock.roce}%</span>
+                </div>
+                <div>
+                  <span className="text-text-faint block text-[10.5px]">Debt to Equity</span>
+                  <span className="font-mono font-medium text-text-primary">{activeStock.debtToEquity === 0 ? 'Zero Debt' : activeStock.debtToEquity}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

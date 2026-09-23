@@ -28,12 +28,14 @@ export default function StocksPage() {
     >
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-[28px] text-text-primary mb-1">Stocks</h1>
-          <p className="text-[13px] text-text-faint">Your equity portfolio and market watch</p>
+          <h1 className="font-display text-[30px] font-bold text-text-primary mb-1 tracking-tight text-gradient-emerald">
+            Equity Stocks
+          </h1>
+          <p className="text-[13px] text-text-secondary">Your live NSE/BSE equity holdings, sector allocation, and real-time P&L</p>
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="flex items-center gap-1.5 bg-accent-brass hover:bg-accent-brass-dim text-bg-base px-3 py-1.5 rounded-[6px] text-[13px] font-medium transition-colors"
+          className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-semibold px-4 py-2 rounded-lg text-[13px] transition-all shadow-md shadow-emerald-500/25"
         >
           <Plus className="w-4 h-4" />
           Trade Stock

@@ -61,17 +61,17 @@ export function TopNav() {
 
   return (
     <>
-      <header className="h-16 bg-bg-surface border-b border-border-default sticky top-0 z-40 flex items-center justify-between px-6">
+      <header className="h-16 bg-bg-surface/80 backdrop-blur-xl border-b border-border sticky top-0 z-40 flex items-center justify-between px-6 shadow-sm">
         {/* Search Bar / Trigger Command Palette */}
         <div className="flex items-center gap-3 flex-1 max-w-md">
           <div
             onClick={() => setIsCommandOpen(true)}
             className="relative w-full cursor-pointer group"
           >
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint group-hover:text-accent-brass transition-colors" />
-            <div className="w-full bg-bg-surface-2 border border-border-default rounded-[6px] pl-9 pr-12 py-2 text-[13.5px] text-text-faint group-hover:border-accent-brass/50 transition-colors flex items-center justify-between">
-              <span>Search stocks, funds, navigate...</span>
-              <kbd className="text-[11px] text-text-faint bg-bg-surface-3 px-1.5 py-0.5 rounded border border-border-default font-mono">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint group-hover:text-accent-brass transition-colors" />
+            <div className="w-full bg-bg-surface-2/60 border border-border rounded-lg pl-10 pr-12 py-2 text-[13px] text-text-faint group-hover:border-accent-brass/40 group-hover:text-text-secondary transition-all flex items-center justify-between shadow-inner">
+              <span>Search stocks, mutual funds, or navigate...</span>
+              <kbd className="text-[10.5px] text-text-secondary bg-bg-surface-3 px-2 py-0.5 rounded border border-border font-mono shadow-sm">
                 ⌘K
               </kbd>
             </div>
@@ -81,15 +81,20 @@ export function TopNav() {
         {/* Right Nav Badges & Controls */}
         <div className="flex items-center gap-3">
           {/* Dynamic IST Indian Market Status Pulse */}
-          <div className="hidden sm:flex items-center gap-2 mr-2 text-[12px]">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-surface-2 border border-border text-[12px]">
+            <span className="relative flex h-2 w-2">
+              {marketStatus.isOpen && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              )}
+              <span
+                className={`relative inline-flex rounded-full h-2 w-2 ${
+                  marketStatus.isOpen ? 'bg-emerald-500' : 'bg-slate-500'
+                }`}
+              />
+            </span>
             <span
-              className={`w-2 h-2 rounded-full ${
-                marketStatus.isOpen ? 'bg-positive animate-pulse' : 'bg-text-faint'
-              }`}
-            />
-            <span
-              className={`font-mono text-[11.5px] ${
-                marketStatus.isOpen ? 'text-text-primary' : 'text-text-faint'
+              className={`font-mono text-[11px] font-medium tracking-tight ${
+                marketStatus.isOpen ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-faint'
               }`}
             >
               {marketStatus.label}
@@ -98,21 +103,21 @@ export function TopNav() {
 
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-[6px] text-text-faint hover:text-text-primary hover:bg-bg-surface-2 transition-colors"
+            className="p-2 rounded-lg text-text-faint hover:text-text-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-transparent hover:border-border transition-all"
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
-          <button className="p-2 rounded-[6px] text-text-faint hover:text-text-primary hover:bg-bg-surface-2 transition-colors relative">
-            <Bell className="w-[18px] h-[18px]" />
+          <button className="p-2 rounded-lg text-text-faint hover:text-text-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-transparent hover:border-border transition-all relative">
+            <Bell className="w-4 h-4" />
             {notifications.length > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-negative" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-bg-surface" />
             )}
           </button>
 
-          <div className="w-8 h-8 rounded-full bg-accent-brass-dim flex items-center justify-center ml-1">
-            <span className="text-[13px] font-medium text-text-primary">HT</span>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 ring-1 ring-white/20 flex items-center justify-center ml-1 shadow-sm">
+            <span className="text-[12px] font-semibold text-white tracking-wider">HT</span>
           </div>
         </div>
       </header>

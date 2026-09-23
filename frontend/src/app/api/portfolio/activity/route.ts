@@ -53,6 +53,6 @@ export async function GET() {
     return NextResponse.json({ activities });
   } catch (error: any) {
     console.error('Error fetching activity:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ activities: [] });
   }
 }

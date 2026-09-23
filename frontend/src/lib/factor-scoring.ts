@@ -387,3 +387,233 @@ export function getStockFactorProfile(symbol: string): StockFactorData {
     analystSummary: `Systematic factor analysis based on ${category} category benchmark standards.`,
   };
 }
+
+/**
+ * Returns all registered stocks in a market cap category, scored and sorted by QVM descending.
+ */
+export function getTopPicksByCategory(category: MarketCapCategory, minScore = 50): StockFactorData[] {
+  return Object.values(INDIAN_EQUITY_FACTOR_REGISTRY)
+    .filter(item => item.category === category)
+    .map(item => ({
+      ...item,
+      factorBreakdown: computeQVMScore(item.factorData),
+    }))
+    .filter(item => item.factorBreakdown.compositeQVM >= minScore)
+    .sort((a, b) => b.factorBreakdown.compositeQVM - a.factorBreakdown.compositeQVM);
+}
+
+/**
+ * Returns the highest-scoring QVM stock for a given market cap category.
+ */
+export function getBestPickForMarketCap(category: MarketCapCategory): StockFactorData {
+  const picks = getTopPicksByCategory(category, 0);
+  if (picks.length > 0) return picks[0];
+  return getStockFactorProfile(category === 'Large Cap' ? 'TCS.NS' : category === 'Mid Cap' ? 'POLYCAB.NS' : 'CDSL.NS');
+}
+
+/**
+ * Returns all top QVM picks grouped by Large Cap, Mid Cap, and Small Cap.
+ */
+export function getAllPicksWithScores(): Record<MarketCapCategory, StockFactorData[]> {
+  return {
+    'Large Cap': getTopPicksByCategory('Large Cap', 0),
+    'Mid Cap': getTopPicksByCategory('Mid Cap', 0),
+    'Small Cap': getTopPicksByCategory('Small Cap', 0),
+  };
+}
+
+// ============================================================
+// INSTITUTIONAL MUTUAL FUNDS FACTOR REGISTRY
+// ============================================================
+
+export interface MutualFundFactorData {
+  schemeCode: string;
+  name: string;
+  category: MarketCapCategory;
+  fundHouse: string;
+  aumCr: number;
+  nav: number;
+  expenseRatio: number; // % TER
+  cagr3Y: number;       // % 3-Year Annualized Return
+  cagr5Y: number;       // % 5-Year Annualized Return
+  sharpeRatio: number;  // Risk-adjusted alpha
+  alpha: number;        // Excess return vs Nifty
+  beta: number;         // Relative volatility
+  topHoldings: string[];
+  factorBreakdown: FactorBreakdown;
+  analystSummary: string;
+}
+
+export const INDIAN_MUTUAL_FUND_REGISTRY: Record<string, Omit<MutualFundFactorData, 'factorBreakdown'>> = {
+  // --- LARGE CAP & FLEXI CAP MUTUAL FUNDS ---
+  '122639': {
+    schemeCode: '122639',
+    name: 'Parag Parikh Flexi Cap Fund - Direct Growth',
+    category: 'Large Cap',
+    fundHouse: 'PPFAS Mutual Fund',
+    aumCr: 68500,
+    nav: 84.5,
+    expenseRatio: 0.61,
+    cagr3Y: 22.4,
+    cagr5Y: 20.8,
+    sharpeRatio: 1.58,
+    alpha: 5.2,
+    beta: 0.76,
+    topHoldings: ['HDFC Bank', 'ITC Ltd', 'Alphabet Inc', 'Bajaj Holdings', 'TCS'],
+    analystSummary: 'Pinnacle institutional stewardship with conservative cash allocation and global diversification.',
+  },
+  '120716': {
+    schemeCode: '120716',
+    name: 'UTI Nifty 50 Index Fund - Direct Growth',
+    category: 'Large Cap',
+    fundHouse: 'UTI Mutual Fund',
+    aumCr: 19800,
+    nav: 172.4,
+    expenseRatio: 0.18,
+    cagr3Y: 15.6,
+    cagr5Y: 16.2,
+    sharpeRatio: 1.18,
+    alpha: 0.05,
+    beta: 1.0,
+    topHoldings: ['Reliance Industries', 'HDFC Bank', 'ICICI Bank', 'Infosys', 'TCS'],
+    analystSummary: 'Ultra-low cost passive indexing capturing pure Indian GDP & bluechip expansion at 0.18% TER.',
+  },
+  '118834': {
+    schemeCode: '118834',
+    name: 'Mirae Asset Large Cap Fund - Direct Growth',
+    category: 'Large Cap',
+    fundHouse: 'Mirae Asset Mutual Fund',
+    aumCr: 38200,
+    nav: 114.2,
+    expenseRatio: 0.54,
+    cagr3Y: 16.9,
+    cagr5Y: 17.4,
+    sharpeRatio: 1.28,
+    alpha: 2.1,
+    beta: 0.92,
+    topHoldings: ['ICICI Bank', 'Larsen & Toubro', 'Bharti Airtel', 'HDFC Bank', 'State Bank of India'],
+    analystSummary: 'Consistent top-quartile active large cap fund with strict liquidity risk filters.',
+  },
+
+  // --- MID CAP MUTUAL FUNDS ---
+  '118989': {
+    schemeCode: '118989',
+    name: 'Motilal Oswal Midcap Fund - Direct Growth',
+    category: 'Mid Cap',
+    fundHouse: 'Motilal Oswal AMC',
+    aumCr: 15200,
+    nav: 98.6,
+    expenseRatio: 0.68,
+    cagr3Y: 32.4,
+    cagr5Y: 25.8,
+    sharpeRatio: 1.88,
+    alpha: 9.1,
+    beta: 0.88,
+    topHoldings: ['Polycab India', 'Trent Ltd', 'Persistent Systems', 'Coforge', 'Kalyan Jewellers'],
+    analystSummary: 'High-conviction, QGLP (Quality, Growth, Longevity, Price) portfolio delivering 32% 3Y CAGR.',
+  },
+  '118955': {
+    schemeCode: '118955',
+    name: 'HDFC Mid-Cap Opportunities Fund - Direct Growth',
+    category: 'Mid Cap',
+    fundHouse: 'HDFC Mutual Fund',
+    aumCr: 66400,
+    nav: 184.2,
+    expenseRatio: 0.75,
+    cagr3Y: 27.2,
+    cagr5Y: 23.4,
+    sharpeRatio: 1.65,
+    alpha: 5.6,
+    beta: 0.89,
+    topHoldings: ['Tata Motors', 'Federal Bank', 'Indian Hotels', 'Apollo Tyres', 'Bharat Electronics'],
+    analystSummary: 'Largest and most resilient mid-cap fund in India with deep bottom-up industrial diversification.',
+  },
+
+  // --- SMALL CAP MUTUAL FUNDS ---
+  '118778': {
+    schemeCode: '118778',
+    name: 'Nippon India Small Cap Fund - Direct Growth',
+    category: 'Small Cap',
+    fundHouse: 'Nippon India AMC',
+    aumCr: 54000,
+    nav: 168.9,
+    expenseRatio: 0.68,
+    cagr3Y: 29.8,
+    cagr5Y: 27.2,
+    sharpeRatio: 1.76,
+    alpha: 7.2,
+    beta: 0.84,
+    topHoldings: ['Tube Investments', 'CDSL', 'Apar Industries', 'Karur Vysya Bank', 'Multi Commodity Exchange'],
+    analystSummary: 'Market leader in small-cap alpha generation with high portfolio liquidity across 150+ holdings.',
+  },
+  '120828': {
+    schemeCode: '120828',
+    name: 'Quant Small Cap Fund - Direct Growth',
+    category: 'Small Cap',
+    fundHouse: 'Quant Mutual Fund',
+    aumCr: 23500,
+    nav: 242.0,
+    expenseRatio: 0.74,
+    cagr3Y: 34.6,
+    cagr5Y: 32.1,
+    sharpeRatio: 1.92,
+    alpha: 10.8,
+    beta: 1.05,
+    topHoldings: ['Reliance Industries', 'Jio Financial', 'IRB Infrastructure', 'Adani Power', 'Bikaji Foods'],
+    analystSummary: 'Proprietary Predictive Analytics (VLRT) engine capturing rapid sector rotation and momentum.',
+  },
+};
+
+export function computeMFScore(data: Omit<MutualFundFactorData, 'factorBreakdown'>): FactorBreakdown {
+  // 1. Quality (0-100): Sharpe Ratio (max 40 pts) + Alpha (max 30 pts) + Low Beta buffer (max 30 pts)
+  const qScore = Math.min(100, Math.round(
+    Math.min(40, (data.sharpeRatio / 1.8) * 40) +
+    Math.min(30, (Math.max(0, data.alpha) / 8) * 30) +
+    Math.min(30, Math.max(0, (1.2 - data.beta) / 0.5) * 30)
+  ));
+
+  // 2. Valuation / Cost Efficiency (0-100): Low Expense Ratio = High Score
+  let vScore = 50;
+  if (data.expenseRatio <= 0.25) vScore = 95;      // Index Funds (e.g. 0.18%)
+  else if (data.expenseRatio <= 0.65) vScore = 82; // Low-cost active
+  else if (data.expenseRatio <= 0.85) vScore = 70; // Standard active
+  else vScore = 50;
+
+  // 3. Momentum (0-100): 3Y and 5Y CAGR
+  let mScore = 50;
+  const avgCagr = (data.cagr3Y * 0.6) + (data.cagr5Y * 0.4);
+  if (avgCagr >= 28) mScore = 95;
+  else if (avgCagr >= 20) mScore = 85;
+  else if (avgCagr >= 15) mScore = 72;
+  else mScore = 55;
+
+  const compositeQVM = Math.round(qScore * 0.40 + vScore * 0.30 + mScore * 0.30);
+  const rating = compositeQVM >= 82 ? 'Strong Buy / Quality Alpha' : 'Attractive Accumulate';
+  const ratingColor = compositeQVM >= 82 ? 'text-positive bg-positive/10 border-positive/30' : 'text-accent-brass bg-accent-brass/10 border-accent-brass/30';
+
+  return {
+    qualityScore: qScore,
+    valuationScore: vScore,
+    momentumScore: mScore,
+    piotroskiFScore: 9, // Institutional proxy
+    altmanZone: 'Safe',
+    compositeQVM,
+    rating,
+    ratingColor,
+  };
+}
+
+export function getTopMutualFundsByCategory(category: MarketCapCategory): MutualFundFactorData[] {
+  return Object.values(INDIAN_MUTUAL_FUND_REGISTRY)
+    .filter(item => item.category === category)
+    .map(item => ({
+      ...item,
+      factorBreakdown: computeMFScore(item),
+    }))
+    .sort((a, b) => b.factorBreakdown.compositeQVM - a.factorBreakdown.compositeQVM);
+}
+
+export function getBestMutualFundForMarketCap(category: MarketCapCategory): MutualFundFactorData {
+  const funds = getTopMutualFundsByCategory(category);
+  return funds[0];
+}

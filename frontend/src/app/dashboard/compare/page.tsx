@@ -3,13 +3,15 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Search, X, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Search, X, TrendingUp, AlertTriangle, ArrowLeftRight, BarChart2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { PairsSpreadChart } from '@/components/charts';
 
 // A palette for the chart lines
 const colors = ['#C4A962', '#818CF8', '#34D399', '#F87171', '#A78BFA', '#60A5FA'];
 
 export default function ComparePage() {
+  const [activeTab, setActiveTab] = useState<'returns' | 'statarb'>('returns');
   const [symbols, setSymbols] = useState<string[]>(['RELIANCE.NS', 'TCS.NS']); // Default compare
   const [searchInput, setSearchInput] = useState('');
 
@@ -44,11 +46,44 @@ export default function ComparePage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="font-display text-[28px] text-text-primary mb-2">Asset Comparison</h1>
-        <p className="text-text-secondary text-[15px]">Compare 1-year historical returns (normalized to base 100) across multiple equities or mutual funds.</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-[28px] text-text-primary mb-2">Market Comparison & Arbitrage</h1>
+          <p className="text-text-secondary text-[15px]">
+            Benchmark normalized historical multi-asset performance or evaluate cointegrated pairs statistical arbitrage (Dey et al., 2025).
+          </p>
+        </div>
+
+        {/* Tab Controls */}
+        <div className="flex items-center gap-1 bg-bg-surface-2 p-1 rounded-xl border border-border-default self-start md:self-auto">
+          <button
+            onClick={() => setActiveTab('returns')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              activeTab === 'returns'
+                ? 'bg-bg-surface text-text-primary shadow-sm border border-border-default'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <BarChart2 className="w-3.5 h-3.5" />
+            Asset Comparison
+          </button>
+          <button
+            onClick={() => setActiveTab('statarb')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              activeTab === 'statarb'
+                ? 'bg-bg-surface text-text-primary shadow-sm border border-border-default'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5 text-accent-brass" />
+            StatArb Pairs (Dey et al.)
+          </button>
+        </div>
       </div>
 
+      {activeTab === 'statarb' ? (
+        <PairsSpreadChart />
+      ) : (
       <div className="bg-bg-surface border border-border-default rounded-[16px] p-6">
         <form onSubmit={handleAddSymbol} className="flex items-center gap-3 mb-6">
           <div className="relative flex-1 max-w-md">
@@ -140,6 +175,7 @@ export default function ComparePage() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

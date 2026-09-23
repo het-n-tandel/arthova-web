@@ -20,16 +20,16 @@ export function DeltaBadge({ value = 0, size = 'sm', showIcon = true, className 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-0.5 rounded-full',
-        size === 'sm' ? 'px-2 py-0.5 text-[12.5px]' : 'px-3 py-1 text-[14px]',
-        isPositive && 'bg-positive-bg text-positive',
-        isNegative && 'bg-negative-bg text-negative',
-        isNeutral && 'bg-bg-surface-2 text-text-faint',
+        'inline-flex items-center gap-1 rounded-full font-medium tracking-tight border',
+        size === 'sm' ? 'px-2 py-0.5 text-[11.5px]' : 'px-2.5 py-1 text-[13px]',
+        isPositive && 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_-2px_rgba(16,185,129,0.3)]',
+        isNegative && 'bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-[0_0_10px_-2px_rgba(244,63,94,0.3)]',
+        isNeutral && 'bg-bg-surface-2 text-text-faint border-border',
         className
       )}
       style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}
     >
-      {showIcon && <Icon className={size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'} />}
+      {showIcon && <Icon className={size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5'} />}
       {isPositive ? '+' : ''}{value.toFixed(2)}%
     </span>
   );

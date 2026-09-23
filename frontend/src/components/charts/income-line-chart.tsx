@@ -39,15 +39,15 @@ export function IncomeLineChart({ data, className, height = 300 }: IncomeLineCha
 
   return (
     <div className={cn('', className)}>
-      <div className="flex items-center gap-1 mb-4">
+      <div className="flex items-center gap-1.5 mb-5 p-1 rounded-lg bg-bg-surface-2/60 border border-border w-fit">
         {timeRanges.map((r) => (
           <button
             key={r}
             onClick={() => setRange(r)}
             className={cn(
-              'px-3 py-1 text-[12px] font-medium rounded-[6px] transition-colors duration-150',
+              'px-3 py-1 text-[11.5px] font-mono font-medium rounded-md transition-all duration-150',
               r === range
-                ? 'bg-accent-brass text-bg-base'
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20'
                 : 'text-text-faint hover:text-text-primary hover:bg-bg-surface-2'
             )}
           >
@@ -57,14 +57,15 @@ export function IncomeLineChart({ data, className, height = 300 }: IncomeLineCha
       </div>
 
       <ResponsiveContainer width="100%" height={height}>
-        <AreaChart data={filteredData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <AreaChart data={filteredData} margin={{ top: 12, right: 8, bottom: 0, left: 0 }}>
           <defs>
             <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent-brass)" stopOpacity={0.08} />
-              <stop offset="100%" stopColor="var(--accent-brass)" stopOpacity={0} />
+              <stop offset="0%" stopColor="#10B981" stopOpacity={0.28} />
+              <stop offset="60%" stopColor="#10B981" stopOpacity={0.06} />
+              <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid stroke="rgba(255, 255, 255, 0.05)" strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="date"
             axisLine={false}
@@ -80,16 +81,16 @@ export function IncomeLineChart({ data, className, height = 300 }: IncomeLineCha
             tickLine={false}
             tick={{ fill: 'var(--text-faint)', fontSize: 11, fontFamily: 'IBM Plex Mono' }}
             tickFormatter={(v) => formatINRCompact(v)}
-            width={60}
+            width={65}
           />
           <Tooltip
             content={({ payload, label }) => {
               if (!payload?.length) return null;
               return (
-                <div className="bg-bg-surface-3 px-3 py-2 rounded-[6px] text-[12px]" style={{ boxShadow: 'var(--shadow-md)' }}>
-                  <p className="text-text-faint mb-1">{label}</p>
+                <div className="glass-card-elevated px-3.5 py-2.5 rounded-lg text-[12px] border border-border shadow-xl">
+                  <p className="text-text-faint font-mono text-[11px] mb-1">{label}</p>
                   {payload.map((p: any, i: number) => (
-                    <p key={i} className="text-text-primary" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>
+                    <p key={i} className="text-emerald-400 font-bold text-[14px]" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>
                       {formatINRCompact(p.value as number)}
                     </p>
                   ))}
@@ -100,11 +101,11 @@ export function IncomeLineChart({ data, className, height = 300 }: IncomeLineCha
           <Area
             type="monotone"
             dataKey="value"
-            stroke="var(--accent-brass)"
-            strokeWidth={2}
+            stroke="#10B981"
+            strokeWidth={2.5}
             fill="url(#valueGradient)"
             dot={false}
-            activeDot={{ r: 4, fill: 'var(--accent-brass)', stroke: 'var(--bg-surface)', strokeWidth: 2 }}
+            activeDot={{ r: 5, fill: '#34D399', stroke: '#080C14', strokeWidth: 2 }}
           />
         </AreaChart>
       </ResponsiveContainer>

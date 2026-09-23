@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -66,15 +67,18 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'hidden md:flex flex-col bg-bg-surface border-r border-border-default',
-        'transition-all duration-200 ease-out h-screen sticky top-0',
-        collapsed ? 'w-[68px]' : 'w-[240px]'
+        'hidden md:flex flex-col bg-bg-surface/85 backdrop-blur-2xl border-r border-border',
+        'transition-all duration-200 ease-out h-screen sticky top-0 z-30 shadow-lg',
+        collapsed ? 'w-[72px]' : 'w-[248px]'
       )}
     >
-      <div className={cn('flex items-center h-16 border-b border-border-default', collapsed ? 'px-4 justify-center' : 'px-5')}>
-        <Link href="/" className="flex items-center gap-2">
+      <div className={cn('flex items-center h-16 border-b border-border px-5', collapsed ? 'justify-center px-2' : 'justify-between')}>
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <Image src="/logo.jpg" alt="Arthova" width={32} height={32} className="rounded-lg shadow-md" />
           {!collapsed && (
-            <span className="font-brand text-[24px] text-text-primary mt-1">ARTHOVA</span>
+            <span className="font-brand text-[22px] tracking-wide text-text-primary group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors">
+              ARTHOVA
+            </span>
           )}
         </Link>
       </div>
@@ -87,27 +91,41 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-[6px] transition-colors duration-150 relative group',
-                collapsed ? 'px-3 py-2.5 justify-center' : 'px-3 py-2.5',
+                'flex items-center gap-3 rounded-lg transition-all duration-150 relative group',
+                collapsed ? 'px-3 py-2.5 justify-center' : 'px-3.5 py-2.5',
                 isActive
-                  ? 'bg-bg-surface-2 text-text-primary'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface-2'
+                  ? 'bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20 shadow-sm'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.04]'
               )}
             >
               {isActive && (
                 <motion.div
                   layoutId="sidebar-active"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-accent-brass"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-accent-brass shadow-[0_0_8px_rgba(16,185,129,0.8)]"
                   transition={{ duration: 0.2, ease: 'easeOut' as const }}
                 />
               )}
-              <item.icon className="w-[18px] h-[18px] shrink-0" strokeWidth={1.5} />
+              <item.icon 
+                className={cn(
+                  'w-[18px] h-[18px] shrink-0 transition-colors',
+                  isActive ? 'text-accent-brass' : 'text-text-faint group-hover:text-text-secondary'
+                )} 
+                strokeWidth={isActive ? 2 : 1.75} 
+              />
               {!collapsed && (
-                <span className="text-[14px] font-medium">{item.label}</span>
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="text-[13.5px] truncate">{item.label}</span>
+                  {item.href === '/dashboard/ai-advisor' && (
+                    <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 font-bold tracking-wider">
+                      QUANT
+                    </span>
+                  )}
+                </div>
               )}
               {collapsed && (
-                <div className="absolute left-full ml-2 px-2 py-1 bg-bg-surface-3 text-text-primary text-[12px] rounded-[6px] opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50" style={{ boxShadow: 'var(--shadow-sm)' }}>
+                <div className="absolute left-full ml-2.5 px-2.5 py-1 bg-bg-surface border border-border text-text-primary text-[12px] font-medium rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
                   {item.label}
+                  {item.href === '/dashboard/ai-advisor' && ' (QUANT)'}
                 </div>
               )}
             </Link>

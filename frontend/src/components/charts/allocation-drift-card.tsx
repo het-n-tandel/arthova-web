@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatINRCompact, cn } from '@/lib/formatters';
 import { AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react';
@@ -28,6 +29,8 @@ interface RecommendedAllocationData {
 const COLORS = ['#C9A227', '#3FA88A', '#7C8AD4', '#D9705C'];
 
 export function AllocationDriftCard({ current, recommended, netWorth, className }: Props) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
   const currentItems = [
     { name: 'Equity (Stocks/MF)', value: current.equityPercent, rec: recommended.equityPercent, color: COLORS[0] },
     { name: 'Fixed Income (FD/Bonds)', value: current.debtPercent, rec: recommended.debtPercent, color: COLORS[1] },
@@ -67,9 +70,16 @@ export function AllocationDriftCard({ current, recommended, netWorth, className 
                 paddingAngle={3}
                 dataKey="value"
                 stroke="none"
+                onMouseEnter={(_, index) => setActiveIndex(index)}
+                onMouseLeave={() => setActiveIndex(null)}
               >
                 {currentItems.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.color} 
+                    opacity={activeIndex === null || activeIndex === index ? 1 : 0.6}
+                    style={{ transition: 'opacity 0.2s ease' }}
+                  />
                 ))}
               </Pie>
               <Tooltip
@@ -77,10 +87,10 @@ export function AllocationDriftCard({ current, recommended, netWorth, className 
                   if (!payload?.length) return null;
                   const item = payload[0].payload;
                   return (
-                    <div className="bg-bg-surface-3 px-3 py-2 rounded-[6px] text-[12px] shadow-md border border-border-default">
+                    <div className="glass-card-elevated px-3 py-2 rounded-lg text-[12px] shadow-xl border border-border z-50">
                       <p className="text-text-primary font-medium">{item.name}</p>
-                      <p className="text-text-faint font-mono">
-                        Current: {item.value.toFixed(1)}% | AI Target: {item.rec.toFixed(1)}%
+                      <p className="text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
+                        Current: {item.value.toFixed(1)}% | Target: {item.rec.toFixed(1)}%
                       </p>
                     </div>
                   );
@@ -88,9 +98,14 @@ export function AllocationDriftCard({ current, recommended, netWorth, className 
               />
             </PieChart>
           </ResponsiveContainer>
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-[9px] text-text-faint uppercase tracking-wider">Portfolio</span>
-            <span className="text-[15px] font-medium text-text-primary font-mono">{formatINRCompact(netWorth)}</span>
+          <div 
+            className={cn(
+              'absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-all duration-300',
+              activeIndex !== null ? 'opacity-15 blur-[3px] scale-95' : 'opacity-100 blur-0 scale-100'
+            )}
+          >
+            <span className="text-[9px] text-text-faint uppercase font-mono tracking-wider">Portfolio</span>
+            <span className="text-[15px] font-bold text-text-primary font-mono">{formatINRCompact(netWorth)}</span>
           </div>
         </div>
 

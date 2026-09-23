@@ -37,30 +37,33 @@ const categories = [
 
 export default function LandingPage() {
   return (
-    <div className="max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-32">
-      <div className="text-center max-w-3xl mx-auto mb-24">
+    <div className="relative max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-32 overflow-hidden">
+      {/* Ambient background glows */}
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-sky-500/10 blur-[130px] pointer-events-none rounded-full" />
+
+      <div className="text-center max-w-4xl mx-auto mb-24 relative z-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-brass/10 text-accent-brass text-[13px] font-medium border border-accent-brass/20 mb-6">
-            <ShieldCheck className="w-4 h-4" /> Neon PostgreSQL Secured
+          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[13px] font-medium border border-emerald-500/25 mb-6 shadow-sm">
+            <ShieldCheck className="w-4 h-4" /> SEBI Compliant Multi-Asset Private Banking
           </span>
         </motion.div>
         <motion.h1 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
-          className="font-display text-[48px] lg:text-[72px] leading-[1.05] font-medium tracking-tight mb-8"
+          className="font-display text-[48px] lg:text-[76px] leading-[1.04] font-bold tracking-tight mb-8 text-text-primary"
         >
-          A private banking terminal for the modern retail investor.
+          A private banking terminal for the modern <span className="text-gradient-emerald">retail investor.</span>
         </motion.h1>
         <motion.p 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-[18px] text-text-secondary leading-relaxed mb-10"
+          className="text-[19px] text-text-secondary leading-relaxed mb-10 max-w-2xl mx-auto"
         >
-          Unify your stocks, mutual funds, gold, fixed deposits, and property in one pristine, AI-powered dashboard.
+          Unify your stocks, mutual funds, gold, fixed deposits, and real estate in one pristine, AI-powered wealth workstation.
         </motion.p>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/register" className="flex items-center justify-center w-full sm:w-auto gap-2 bg-accent-brass hover:bg-accent-brass-dim text-bg-base px-8 py-4 rounded-[12px] font-medium transition-colors text-[16px]">
+          <Link href="/register" className="flex items-center justify-center w-full sm:w-auto gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold px-8 py-4 rounded-xl transition-all text-[16px] shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40">
             Open an Account <ArrowRight className="w-5 h-5" />
           </Link>
-          <Link href="/login" className="flex items-center justify-center w-full sm:w-auto gap-2 bg-bg-surface-2 hover:bg-bg-surface-3 border border-border-default text-text-primary px-8 py-4 rounded-[12px] font-medium transition-colors text-[16px]">
+          <Link href="/login" className="flex items-center justify-center w-full sm:w-auto gap-2 glass-card hover:border-accent-brass/40 text-text-primary px-8 py-4 rounded-xl font-medium transition-all text-[16px] shadow-sm">
             Login via Demat
           </Link>
         </motion.div>
