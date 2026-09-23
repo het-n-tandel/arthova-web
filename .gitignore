@@ -15,7 +15,6 @@ dist/
 # Java / Maven
 target/
 backend/target/
-.mvn/
 *.class
 *.jar
 *.war
@@ -37,3 +36,4 @@ backend/target/
 frontend/scripts/test_query.js
 frontend/scripts/clear_rows.js
 frontend/scripts/add_purchase_date.js
+.neon
