@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { users, holdings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { calculateAIRecommendation } from '@/lib/ai-engine';
+import { BACKEND_URL } from '@/lib/config';
 
 export async function GET() {
   try {
@@ -55,7 +56,7 @@ export async function GET() {
     // 2. Try Spring Boot for saved profile
     let profile: any = null;
     try {
-      const res = await fetch(`http://localhost:8080/api/public/ai/profile/${userId}`, {
+      const res = await fetch(`${BACKEND_URL}/api/public/ai/profile/${userId}`, {
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(2000),
       });
@@ -151,8 +152,8 @@ export async function POST(req: Request) {
     // 1. Try Spring Boot backend first
     try {
       const targetUrl = userId
-        ? `http://localhost:8080/api/public/ai/profile/${userId}`
-        : 'http://localhost:8080/api/public/ai/recommendation';
+        ? `${BACKEND_URL}/api/public/ai/profile/${userId}`
+        : `${BACKEND_URL}/api/public/ai/recommendation`;
 
       const res = await fetch(targetUrl, {
         method: 'POST',

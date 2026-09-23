@@ -9,12 +9,17 @@ const globalForDb = globalThis as unknown as {
 const connectionString =
   process.env.DATABASE_URL || 'postgresql://ledger:ledger@127.0.0.1:5433/ledger';
 
+const isRemote =
+  !connectionString.includes('127.0.0.1') &&
+  !connectionString.includes('localhost');
+
 export const pool =
   globalForDb.pool ??
   new Pool({
     connectionString,
     max: 10,
     idleTimeoutMillis: 30000,
+    ...(isRemote ? { ssl: { rejectUnauthorized: false } } : {}),
   });
 
 if (process.env.NODE_ENV !== 'production') globalForDb.pool = pool;

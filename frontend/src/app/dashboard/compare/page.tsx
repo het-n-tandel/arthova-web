@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Search, X, TrendingUp, AlertTriangle, ArrowLeftRight, BarChart2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { PairsSpreadChart } from '@/components/charts';
+import { BACKEND_URL } from '@/lib/config';
 
 // A palette for the chart lines
 const colors = ['#C4A962', '#818CF8', '#34D399', '#F87171', '#A78BFA', '#60A5FA'];
@@ -25,7 +26,7 @@ export default function ComparePage() {
       } catch (e) {
         console.warn('Local compare route failed, trying fallback');
       }
-      const fallbackRes = await fetch(`http://localhost:8080/api/public/compare/dynamic?symbols=${symbols.join(',')}`);
+      const fallbackRes = await fetch(`${BACKEND_URL}/api/public/compare/dynamic?symbols=${symbols.join(',')}`);
       if (!fallbackRes.ok) throw new Error('Failed to fetch comparison data');
       return fallbackRes.json();
     },

@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { useLedgerStore } from '@/lib/store';
+import { BACKEND_URL } from '@/lib/config';
 
 export interface AssetAllocation {
   name: string;
@@ -60,7 +61,7 @@ export function usePortfolio(): PortfolioSummary {
         console.warn('Next.js /api/holdings failed, trying fallback:', err);
       }
       try {
-        const fallbackRes = await fetch(`http://localhost:8080/api/public/portfolio/${userId}`);
+        const fallbackRes = await fetch(`${BACKEND_URL}/api/public/portfolio/${userId}`);
         if (fallbackRes.ok) return fallbackRes.json();
       } catch (err) {
         // Fallback offline

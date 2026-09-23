@@ -10,3 +10,4 @@ export * from './factor-scoring';
 export * from './market-valuation-service';
 export * from './mock-data';
 export * from './hooks/use-portfolio';
+export * from './config';

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { calculateAIRecommendation } from '@/lib/ai-engine';
+import { BACKEND_URL } from '@/lib/config';
 
 export async function POST(req: Request) {
   try {
@@ -7,7 +8,7 @@ export async function POST(req: Request) {
 
     // 1. Attempt Spring Boot backend first
     try {
-      const res = await fetch('http://localhost:8080/api/public/ai/recommendation', {
+      const res = await fetch(`${BACKEND_URL}/api/public/ai/recommendation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

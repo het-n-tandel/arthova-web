@@ -7,6 +7,7 @@ import { LineChart, Line, YAxis, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/formatters';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { useLedgerStore } from '@/lib/store';
+import { BACKEND_URL } from '@/lib/config';
 
 interface Props {
   assetType: 'stock' | 'mutual_fund' | 'gold' | 'silver' | 'fd' | 'property' | 'crypto' | 'cash' | 'bond' | 'liability';
@@ -168,7 +169,7 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
         const res = await fetch(`/api/market/compare?symbols=${selectedAsset.symbol}`);
         if (res.ok) return res.json();
       } catch (e) {}
-      const fallbackRes = await fetch(`http://localhost:8080/api/public/compare/dynamic?symbols=${selectedAsset.symbol}`);
+      const fallbackRes = await fetch(`${BACKEND_URL}/api/public/compare/dynamic?symbols=${selectedAsset.symbol}`);
       if (!fallbackRes.ok) throw new Error('Failed to fetch chart data');
       return fallbackRes.json();
     },
@@ -301,7 +302,7 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
       if (!res.ok) {
         // Fallback to Spring Boot if available
         try {
-          const fallbackRes = await fetch(`http://localhost:8080/api/public/portfolio/${userId}/trade`, {
+          const fallbackRes = await fetch(`${BACKEND_URL}/api/public/portfolio/${userId}/trade`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...payload, assetType })
