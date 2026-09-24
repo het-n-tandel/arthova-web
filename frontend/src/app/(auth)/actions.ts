@@ -122,9 +122,13 @@ export async function registerUser(formData: FormData) {
 
     return { success: true };
   } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : 'Failed to create user';
+    const errObj = err as any;
+    const causeMsg = errObj?.cause?.message || (typeof errObj?.cause === 'string' ? errObj.cause : '');
+    const code = errObj?.code || errObj?.cause?.code || '';
+    const message = err instanceof Error ? err.message : 'Failed to create user';
+    const detail = [message, causeMsg ? `[Cause: ${causeMsg}]` : '', code ? `[Code: ${code}]` : ''].filter(Boolean).join(' ');
     console.error('Registration failed:', err);
-    return { error: errorMsg };
+    return { error: detail };
   }
 }
 
