@@ -4,11 +4,11 @@ import { db } from "@/lib/db";
 import { users, holdings, assetTransactions, dematAccounts } from "@/lib/db/schema";
 import { signIn, signOut } from "@/auth";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { AuthError } from "next-auth";
 
 export async function registerUser(formData: FormData) {
-  const email = formData.get('email') as string;
+  const email = (formData.get('email') as string)?.trim().toLowerCase();
   const password = formData.get('password') as string;
   const name = formData.get('name') as string;
   const dobRaw = formData.get('dateOfBirth') as string;
@@ -41,7 +41,7 @@ export async function registerUser(formData: FormData) {
   }
 
   const existing = await db.query.users.findFirst({
-    where: eq(users.email, email),
+    where: sql`lower(${users.email}) = ${email}`,
   });
 
   if (existing) {

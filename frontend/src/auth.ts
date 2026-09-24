@@ -3,9 +3,10 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -18,8 +19,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
+        const normalizedEmail = (credentials.email as string).trim().toLowerCase();
+
         const userRecord = await db.query.users.findFirst({
-          where: eq(users.email, credentials.email as string),
+          where: sql`lower(${users.email}) = ${normalizedEmail}`,
         });
 
         if (!userRecord || !userRecord.passwordHash) {
@@ -40,7 +43,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: '/login',
   },
   session: { strategy: 'jwt' },
-  secret: process.env.AUTH_SECRET,
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "WqHYjDrHQJsEcw7+wXfN9wBa7M2HKoElfISCzlJTq2Q=",
   callbacks: {
     async jwt({ token, user }) {
       if (user) {

@@ -19,8 +19,9 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
+      const trimmedEmail = email.trim().toLowerCase();
       const res = await signIn('credentials', {
-        email,
+        email: trimmedEmail,
         password,
         redirect: false,
       });
@@ -32,7 +33,8 @@ export default function LoginPage() {
         router.push('/dashboard');
         router.refresh();
       }
-    } catch {
+    } catch (err) {
+      console.error('Login error:', err);
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);
     }
