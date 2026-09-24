@@ -19,23 +19,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const normalizedEmail = (credentials.email as string).trim().toLowerCase();
+        try {
+          const normalizedEmail = (credentials.email as string).trim().toLowerCase();
 
-        const userRecord = await db.query.users.findFirst({
-          where: sql`lower(${users.email}) = ${normalizedEmail}`,
-        });
+          const userRecord = await db.query.users.findFirst({
+            where: sql`lower(${users.email}) = ${normalizedEmail}`,
+          });
 
-        if (!userRecord || !userRecord.passwordHash) {
+          if (!userRecord || !userRecord.passwordHash) {
+            return null;
+          }
+
+          const isMatch = await bcrypt.compare(credentials.password as string, userRecord.passwordHash);
+          
+          if (!isMatch) {
+            return null;
+          }
+
+          return { id: userRecord.id, email: userRecord.email, name: userRecord.name };
+        } catch (error) {
+          console.error('[NextAuth] Error in authorize callback:', error);
           return null;
         }
-
-        const isMatch = await bcrypt.compare(credentials.password as string, userRecord.passwordHash);
-        
-        if (!isMatch) {
-          return null;
-        }
-
-        return { id: userRecord.id, email: userRecord.email, name: userRecord.name };
       }
     })
   ],

@@ -8,49 +8,54 @@ import { eq, sql } from "drizzle-orm";
 import { AuthError } from "next-auth";
 
 export async function registerUser(formData: FormData) {
-  const email = (formData.get('email') as string)?.trim().toLowerCase();
-  const password = formData.get('password') as string;
-  const name = formData.get('name') as string;
-  const dobRaw = formData.get('dateOfBirth') as string;
-  const countryCurrency = formData.get('countryCurrency') as string;
-  
-  const profession = formData.get('profession') as string;
-  const incomeBracket = formData.get('incomeBracket') as string;
-  const riskTolerance = formData.get('riskTolerance') as string;
-  const dematBroker = formData.get('dematBroker') as string;
-
-  const monthlySalary = parseFloat((formData.get('monthlySalary') as string) || '0');
-  const initialCash = parseFloat((formData.get('initialCash') as string) || '0');
-
-  if (!email || !password || !name || !dobRaw) {
-    return { error: 'Email, password, name, and date of birth are required' };
-  }
-  
-  let country = 'IN';
-  let currency = 'INR';
-  if (countryCurrency === 'US') {
-    country = 'US';
-    currency = 'USD';
-  }
-
-  let dateOfBirth: Date | undefined;
   try {
-    dateOfBirth = new Date(dobRaw);
-  } catch (e) {
-    return { error: 'Invalid date format' };
-  }
+    if (!process.env.DATABASE_URL) {
+      console.error('DATABASE_URL is not set in environment variables');
+      return { error: 'Database configuration missing: DATABASE_URL is not configured in Vercel environment variables.' };
+    }
 
-  const existing = await db.query.users.findFirst({
-    where: sql`lower(${users.email}) = ${email}`,
-  });
+    const email = (formData.get('email') as string)?.trim().toLowerCase();
+    const password = formData.get('password') as string;
+    const name = formData.get('name') as string;
+    const dobRaw = formData.get('dateOfBirth') as string;
+    const countryCurrency = formData.get('countryCurrency') as string;
+    
+    const profession = formData.get('profession') as string;
+    const incomeBracket = formData.get('incomeBracket') as string;
+    const riskTolerance = formData.get('riskTolerance') as string;
+    const dematBroker = formData.get('dematBroker') as string;
 
-  if (existing) {
-    return { error: 'User already exists' };
-  }
+    const monthlySalary = parseFloat((formData.get('monthlySalary') as string) || '0');
+    const initialCash = parseFloat((formData.get('initialCash') as string) || '0');
 
-  const passwordHash = await bcrypt.hash(password, 10);
+    if (!email || !password || !name || !dobRaw) {
+      return { error: 'Email, password, name, and date of birth are required' };
+    }
+    
+    let country = 'IN';
+    let currency = 'INR';
+    if (countryCurrency === 'US') {
+      country = 'US';
+      currency = 'USD';
+    }
 
-  try {
+    let dateOfBirth: Date | undefined;
+    try {
+      dateOfBirth = new Date(dobRaw);
+    } catch {
+      return { error: 'Invalid date format' };
+    }
+
+    const existing = await db.query.users.findFirst({
+      where: sql`lower(${users.email}) = ${email}`,
+    });
+
+    if (existing) {
+      return { error: 'User already exists with this email address' };
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
     const [newUser] = await db.insert(users).values({
       email,
       passwordHash,
@@ -116,9 +121,10 @@ export async function registerUser(formData: FormData) {
     }
 
     return { success: true };
-  } catch (err) {
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to create user';
     console.error('Registration failed:', err);
-    return { error: 'Failed to create user' };
+    return { error: errorMsg };
   }
 }
 
