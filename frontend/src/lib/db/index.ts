@@ -17,9 +17,9 @@ export const pool =
   globalForDb.pool ??
   new Pool({
     connectionString,
-    max: 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    max: 2,
+    idleTimeoutMillis: 20000,
+    connectionTimeoutMillis: 25000,
     ...(isRemote ? { ssl: { rejectUnauthorized: false } } : {}),
   });
 
