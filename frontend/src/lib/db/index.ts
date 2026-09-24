@@ -1,28 +1,29 @@
+import { neon } from '@neondatabase/serverless';
+import { drizzle as drizzleHttp } from 'drizzle-orm/neon-http';
+import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from './schema';
-
-const globalForDb = globalThis as unknown as {
-  pool: Pool | undefined;
-};
 
 const connectionString =
   process.env.DATABASE_URL || 'postgresql://ledger:ledger@127.0.0.1:5433/ledger';
 
-const isRemote =
-  connectionString.includes('neon.tech') ||
-  (!connectionString.includes('127.0.0.1') && !connectionString.includes('localhost'));
+const isNeon = connectionString.includes('neon.tech');
 
-export const pool =
-  globalForDb.pool ??
-  new Pool({
+function initDb() {
+  if (isNeon) {
+    // Strip -pooler for Neon HTTP transport since Neon HTTP proxy handles connection pooling natively
+    const cleanUrl = connectionString.replace('-pooler.', '.');
+    const client = neon(cleanUrl);
+    return drizzleHttp(client, { schema });
+  }
+
+  // Fallback for local Docker PostgreSQL (127.0.0.1)
+  const pool = new Pool({
     connectionString,
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 15000,
-    ...(isRemote ? { ssl: { rejectUnauthorized: false } } : {}),
   });
+  return drizzlePg(pool, { schema });
+}
 
-if (process.env.NODE_ENV !== 'production') globalForDb.pool = pool;
-
-export const db = drizzle(pool, { schema });
+export const db = initDb() as ReturnType<typeof drizzleHttp<typeof schema>>;
