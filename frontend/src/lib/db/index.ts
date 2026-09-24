@@ -10,8 +10,8 @@ const connectionString =
   process.env.DATABASE_URL || 'postgresql://ledger:ledger@127.0.0.1:5433/ledger';
 
 const isRemote =
-  !connectionString.includes('127.0.0.1') &&
-  !connectionString.includes('localhost');
+  connectionString.includes('neon.tech') ||
+  (!connectionString.includes('127.0.0.1') && !connectionString.includes('localhost'));
 
 export const pool =
   globalForDb.pool ??
@@ -19,6 +19,7 @@ export const pool =
     connectionString,
     max: 10,
     idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 15000,
     ...(isRemote ? { ssl: { rejectUnauthorized: false } } : {}),
   });
 
