@@ -28,7 +28,8 @@ export async function GET(req: Request) {
     `);
 
     // Map snake_case DB columns → camelCase so use-portfolio.ts can read h.assetType, h.avgCost, etc.
-    const rows = (result?.rows || []).map((row: any) => ({
+    const rawList = Array.isArray(result) ? (result as any[]) : ((result as any)?.rows || []);
+    const rows = rawList.map((row: any) => ({
       ...row,
       assetType:    row.asset_type,
       avgCost:      row.avg_cost,

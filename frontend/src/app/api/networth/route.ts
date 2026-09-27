@@ -22,7 +22,8 @@ export async function GET(req: Request) {
         );
     `);
 
-    const netWorth = result.rows[0]?.net_worth || 0;
+    const firstRow: any = Array.isArray(result) ? result[0] : (result as any)?.rows?.[0];
+    const netWorth = firstRow?.net_worth || 0;
 
     return NextResponse.json({ netWorth: Number(netWorth) });
   } catch (err: any) {
