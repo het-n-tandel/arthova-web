@@ -814,7 +814,10 @@ function AIAdvisorContent() {
               transition={{ duration: 0.2 }}
               className="space-y-6"
             >
-              <QVMScoringCard />
+              <QVMScoringCard
+                userProfile={aiData}
+                stockHoldings={portfolio.stockHoldings}
+              />
             </motion.div>
           )}
 

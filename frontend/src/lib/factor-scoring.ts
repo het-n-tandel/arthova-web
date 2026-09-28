@@ -335,6 +335,168 @@ export const INDIAN_EQUITY_FACTOR_REGISTRY: Record<string, Omit<StockFactorData,
     analystSummary: 'Fastest growing digital broker; strong cash return on equity at reasonable 20x PE.',
     factorData: { roe: 42.8, roce: 49.5, debtToEquity: 0.45, piotroskiFScore: 8, altmanZScore: 4.8, pe: 19.8, industryPE: 25.0, momentum3M: 7.2, momentum6M: 19.4 }
   },
+  'ZOMATO.NS': {
+    symbol: 'ZOMATO.NS',
+    name: 'Zomato Ltd',
+    category: 'Mid Cap',
+    sector: 'Consumer Tech',
+    marketCapCr: 245000,
+    pe: 95.0,
+    industryPE: 45.0,
+    roe: 8.5,
+    roce: 9.2,
+    debtToEquity: 0.02,
+    piotroskiFScore: 7,
+    altmanZScore: 6.8,
+    momentum3M: 18.5,
+    momentum6M: 42.0,
+    analystSummary: 'Explosive Blinkit quick-commerce dominance and profitable EBITDA turnaround; trades at growth premium.',
+    factorData: { roe: 8.5, roce: 9.2, debtToEquity: 0.02, piotroskiFScore: 7, altmanZScore: 6.8, pe: 95.0, industryPE: 45.0, momentum3M: 18.5, momentum6M: 42.0 }
+  },
+  'HAL.NS': {
+    symbol: 'HAL.NS',
+    name: 'Hindustan Aeronautics Ltd',
+    category: 'Large Cap',
+    sector: 'Defense & Aerospace',
+    marketCapCr: 310000,
+    pe: 38.5,
+    industryPE: 42.0,
+    roe: 26.2,
+    roce: 34.5,
+    debtToEquity: 0.0,
+    piotroskiFScore: 9,
+    altmanZScore: 7.5,
+    momentum3M: 11.2,
+    momentum6M: 32.5,
+    analystSummary: 'Sovereign defense manufacturing monopoly with multi-year order backlog, zero debt, and 30%+ ROCE.',
+    factorData: { roe: 26.2, roce: 34.5, debtToEquity: 0.0, piotroskiFScore: 9, altmanZScore: 7.5, pe: 38.5, industryPE: 42.0, momentum3M: 11.2, momentum6M: 32.5 }
+  },
+  'BEL.NS': {
+    symbol: 'BEL.NS',
+    name: 'Bharat Electronics Ltd',
+    category: 'Large Cap',
+    sector: 'Defense Electronics',
+    marketCapCr: 215000,
+    pe: 44.0,
+    industryPE: 42.0,
+    roe: 24.8,
+    roce: 32.1,
+    debtToEquity: 0.0,
+    piotroskiFScore: 9,
+    altmanZScore: 8.1,
+    momentum3M: 9.5,
+    momentum6M: 28.2,
+    analystSummary: 'High-margin defense radar & electronic warfare leader with zero debt and expanding defense capex.',
+    factorData: { roe: 24.8, roce: 32.1, debtToEquity: 0.0, piotroskiFScore: 9, altmanZScore: 8.1, pe: 44.0, industryPE: 42.0, momentum3M: 9.5, momentum6M: 28.2 }
+  },
+  'SBIN.NS': {
+    symbol: 'SBIN.NS',
+    name: 'State Bank of India',
+    category: 'Large Cap',
+    sector: 'Banking & Financials',
+    marketCapCr: 720000,
+    pe: 10.5,
+    industryPE: 16.5,
+    roe: 17.5,
+    roce: 18.2,
+    debtToEquity: 0.92,
+    piotroskiFScore: 8,
+    altmanZScore: 2.9,
+    momentum3M: 4.8,
+    momentum6M: 14.5,
+    analystSummary: 'India\'s anchor PSU bank; sub-1% net NPA, strong credit expansion, and attractive single-digit P/E valuation.',
+    factorData: { roe: 17.5, roce: 18.2, debtToEquity: 0.92, piotroskiFScore: 8, altmanZScore: 2.9, pe: 10.5, industryPE: 16.5, momentum3M: 4.8, momentum6M: 14.5 }
+  },
+  'LT.NS': {
+    symbol: 'LT.NS',
+    name: 'Larsen & Toubro Ltd',
+    category: 'Large Cap',
+    sector: 'Infrastructure',
+    marketCapCr: 490000,
+    pe: 31.0,
+    industryPE: 35.0,
+    roe: 15.2,
+    roce: 17.8,
+    debtToEquity: 0.72,
+    piotroskiFScore: 8,
+    altmanZScore: 3.5,
+    momentum3M: 3.8,
+    momentum6M: 12.0,
+    analystSummary: 'Primary corporate beneficiary of national infrastructure capex and international hydrocarbon orders.',
+    factorData: { roe: 15.2, roce: 17.8, debtToEquity: 0.72, piotroskiFScore: 8, altmanZScore: 3.5, pe: 31.0, industryPE: 35.0, momentum3M: 3.8, momentum6M: 12.0 }
+  },
+  'BAJFINANCE.NS': {
+    symbol: 'BAJFINANCE.NS',
+    name: 'Bajaj Finance Ltd',
+    category: 'Large Cap',
+    sector: 'Banking & Financials',
+    marketCapCr: 430000,
+    pe: 28.5,
+    industryPE: 26.0,
+    roe: 22.1,
+    roce: 24.5,
+    debtToEquity: 1.1,
+    piotroskiFScore: 8,
+    altmanZScore: 3.4,
+    momentum3M: 2.5,
+    momentum6M: 8.4,
+    analystSummary: 'Consumer lending franchise with dominant market share, 22%+ ROE, and omnichannel customer acquisition.',
+    factorData: { roe: 22.1, roce: 24.5, debtToEquity: 1.1, piotroskiFScore: 8, altmanZScore: 3.4, pe: 28.5, industryPE: 26.0, momentum3M: 2.5, momentum6M: 8.4 }
+  },
+  'TITAN.NS': {
+    symbol: 'TITAN.NS',
+    name: 'Titan Company Ltd',
+    category: 'Large Cap',
+    sector: 'Consumer Discretionary',
+    marketCapCr: 315000,
+    pe: 72.0,
+    industryPE: 48.0,
+    roe: 31.2,
+    roce: 38.5,
+    debtToEquity: 0.28,
+    piotroskiFScore: 8,
+    altmanZScore: 6.8,
+    momentum3M: 5.2,
+    momentum6M: 15.8,
+    analystSummary: 'Tata group flagship with unmatched consumer loyalty, high ROCE, and market share gains in jewellery.',
+    factorData: { roe: 31.2, roce: 38.5, debtToEquity: 0.28, piotroskiFScore: 8, altmanZScore: 6.8, pe: 72.0, industryPE: 48.0, momentum3M: 5.2, momentum6M: 15.8 }
+  },
+  'SUZLON.NS': {
+    symbol: 'SUZLON.NS',
+    name: 'Suzlon Energy Ltd',
+    category: 'Small Cap',
+    sector: 'Renewable Energy',
+    marketCapCr: 75000,
+    pe: 58.0,
+    industryPE: 42.0,
+    roe: 22.0,
+    roce: 26.5,
+    debtToEquity: 0.05,
+    piotroskiFScore: 8,
+    altmanZScore: 4.2,
+    momentum3M: 15.4,
+    momentum6M: 45.2,
+    analystSummary: 'Turnaround wind energy equipment leader; net-debt-free balance sheet with multi-gigawatt order pipeline.',
+    factorData: { roe: 22.0, roce: 26.5, debtToEquity: 0.05, piotroskiFScore: 8, altmanZScore: 4.2, pe: 58.0, industryPE: 42.0, momentum3M: 15.4, momentum6M: 45.2 }
+  },
+  'BSE.NS': {
+    symbol: 'BSE.NS',
+    name: 'BSE Ltd',
+    category: 'Mid Cap',
+    sector: 'Financial Market Infrastructure',
+    marketCapCr: 68000,
+    pe: 45.0,
+    industryPE: 38.0,
+    roe: 28.4,
+    roce: 36.2,
+    debtToEquity: 0.0,
+    piotroskiFScore: 9,
+    altmanZScore: 11.2,
+    momentum3M: 14.8,
+    momentum6M: 52.0,
+    analystSummary: 'Explosive derivatives volume surge, zero debt, high cash generation, and rising financialization tailwinds.',
+    factorData: { roe: 28.4, roce: 36.2, debtToEquity: 0.0, piotroskiFScore: 9, altmanZScore: 11.2, pe: 45.0, industryPE: 38.0, momentum3M: 14.8, momentum6M: 52.0 }
+  },
 };
 
 /**
@@ -616,4 +778,257 @@ export function getTopMutualFundsByCategory(category: MarketCapCategory): Mutual
 export function getBestMutualFundForMarketCap(category: MarketCapCategory): MutualFundFactorData {
   const funds = getTopMutualFundsByCategory(category);
   return funds[0];
+}
+
+// ============================================================
+// PERSONAL STOCK SUITABILITY CHECKER ENGINE
+// ============================================================
+
+export interface SuitabilityCheck {
+  passed: boolean;
+  status: 'passed' | 'warning' | 'alert';
+  label: string;
+  detail: string;
+}
+
+export interface StockSuitabilityResult {
+  symbol: string;
+  stockName: string;
+  overallScore: number; // 0 - 100
+  verdict: 'Highly Suitable' | 'Suitable with Caution' | 'High Risk / Unsuitable';
+  verdictColor: string;
+  verdictBadgeBg: string;
+  checks: {
+    riskProfile: SuitabilityCheck;
+    concentration: SuitabilityCheck;
+    horizon: SuitabilityCheck;
+    quantQuality: SuitabilityCheck;
+  };
+  recommendation: string;
+}
+
+export function evaluateStockSuitability(
+  stock: StockFactorData,
+  profile?: {
+    riskAppetite?: 'Low' | 'Medium' | 'High' | string;
+    horizonYears?: number;
+    primaryGoal?: string;
+  },
+  currentHoldings?: Array<{ symbol: string; quantity: number; avgCost: number; cmp?: number; assetType?: string }>
+): StockSuitabilityResult {
+  const risk = (profile?.riskAppetite || 'Medium').toLowerCase();
+  const horizon = profile?.horizonYears || 10;
+  const isConservative = risk.includes('low') || risk.includes('conservative');
+  const isModerate = risk.includes('med') || risk.includes('mod');
+  const isAggressive = risk.includes('high') || risk.includes('aggr');
+
+  let suitabilityPoints = 0; // out of 100
+
+  // 1. RISK APPETITE CHECK
+  let riskCheck: SuitabilityCheck;
+  if (stock.category === 'Large Cap') {
+    suitabilityPoints += 30;
+    riskCheck = {
+      passed: true,
+      status: 'passed',
+      label: 'Risk Appetite Alignment',
+      detail: `Bluechip Large-Cap profile provides foundational stability well-suited for ${isConservative ? 'Conservative' : isModerate ? 'Moderate' : 'Aggressive'} risk profiles.`
+    };
+  } else if (stock.category === 'Mid Cap') {
+    if (isConservative) {
+      suitabilityPoints += 15;
+      riskCheck = {
+        passed: false,
+        status: 'warning',
+        label: 'Risk Appetite Alignment',
+        detail: `Mid-Cap volatility is moderately elevated compared to your Conservative risk profile; recommend limiting to max 15% satellite allocation.`
+      };
+    } else {
+      suitabilityPoints += 30;
+      riskCheck = {
+        passed: true,
+        status: 'passed',
+        label: 'Risk Appetite Alignment',
+        detail: `High-alpha Mid-Cap growth profile aligns with your ${isModerate ? 'Moderate' : 'Aggressive'} growth target.`
+      };
+    }
+  } else {
+    // Small Cap
+    if (isConservative) {
+      suitabilityPoints += 5;
+      riskCheck = {
+        passed: false,
+        status: 'alert',
+        label: 'Risk Appetite Alignment',
+        detail: `Small-Cap high beta and drawdown risks exceed Conservative guardrails.`
+      };
+    } else if (isModerate) {
+      suitabilityPoints += 20;
+      riskCheck = {
+        passed: true,
+        status: 'warning',
+        label: 'Risk Appetite Alignment',
+        detail: `Small-Cap high beta is acceptable in small tactical allocations for Moderate profiles.`
+      };
+    } else {
+      suitabilityPoints += 30;
+      riskCheck = {
+        passed: true,
+        status: 'passed',
+        label: 'Risk Appetite Alignment',
+        detail: `High-conviction Small-Cap compounding perfectly matches an Aggressive risk profile.`
+      };
+    }
+  }
+
+  // 2. CONCENTRATION & SECTOR OVERLAP CHECK
+  let concentrationCheck: SuitabilityCheck;
+  const stockList = (currentHoldings || []).filter(h => (h.assetType === 'stock' || !h.assetType) && h.quantity > 0);
+  const totalStockValue = stockList.reduce((acc, h) => acc + (h.cmp || h.avgCost || 0) * h.quantity, 0);
+  const existingHolding = stockList.find(h => h.symbol.toUpperCase().replace('.NS', '') === stock.symbol.toUpperCase().replace('.NS', ''));
+
+  if (existingHolding && totalStockValue > 0) {
+    const existingVal = (existingHolding.cmp || existingHolding.avgCost || 0) * existingHolding.quantity;
+    const currentPct = (existingVal / totalStockValue) * 100;
+    if (currentPct > 10) {
+      suitabilityPoints += 5;
+      concentrationCheck = {
+        passed: false,
+        status: 'alert',
+        label: 'Concentration Headroom',
+        detail: `You already hold ${currentPct.toFixed(1)}% of your portfolio in this stock. Institutional limit is 10% per single equity.`
+      };
+    } else {
+      suitabilityPoints += 25;
+      concentrationCheck = {
+        passed: true,
+        status: 'passed',
+        label: 'Concentration Headroom',
+        detail: `Current exposure is ${currentPct.toFixed(1)}%. Substantial headroom remains under the 10% single-stock ceiling.`
+      };
+    }
+  } else {
+    suitabilityPoints += 25;
+    concentrationCheck = {
+      passed: true,
+      status: 'passed',
+      label: 'Concentration Headroom',
+      detail: `Fresh diversification opportunity. You currently hold 0% direct exposure in this company.`
+    };
+  }
+
+  // 3. GOAL HORIZON CHECK
+  let horizonCheck: SuitabilityCheck;
+  if (horizon < 3) {
+    if (stock.category === 'Large Cap') {
+      suitabilityPoints += 15;
+      horizonCheck = {
+        passed: true,
+        status: 'warning',
+        label: 'Goal Horizon Compatibility',
+        detail: `Short horizon (< 3 yrs). Bluechip Large-Cap is acceptable, but consider prioritizing fixed income or debt for capital safety.`
+      };
+    } else {
+      suitabilityPoints += 5;
+      horizonCheck = {
+        passed: false,
+        status: 'alert',
+        label: 'Goal Horizon Compatibility',
+        detail: `Short horizon (< 3 yrs) is too brief to weather mid/small-cap drawdowns. Equities require a 5+ year runway.`
+      };
+    }
+  } else if (horizon <= 7) {
+    suitabilityPoints += 25;
+    horizonCheck = {
+      passed: true,
+      status: 'passed',
+      label: 'Goal Horizon Compatibility',
+      detail: `Medium horizon (${horizon} yrs) allows sufficient time to capture multi-year business earnings compounding.`
+    };
+  } else {
+    suitabilityPoints += 25;
+    horizonCheck = {
+      passed: true,
+      status: 'passed',
+      label: 'Goal Horizon Compatibility',
+      detail: `Long-term compounding horizon (${horizon}+ yrs) is ideal for maximizing equity alpha and ignoring short-term drawdowns.`
+    };
+  }
+
+  // 4. QUANTITATIVE FUNDAMENTAL QUALITY CHECK
+  let qualityCheck: SuitabilityCheck;
+  const qvm = stock.factorBreakdown.compositeQVM;
+  const fScore = stock.piotroskiFScore;
+  const isAltmanSafe = stock.factorBreakdown.altmanZone === 'Safe';
+
+  if (qvm >= 70 && fScore >= 7 && isAltmanSafe) {
+    suitabilityPoints += 20;
+    qualityCheck = {
+      passed: true,
+      status: 'passed',
+      label: 'Fundamental Quality & Safety',
+      detail: `Pristine institutional fundamentals: Composite QVM ${qvm}/100, F-Score ${fScore}/9, and Altman Z Safe Zone.`
+    };
+  } else if (qvm >= 50 && isAltmanSafe) {
+    suitabilityPoints += 12;
+    qualityCheck = {
+      passed: true,
+      status: 'warning',
+      label: 'Fundamental Quality & Safety',
+      detail: `Acceptable factor profile (QVM: ${qvm}/100, F-Score: ${fScore}/9), but check valuation or momentum headwinds.`
+    };
+  } else {
+    suitabilityPoints += 5;
+    qualityCheck = {
+      passed: false,
+      status: 'alert',
+      label: 'Fundamental Quality & Safety',
+      detail: `Higher financial leverage or sub-par factor rating (QVM: ${qvm}/100, Altman: ${stock.factorBreakdown.altmanZone}).`
+    };
+  }
+
+  const finalScore = Math.min(100, Math.max(10, suitabilityPoints));
+
+  let verdict: 'Highly Suitable' | 'Suitable with Caution' | 'High Risk / Unsuitable';
+  let verdictColor: string;
+  let verdictBadgeBg: string;
+
+  if (finalScore >= 80) {
+    verdict = 'Highly Suitable';
+    verdictColor = 'text-positive';
+    verdictBadgeBg = 'bg-positive/10 border-positive/30 text-positive';
+  } else if (finalScore >= 60) {
+    verdict = 'Suitable with Caution';
+    verdictColor = 'text-accent-brass';
+    verdictBadgeBg = 'bg-accent-brass/10 border-accent-brass/30 text-accent-brass';
+  } else {
+    verdict = 'High Risk / Unsuitable';
+    verdictColor = 'text-rose-400';
+    verdictBadgeBg = 'bg-rose-500/10 border-rose-500/30 text-rose-400';
+  }
+
+  let summaryRecommendation = '';
+  if (verdict === 'Highly Suitable') {
+    summaryRecommendation = `${stock.name} is strongly aligned with your ${risk.toUpperCase()} risk profile and ${horizon}-year investment timeline. Its institutional QVM score of ${qvm}/100 and clean balance sheet provide superior risk-adjusted compounding.`;
+  } else if (verdict === 'Suitable with Caution') {
+    summaryRecommendation = `${stock.name} offers growth potential, but warrants a controlled position size. Monitor portfolio concentration and ensure it does not exceed 5–8% of total equity.`;
+  } else {
+    summaryRecommendation = `${stock.name} carries risk parameters (volatility, leverage, or concentration) that conflict with your current profile. We recommend reallocating towards large-cap compounders or diversified index funds.`;
+  }
+
+  return {
+    symbol: stock.symbol,
+    stockName: stock.name,
+    overallScore: finalScore,
+    verdict,
+    verdictColor,
+    verdictBadgeBg,
+    checks: {
+      riskProfile: riskCheck,
+      concentration: concentrationCheck,
+      horizon: horizonCheck,
+      quantQuality: qualityCheck,
+    },
+    recommendation: summaryRecommendation,
+  };
 }
