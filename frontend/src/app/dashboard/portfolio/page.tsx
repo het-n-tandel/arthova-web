@@ -9,7 +9,7 @@ import { formatINR, formatINRCompact, cn } from '@/lib/formatters';
 import { SummaryCard } from '@/components/ui/summary-card';
 import { DeltaBadge } from '@/components/ui/delta-badge';
 import { HoldingsTable } from '@/components/portfolio/holdings-table';
-import { CsvImportModal } from '@/components/portfolio/csv-import-modal';
+import { PortfolioImportModal } from '@/components/portfolio/portfolio-import-modal';
 
 const tabs = ['All Holdings', 'Stocks', 'Mutual Funds', 'Gold & Silver', 'Fixed Deposits', 'Property'] as const;
 
@@ -203,7 +203,7 @@ export default function PortfolioPage() {
       )}
 
       {isImportModalOpen && (
-        <CsvImportModal onClose={() => setIsImportModalOpen(false)} />
+        <PortfolioImportModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
       )}
     </motion.div>
   );

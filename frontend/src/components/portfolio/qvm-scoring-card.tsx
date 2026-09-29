@@ -31,6 +31,8 @@ import {
 } from '@/lib/factor-scoring';
 import { formatINR, cn } from '@/lib/formatters';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
+import { useLedgerStore } from '@/lib/store';
+import { TradeModal } from './trade-modal';
 
 interface QVMScoringCardProps {
   userProfile?: any;
@@ -43,7 +45,10 @@ export function QVMScoringCard({ userProfile, stockHoldings: propStockHoldings }
   const [activeStockSymbol, setActiveStockSymbol] = useState<string>('TCS.NS');
   const [activeMFCode, setActiveMFCode] = useState<string>('122639');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
+  const [tradeAction, setTradeAction] = useState<'buy' | 'sell'>('buy');
 
+  const livePrices = useLedgerStore((s) => s.livePrices);
   const portfolio = usePortfolio();
   const holdings = propStockHoldings || portfolio.stockHoldings || [];
 
@@ -497,6 +502,37 @@ export function QVMScoringCard({ userProfile, stockHoldings: propStockHoldings }
                 <span className="font-semibold text-accent-brass block mb-0.5">AI Quant Verdict:</span>
                 {suitability.recommendation}
               </div>
+
+              {/* 1-Click Order Execution Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <div className="text-xs text-text-faint flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-positive" />
+                  <span>10% Single-Stock Ceiling Guardrail Active</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTradeAction('buy');
+                      setIsTradeModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-positive hover:bg-positive/90 text-white transition-all shadow-sm"
+                  >
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    Invest in {activeStock.symbol.replace('.NS', '')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTradeAction('sell');
+                      setIsTradeModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-bg-surface hover:bg-bg-surface-2 border border-border-default text-text-secondary transition-all"
+                  >
+                    Manage / Sell
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -558,6 +594,24 @@ export function QVMScoringCard({ userProfile, stockHoldings: propStockHoldings }
           )}
         </div>
       </div>
+
+      {/* Trade Modal */}
+      <TradeModal
+        isOpen={isTradeModalOpen}
+        onClose={() => setIsTradeModalOpen(false)}
+        symbol={isMF ? activeMF.schemeCode : activeStock.symbol}
+        name={isMF ? activeMF.name : activeStock.name}
+        currentPrice={
+          isMF
+            ? activeMF.nav
+            : (livePrices.get(activeStock.symbol)?.price || holdings.find((h: any) => h.symbol === activeStock.symbol)?.cmp || 2500)
+        }
+        initialAction={tradeAction}
+        assetType={isMF ? 'mutual_fund' : 'stock'}
+        qvmScore={factorBreakdown.compositeQVM}
+        suitabilityVerdict={suitability.verdict}
+        userRiskLabel={userRiskLabel}
+      />
     </div>
   );
 }

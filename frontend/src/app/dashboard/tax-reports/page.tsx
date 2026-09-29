@@ -12,14 +12,17 @@ import {
   Printer, 
   HelpCircle,
   Percent,
-  Sparkles
+  Sparkles,
+  Loader2
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { formatINR, formatINRCompact, formatDate, cn } from '@/lib/formatters';
 import { SummaryCard } from '@/components/ui/summary-card';
 import { DeltaBadge } from '@/components/ui/delta-badge';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 
 export default function TaxReportsPage() {
+  const queryClient = useQueryClient();
   const portfolio = usePortfolio();
 
   // Compute actual STCG & LTCG directly from portfolio holdings using purchaseDate classification
@@ -76,9 +79,10 @@ export default function TaxReportsPage() {
       .sort((a: any, b: any) => b.loss - a.loss);
   }, [portfolio.stockHoldings]);
 
-  // Interactive Tax-Loss Harvesting Selection State
   const [selectedHarvestIds, setSelectedHarvestIds] = useState<string[]>([]);
-  const [harvestSuccess, setHarvestSuccess] = useState(false);
+  const [isHarvesting, setIsHarvesting] = useState(false);
+  const [harvestResult, setHarvestResult] = useState<{ count: number; saved: number; proceeds: number } | null>(null);
+  const [harvestError, setHarvestError] = useState<string | null>(null);
 
   const totalHarvestableLoss = useMemo(() => {
     return losingStocks
@@ -106,6 +110,60 @@ export default function TaxReportsPage() {
       setSelectedHarvestIds([]);
     } else {
       setSelectedHarvestIds(losingStocks.map((s) => s.id));
+    }
+  };
+
+  const handleExecuteHarvest = async () => {
+    setHarvestError(null);
+    setHarvestResult(null);
+    if (selectedHarvestIds.length === 0) return;
+
+    setIsHarvesting(true);
+    try {
+      const targets = losingStocks.filter((s) => selectedHarvestIds.includes(s.id));
+      let totalProceeds = 0;
+
+      for (const stock of targets) {
+        const res = await fetch('/api/portfolio/trade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            assetType: 'stock',
+            symbol: stock.symbol,
+            name: stock.name,
+            quantity: stock.quantity.toString(),
+            pricePerUnit: stock.cmp.toString(),
+            transactionType: 'sell',
+            metadata: {
+              source: 'tax_loss_harvest',
+              harvestedLoss: stock.loss,
+              avgCost: stock.avgCost,
+            },
+            purchaseDate: new Date().toISOString(),
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Failed to harvest ${stock.symbol}`);
+        }
+
+        totalProceeds += stock.cmp * stock.quantity;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['holdings'] });
+      queryClient.invalidateQueries({ queryKey: ['networth'] });
+
+      setHarvestResult({
+        count: targets.length,
+        saved: estimatedTaxSaved,
+        proceeds: Math.round(totalProceeds),
+      });
+      setSelectedHarvestIds([]);
+    } catch (err: any) {
+      setHarvestError(err.message || 'Tax-loss harvesting failed.');
+    } finally {
+      setIsHarvesting(false);
     }
   };
 
@@ -362,24 +420,44 @@ export default function TaxReportsPage() {
               </div>
 
               <button
-                disabled={selectedHarvestIds.length === 0}
-                onClick={() => {
-                  setHarvestSuccess(true);
-                  setTimeout(() => setHarvestSuccess(false), 5000);
-                }}
+                type="button"
+                disabled={selectedHarvestIds.length === 0 || isHarvesting}
+                onClick={handleExecuteHarvest}
                 className={cn(
-                  'w-full py-2.5 rounded-[8px] text-[13px] font-semibold transition-all shadow-sm',
+                  'w-full py-2.5 rounded-[8px] text-[13px] font-semibold transition-all shadow-sm flex items-center justify-center gap-2',
                   'bg-accent-brass hover:bg-accent-brass-dim text-bg-base',
                   'disabled:opacity-40 disabled:cursor-not-allowed'
                 )}
               >
-                Execute Selected Tax Harvest Plan
+                {isHarvesting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Executing Tax Harvest Orders in Supabase...
+                  </>
+                ) : (
+                  <>
+                    <Scissors className="w-4 h-4" />
+                    Execute Selected Tax Harvest ({selectedHarvestIds.length} assets)
+                  </>
+                )}
               </button>
 
-              {harvestSuccess && (
-                <div className="p-3 rounded-[8px] bg-positive/10 border border-positive/30 text-positive text-[12px] flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Harvesting orders simulated. You will save approximately ₹{estimatedTaxSaved.toLocaleString('en-IN')} in capital gains tax!</span>
+              {harvestError && (
+                <div className="p-3 rounded-[8px] bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[12px] flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{harvestError}</span>
+                </div>
+              )}
+
+              {harvestResult && (
+                <div className="p-3.5 rounded-[10px] bg-positive/10 border border-positive/30 text-positive text-[12.5px] space-y-1">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Tax Harvest Execution Complete!</span>
+                  </div>
+                  <p className="text-[12px] text-positive/90 leading-relaxed">
+                    Successfully executed sale of {harvestResult.count} loss-making position(s). Credited <strong className="font-mono">{formatINR(harvestResult.proceeds)}</strong> back to your available cash balance, locking in an estimated <strong className="font-mono">+{formatINR(harvestResult.saved)}</strong> in capital gains tax relief.
+                  </p>
                 </div>
               )}
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Star } from 'lucide-react';
@@ -17,6 +17,7 @@ import { AIInsightCard } from '@/components/portfolio/ai-insight-card';
 import { evaluateQuantitativeSignal } from '@/lib/strategies/technical-signals';
 import { AlgoSignalBadge } from '@/components/portfolio/algo-signal-badge';
 import { SentimentCatalystCard } from '@/components/portfolio/sentiment-catalyst-card';
+import { TradeModal } from '@/components/portfolio/trade-modal';
 import { Cpu, ShieldCheck } from 'lucide-react';
 
 export default function StockDetailPage() {
@@ -58,6 +59,9 @@ export default function StockDetailPage() {
     return evaluateQuantitativeSignal(stock.symbol, price, historicalCloses);
   }, [stock.symbol, price, candlestickData]);
 
+  const [isTradeOpen, setIsTradeOpen] = useState(false);
+  const [tradeAction, setTradeAction] = useState<'buy' | 'sell'>('buy');
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -66,7 +70,7 @@ export default function StockDetailPage() {
       className="space-y-6"
     >
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Link href="/dashboard/stocks" className="text-text-faint hover:text-text-primary transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
@@ -83,13 +87,35 @@ export default function StockDetailPage() {
             <span className="text-[12px] text-text-faint">· {stock.sector}</span>
           </div>
         </div>
-        <div className="text-right">
-          <PriceCell price={price} previousPrice={prevPrice} className="text-[28px] font-medium" />
-          <div className="flex items-center justify-end gap-2 mt-1">
-            <span className={cn('text-[13px]', dayChange >= 0 ? 'text-positive' : 'text-negative')} style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>
-              {dayChange >= 0 ? '+' : ''}{dayChange.toFixed(2)}
-            </span>
-            <DeltaBadge value={dayChangePercent} />
+        <div className="flex items-center justify-between sm:justify-end gap-4">
+          <div className="text-right">
+            <PriceCell price={price} previousPrice={prevPrice} className="text-[28px] font-medium" />
+            <div className="flex items-center justify-end gap-2 mt-1">
+              <span className={cn('text-[13px]', dayChange >= 0 ? 'text-positive' : 'text-negative')} style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>
+                {dayChange >= 0 ? '+' : ''}{dayChange.toFixed(2)}
+              </span>
+              <DeltaBadge value={dayChangePercent} />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5 shrink-0">
+            <button
+              onClick={() => {
+                setTradeAction('buy');
+                setIsTradeOpen(true);
+              }}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-positive hover:bg-positive/90 text-white shadow-sm transition-all"
+            >
+              Buy
+            </button>
+            <button
+              onClick={() => {
+                setTradeAction('sell');
+                setIsTradeOpen(true);
+              }}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-bg-surface-2 hover:bg-bg-surface-3 border border-border-default text-text-secondary transition-all"
+            >
+              Sell
+            </button>
           </div>
         </div>
       </div>
@@ -202,6 +228,17 @@ export default function StockDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Trade Modal */}
+      <TradeModal
+        isOpen={isTradeOpen}
+        onClose={() => setIsTradeOpen(false)}
+        symbol={stock.symbol}
+        name={stock.name}
+        currentPrice={price}
+        initialAction={tradeAction}
+        assetType="stock"
+      />
     </motion.div>
   );
 }
