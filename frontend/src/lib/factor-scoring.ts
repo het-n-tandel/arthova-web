@@ -54,24 +54,36 @@ export function computeQVMScore(data: {
   // 1. QUALITY SCORE (0 - 100)
   // Higher ROE/ROCE, lower D/E, high Piotroski, safe Altman
   let qScore = 0;
+  const safeRoe = isNaN(data.roe) ? 12 : data.roe;
+  const safeRoce = isNaN(data.roce) ? 14 : data.roce;
+  const safeDE = isNaN(data.debtToEquity) ? 0.5 : data.debtToEquity;
+  const safeFScore = isNaN(data.piotroskiFScore) ? 6 : Math.max(0, Math.min(9, data.piotroskiFScore));
+  const safeZScore = isNaN(data.altmanZScore) ? 3.0 : data.altmanZScore;
+
   // ROE component (max 25 pts)
-  qScore += Math.min(25, Math.max(0, (data.roe / 20) * 25));
+  qScore += Math.min(25, Math.max(0, (safeRoe / 20) * 25));
   // ROCE component (max 25 pts)
-  qScore += Math.min(25, Math.max(0, (data.roce / 25) * 25));
-  // Leverage safety (max 20 pts): D/E < 0.3 = 20 pts, D/E > 1.5 = 0 pts
-  const deScore = Math.max(0, 20 * (1 - Math.min(1, data.debtToEquity / 1.5)));
+  qScore += Math.min(25, Math.max(0, (safeRoce / 25) * 25));
+  // Leverage safety (max 20 pts): D/E < 0.3 = 20 pts, D/E > 1.5 = 0 pts. If negative D/E (negative net worth), penalty to 0.
+  const deScore = safeDE < 0 ? 0 : Math.max(0, 20 * (1 - Math.min(1, safeDE / 1.5)));
   qScore += deScore;
   // Piotroski component (max 20 pts: 9 pts -> 20 pts)
-  qScore += (data.piotroskiFScore / 9) * 20;
+  qScore += (safeFScore / 9) * 20;
   // Altman Z component (max 10 pts: > 3 is safe)
-  qScore += data.altmanZScore >= 3.0 ? 10 : data.altmanZScore >= 1.8 ? 5 : 0;
+  qScore += safeZScore >= 3.0 ? 10 : safeZScore >= 1.8 ? 5 : 0;
   const qualityScore = Math.round(Math.min(100, Math.max(0, qScore)));
 
   // 2. VALUATION SCORE (0 - 100)
   // Cheaper relative to industry PE & reasonable absolute PE
   let vScore = 50;
-  if (data.industryPE > 0 && data.pe > 0) {
-    const peRatio = data.pe / data.industryPE;
+  const safePE = isNaN(data.pe) ? 25 : data.pe;
+  const safeIndPE = isNaN(data.industryPE) ? 25 : data.industryPE;
+
+  if (safePE <= 0) {
+    // Loss-making enterprise (negative earnings) receives an intrinsic valuation penalty
+    vScore = 15;
+  } else if (safeIndPE > 0 && safePE > 0) {
+    const peRatio = safePE / safeIndPE;
     if (peRatio <= 0.75) vScore = 90;       // Discount > 25%
     else if (peRatio <= 0.95) vScore = 75;  // Discount 5-25%
     else if (peRatio <= 1.15) vScore = 55;  // Fair value
@@ -79,13 +91,15 @@ export function computeQVMScore(data: {
     else vScore = 20;                       // Overvalued
   }
   // Absolute PE guardrail
-  if (data.pe > 60) vScore = Math.min(vScore, 30);
+  if (safePE > 60) vScore = Math.min(vScore, 30);
   const valuationScore = Math.round(vScore);
 
   // 3. MOMENTUM SCORE (0 - 100)
   // Positive 3M and 6M returns vs benchmark (Nifty historical baseline ~3% per 3M)
   let mScore = 50;
-  const avgMomentum = (data.momentum3M * 0.4) + (data.momentum6M * 0.6);
+  const safeM3 = isNaN(data.momentum3M) ? 0 : data.momentum3M;
+  const safeM6 = isNaN(data.momentum6M) ? 0 : data.momentum6M;
+  const avgMomentum = (safeM3 * 0.4) + (safeM6 * 0.6);
   if (avgMomentum >= 20) mScore = 95;
   else if (avgMomentum >= 10) mScore = 80;
   else if (avgMomentum >= 3) mScore = 65;
@@ -883,13 +897,26 @@ export function evaluateStockSuitability(
 
   // 2. CONCENTRATION & SECTOR OVERLAP CHECK
   let concentrationCheck: SuitabilityCheck;
-  const stockList = (currentHoldings || []).filter(h => (h.assetType === 'stock' || !h.assetType) && h.quantity > 0);
-  const totalStockValue = stockList.reduce((acc, h) => acc + (h.cmp || h.avgCost || 0) * h.quantity, 0);
-  const existingHolding = stockList.find(h => h.symbol.toUpperCase().replace('.NS', '') === stock.symbol.toUpperCase().replace('.NS', ''));
+  const stockList = (currentHoldings || []).filter(h => {
+    const q = parseFloat(h.quantity?.toString() || '0');
+    return (h.assetType === 'stock' || !h.assetType) && !isNaN(q) && q > 0;
+  });
+  const totalStockValue = stockList.reduce((acc, h) => {
+    const q = parseFloat(h.quantity?.toString() || '0');
+    const p = parseFloat(h.cmp?.toString() || h.avgCost?.toString() || '0');
+    return acc + (isNaN(q) || isNaN(p) ? 0 : q * p);
+  }, 0);
+  const existingHolding = stockList.find(h => {
+    const hSym = (h.symbol || '').toUpperCase().replace('.NS', '').replace('.BO', '');
+    const targetSym = (stock.symbol || '').toUpperCase().replace('.NS', '').replace('.BO', '');
+    return hSym === targetSym;
+  });
 
   if (existingHolding && totalStockValue > 0) {
-    const existingVal = (existingHolding.cmp || existingHolding.avgCost || 0) * existingHolding.quantity;
-    const currentPct = (existingVal / totalStockValue) * 100;
+    const q = parseFloat(existingHolding.quantity?.toString() || '0');
+    const p = parseFloat(existingHolding.cmp?.toString() || existingHolding.avgCost?.toString() || '0');
+    const existingVal = isNaN(q) || isNaN(p) ? 0 : q * p;
+    const currentPct = Math.min(100, Math.max(0, (existingVal / totalStockValue) * 100));
     if (currentPct > 10) {
       suitabilityPoints += 5;
       concentrationCheck = {

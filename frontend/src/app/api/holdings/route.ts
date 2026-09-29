@@ -7,7 +7,7 @@ import { eq, sql } from 'drizzle-orm';
 export async function GET(req: Request) {
   try {
     const session = await auth();
-    if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const userId = session.user.id;
 
     // Fetch all holdings for user that either have positive quantity, or are cash/income/salary/liability
@@ -51,7 +51,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const userId = session.user.id;
 
     const body = await req.json();

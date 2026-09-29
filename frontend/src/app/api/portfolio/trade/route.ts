@@ -3,10 +3,11 @@ import { db } from '@/lib/db';
 import { holdings, assetTransactions } from '@/lib/db/schema';
 import { auth } from '@/auth';
 import { eq, and } from 'drizzle-orm';
+import { tracing } from '@/lib/tracing';
 
 export async function POST(req: Request) {
   const session = await auth();
-  if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = session.user.id;
 
   try {
@@ -26,6 +27,23 @@ export async function POST(req: Request) {
     const price = parseFloat(pricePerUnit || '1');
     const parsedMetadata = typeof metadata === 'string' ? JSON.parse(metadata || '{}') : (metadata || {});
     const effectivePurchaseDate = purchaseDate ? new Date(purchaseDate) : new Date();
+
+    if (isNaN(qty) || qty <= 0) {
+      return NextResponse.json({ error: 'Quantity must be a positive number' }, { status: 400 });
+    }
+    if (isNaN(price) || price <= 0) {
+      return NextResponse.json({ error: 'Price must be a valid positive number' }, { status: 400 });
+    }
+    if (!name && !symbol) {
+      return NextResponse.json({ error: 'Asset symbol or name is required' }, { status: 400 });
+    }
+
+    const trace = tracing.startTrace('TRADE_EXECUTION', `${transactionType || 'trade'}_${symbol || name}`, {
+      userId,
+      assetType,
+      qty,
+      price,
+    });
 
     let resultHolding: any;
 
@@ -150,6 +168,7 @@ export async function POST(req: Request) {
       }
     });
 
+    trace?.end('SUCCESS', `Successfully executed ${transactionType} for ${qty} units of ${symbol || name}`);
     return NextResponse.json(resultHolding);
   } catch (err: any) {
     console.error('Trade execution error:', err);

@@ -5,7 +5,8 @@ import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Star } from 'lucide-react';
 import Link from 'next/link';
-import { generateCandlestickData, aiInsights } from '@/lib/mock-data';
+import { generateCandlestickData, aiInsights, stockHoldings as staticStockHoldings } from '@/lib/mock-data';
+import { INDIAN_EQUITY_FACTOR_REGISTRY } from '@/lib/factor-scoring';
 import { useLedgerStore } from '@/lib/store';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { formatINR, formatINRCompact, cn } from '@/lib/formatters';
@@ -22,33 +23,63 @@ import { Cpu, ShieldCheck } from 'lucide-react';
 
 export default function StockDetailPage() {
   const params = useParams();
-  const symbol = (params.symbol as string)?.toUpperCase() || 'RELIANCE';
+  const rawSymbol = (params.symbol as string)?.toUpperCase() || 'RELIANCE';
+  const cleanSym = rawSymbol.replace('.NS', '').replace('.BO', '');
+  const symbol = `${cleanSym}.NS`;
+
   const { stockHoldings } = usePortfolio();
-  const stock = stockHoldings.find((s: any) => s.symbol === symbol) || {
-    symbol,
-    name: symbol,
+
+  const userStock = stockHoldings.find((s: any) => {
+    const sSym = (s.symbol || '').toUpperCase().replace('.NS', '').replace('.BO', '');
+    return sSym === cleanSym;
+  });
+
+  const staticStock = staticStockHoldings.find((s) => {
+    const sSym = s.symbol.toUpperCase().replace('.NS', '').replace('.BO', '');
+    return sSym === cleanSym;
+  });
+
+  const registryStock = INDIAN_EQUITY_FACTOR_REGISTRY[symbol] || INDIAN_EQUITY_FACTOR_REGISTRY[`${cleanSym}.NS`];
+
+  const stock = userStock || (staticStock ? { ...staticStock, quantity: 0, avgCost: 0 } : null) || (registryStock ? {
+    symbol: registryStock.symbol,
+    name: registryStock.name,
     quantity: 0,
     avgCost: 0,
-    cmp: 0,
+    cmp: 1000,
+    dayChange: 0,
+    dayChangePercent: 0,
+    sector: registryStock.sector,
+    pe: registryStock.pe,
+    marketCap: registryStock.marketCapCr,
+    weekHigh52: 1200,
+    weekLow52: 800,
+  } : {
+    symbol,
+    name: cleanSym,
+    quantity: 0,
+    avgCost: 0,
+    cmp: 1000,
     dayChange: 0,
     dayChangePercent: 0,
     sector: 'Equities',
-    pe: 0,
-    marketCap: 0,
-    weekHigh52: 0,
-    weekLow52: 0,
-  };
+    pe: 22,
+    marketCap: 50000,
+    weekHigh52: 1150,
+    weekLow52: 850,
+  });
+
   const livePrices = useLedgerStore((s) => s.livePrices);
   const favorites = useLedgerStore((s) => s.favorites);
   const toggleFavorite = useLedgerStore((s) => s.toggleFavorite);
 
   const live = livePrices.get(stock.symbol);
-  const price = live?.price ?? stock.cmp;
+  const price = live?.price ?? (stock.cmp || 1000);
   const prevPrice = live?.previousPrice;
   const dayChange = live?.change ?? stock.dayChange;
   const dayChangePercent = live?.changePercent ?? stock.dayChangePercent;
-  const pnl = (price - stock.avgCost) * stock.quantity;
-  const pnlPercent = ((price - stock.avgCost) / stock.avgCost) * 100;
+  const pnl = stock.quantity > 0 ? (price - stock.avgCost) * stock.quantity : 0;
+  const pnlPercent = stock.quantity > 0 && stock.avgCost > 0 ? ((price - stock.avgCost) / stock.avgCost) * 100 : 0;
 
   const candlestickData = useMemo(() => generateCandlestickData(90), []);
   const relatedInsights = aiInsights.filter((i) => i.relatedSymbol === stock.symbol);
