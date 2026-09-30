@@ -5,6 +5,7 @@ import { MotionConfig } from 'framer-motion';
 import { Sidebar, MobileNav } from './sidebar';
 import { TopNav } from './top-nav';
 import { NotificationToastContainer } from '../ui/notification-toast';
+import { WealthCopilotWidget } from '../copilot/wealth-copilot-widget';
 import { usePriceStream } from '@/lib/hooks/use-price-stream';
 
 export function PageShell({ children }: { children: React.ReactNode }) {
@@ -36,6 +37,7 @@ export function PageShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
         <MobileNav />
+        <WealthCopilotWidget />
         <NotificationToastContainer />
       </div>
     </MotionConfig>
