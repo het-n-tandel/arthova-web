@@ -59,8 +59,6 @@ class TracingManager {
       this.traces.pop();
     }
 
-    const self = this;
-
     return {
       id: traceId,
       info: (message: string, context?: any) => {

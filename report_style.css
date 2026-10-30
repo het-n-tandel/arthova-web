@@ -1,0 +1,288 @@
+/* Academic & Institutional Report Stylesheet for Dharmsinh Desai University */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --primary: #0F172A;
+  --primary-accent: #2563EB;
+  --text-main: #334155;
+  --text-muted: #64748B;
+  --bg-page: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --border-color: #E2E8F0;
+  --border-subtle: #F1F5F9;
+  --table-header: #F1F5F9;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-main);
+  background-color: var(--bg-page);
+  line-height: 1.65;
+  font-size: 15px;
+  margin: 0;
+  padding: 40px 20px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.document-container, main, body > * {
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Page card container for screen preview */
+@media screen {
+  body {
+    background-color: #F1F5F9;
+  }
+  
+  /* Top sticky floating bar */
+  body::before {
+    content: "ARTHOVA — B. Tech. Project-2 Report | Dharmsinh Desai University (Faculty of Technology, Nadiad)";
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #0F172A;
+    color: #94A3B8;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 24px;
+    text-align: center;
+    letter-spacing: 0.5px;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  body {
+    padding-top: 55px;
+  }
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--primary);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+
+h1 {
+  font-size: 26px;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 8px;
+  margin-top: 2.4em;
+  color: #0F172A;
+}
+
+h2 {
+  font-size: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 6px;
+  margin-top: 1.8em;
+  color: #1E293B;
+}
+
+h3 {
+  font-size: 16px;
+  color: #334155;
+  margin-top: 1.4em;
+}
+
+h4 {
+  font-size: 14px;
+  color: #475569;
+}
+
+/* Title Header */
+h1:first-of-type {
+  font-size: 28px;
+  text-align: center;
+  border-bottom: none;
+  margin-top: 1em;
+  line-height: 1.3;
+}
+
+p {
+  margin-top: 0;
+  margin-bottom: 1.1em;
+  text-align: justify;
+}
+
+/* Lists */
+ul, ol {
+  padding-left: 24px;
+  margin-bottom: 1.2em;
+}
+
+li {
+  margin-bottom: 0.4em;
+}
+
+/* Code & Preformatted */
+pre, code {
+  font-family: 'IBM Plex Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-size: 12.5px;
+}
+
+code {
+  background-color: #F1F5F9;
+  color: #0F172A;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #E2E8F0;
+}
+
+pre {
+  background-color: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  line-height: 1.45;
+  margin: 1.5em 0;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+  border: none;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.8em 0;
+  font-size: 13.5px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+thead th {
+  background-color: var(--table-header);
+  color: #1E293B;
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--border-color);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+tbody td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border-color);
+  color: #334155;
+}
+
+tbody tr:nth-child(even) {
+  background-color: #F8FAFC;
+}
+
+tbody tr:hover {
+  background-color: #F1F5F9;
+}
+
+/* Blockquotes */
+blockquote {
+  border-left: 4px solid var(--primary-accent);
+  margin: 1.5em 0;
+  padding: 10px 18px;
+  background-color: #EFF6FF;
+  border-radius: 0 8px 8px 0;
+  color: #1E3A8A;
+  font-style: normal;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 2.5em 0;
+}
+
+/* Print Styles with Running Header & Footer */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 2.5cm 2cm 2.5cm 2cm;
+    
+    @top-left {
+      content: "ARTHOVA: Quantitative Portfolio Intelligence & Wealth Advisory";
+      font-family: 'Inter', sans-serif;
+      font-size: 8.5pt;
+      color: #64748B;
+      border-bottom: 1px solid #CBD5E1;
+      padding-bottom: 4px;
+    }
+    
+    @top-right {
+      content: "B. Tech. Project-2 Report | DDU IT";
+      font-family: 'Inter', sans-serif;
+      font-size: 8.5pt;
+      color: #64748B;
+      border-bottom: 1px solid #CBD5E1;
+      padding-bottom: 4px;
+    }
+    
+    @bottom-left {
+      content: "Department of Information Technology, Dharmsinh Desai University, Nadiad";
+      font-family: 'Inter', sans-serif;
+      font-size: 8.5pt;
+      color: #64748B;
+      border-top: 1px solid #CBD5E1;
+      padding-top: 4px;
+    }
+    
+    @bottom-right {
+      content: "Page " counter(page);
+      font-family: 'Inter', sans-serif;
+      font-size: 8.5pt;
+      font-weight: bold;
+      color: #0F172A;
+      border-top: 1px solid #CBD5E1;
+      padding-top: 4px;
+    }
+  }
+
+  /* Suppress header/footer on title page */
+  @page:first {
+    @top-left { content: none; }
+    @top-right { content: none; }
+    @bottom-left { content: none; }
+    @bottom-right { content: none; }
+  }
+
+  body {
+    background-color: #FFFFFF !important;
+    padding: 0 !important;
+    font-size: 11pt !important;
+    color: #000000 !important;
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  h1 {
+    page-break-before: always;
+    font-size: 18pt !important;
+  }
+
+  h1:first-of-type {
+    page-break-before: avoid;
+  }
+
+  h2, h3 {
+    page-break-after: avoid;
+  }
+
+  table, pre, blockquote {
+    page-break-inside: avoid;
+  }
+}

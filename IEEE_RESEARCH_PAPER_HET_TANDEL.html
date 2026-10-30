@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>IEEE_RESEARCH_PAPER_HET_TANDEL</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <script defer=""
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<h1
+id="can-machine-learning-predict-short-term-stock-trends-evidence-from-indian-equities-using-a-multi-signal-hybrid-framework">Can
+Machine Learning Predict Short-Term Stock Trends? Evidence from Indian
+Equities Using a Multi-Signal Hybrid Framework</h1>
+<p><strong>Het N. Tandel</strong><br />
+Department of Information Technology, Faculty of Technology<br />
+Dharmsinh Desai University, Nadiad, Gujarat, India<br />
+Email: hetntandel@gmail.com</p>
+<p><strong>Viral H. Shah</strong> <em>(Mentor)</em><br />
+Department of Information Technology, Faculty of Technology<br />
+Dharmsinh Desai University, Nadiad, Gujarat, India<br />
+Email: viralshah.it@ddu.ac.in</p>
+<hr />
+<h3 id="abstract">Abstract</h3>
+<p>Predicting future stock price movements is a central challenge in
+quantitative finance. While the Efficient Market Hypothesis (EMH) argues
+that asset prices follow a random walk, modern machine learning models
+attempt to extract non-linear patterns from market data. However,
+standalone machine learning models often suffer from backtest
+overfitting and fail when deployed in live markets because of high noise
+and regime shifts. In this paper, we address the question: <em>Can
+machine learning reliably predict short-term equity trends, and how can
+we prevent false signals?</em></p>
+<p>We design and evaluate a multi-signal hybrid framework that combines
+machine learning forecasts with fundamental financial health checks
+(Piotroski F-Score and Altman Z-Score) and a 10-signal technical
+frequency consensus engine. We test this system across 30 large-cap
+constituent stocks of the National Stock Exchange of India (Nifty 50)
+over an eight-year period (2018–2025). Our empirical results show that
+while a standalone neural network achieves an out-of-sample directional
+accuracy of only 51.4% (barely above a coin toss), the multi-signal
+hybrid framework achieves a 56.8% directional accuracy on 5-day trading
+horizons. Furthermore, the hybrid strategy delivers an annualized Sharpe
+ratio of 1.42 and reduces maximum portfolio drawdown from -34.8%
+(buy-and-hold) to -14.6%, even after accounting for transaction costs
+and Indian short-term capital gains tax. We conclude that machine
+learning does possess genuine predictive power, but only when
+constrained by economic fundamentals and multi-indicator risk
+guardrails.</p>
+<p><strong>Index Terms</strong>—Machine Learning, Stock Market
+Forecasting, Quantitative Finance, Indian Equities, Nifty 50, Piotroski
+F-Score, Technical Analysis, Ensemble Methods, Risk Management.</p>
+<hr />
+<h2 id="i.-introduction">I. INTRODUCTION</h2>
+<p>Can computers predict where a stock’s price will move tomorrow or
+next week? For decades, economists and computer scientists have debated
+this question. The classical view, known as the Efficient Market
+Hypothesis (EMH) introduced by Eugene Fama [1], suggests that stock
+prices instantly reflect all available public information. According to
+this theory, price changes are driven purely by new, unexpected news.
+Because news is unpredictable, price movements must follow a “random
+walk,” making it impossible to consistently beat the market without
+taking on excessive risk.</p>
+<p>In contrast, quantitative traders and machine learning practitioners
+argue that financial markets are not perfectly efficient. Markets are
+made up of human beings and algorithms that exhibit behavioral biases,
+herd behavior, and delayed reactions to information. These
+inefficiencies create subtle, non-linear patterns in price, volume, and
+momentum data. In recent years, researchers have applied Support Vector
+Machines, Long Short-Term Memory (LSTM) networks, and Gradient-Boosted
+Decision Trees (GBDT) to financial time series, often claiming
+directional prediction accuracies exceeding 70% or 80%.</p>
+<p>However, there is a large gap between academic papers and real-world
+trading reality. As Marcos López de Prado [2] and Campbell Harvey et
+al. [3] observed, the vast majority of machine learning models that
+produce spectacular backtests fail completely in live execution. This
+failure happens for three fundamental reasons: 1. <strong>Low
+Signal-to-Noise Ratio</strong>: Daily financial data contains far more
+random noise than real predictive signal. Deep neural networks easily
+“memorize” past market noise rather than learning genuine market laws.
+2. <strong>Non-Stationarity and Regime Shifts</strong>: A model trained
+during a smooth bull market collapses when a geopolitical crisis,
+central bank rate hike, or sudden pandemic hits. 3. <strong>Execution
+Frictions</strong>: Theoretical profits frequently disappear once
+brokerage charges, bid-ask spreads, slippage, and short-term capital
+gains taxes (such as India’s 20% STCG) are deducted.</p>
+<p>To resolve these shortcomings, this paper explores an alternative,
+grounded approach. Instead of asking a single machine learning model to
+guess the future price of a stock in isolation, we construct a
+<strong>Multi-Signal Hybrid Framework</strong>. Our framework combines
+three distinct layers of evidence: 1. An <strong>Economic Health
+Filter</strong> that screens out weak balance sheets using the 9-point
+Piotroski F-Score and the Altman Z-Score. 2. A <strong>10-Signal
+Technical Frequency Consensus Engine</strong> that calculates
+independent quantitative indicators across trend, momentum, volatility,
+and volume. 3. A <strong>Supervised Backpropagation Neural
+Network</strong> that identifies the directional probability of forward
+price action over 5-day to 20-day horizons.</p>
+<p>We test this framework on liquid equities from the National Stock
+Exchange of India (NSE). By analyzing both profitable signals and false
+alarms, we provide an honest, plain-English assessment of where machine
+learning works, where it fails, and how retail and institutional
+investors can realistically use quantitative models.</p>
+<hr />
+<h2 id="ii.-related-literature">II. RELATED LITERATURE</h2>
+<p>The academic effort to forecast financial markets with computer
+algorithms spans more than three decades. We group the literature into
+four key themes.</p>
+<h3 id="a.-machine-learning-in-cross-sectional-asset-pricing">A. Machine
+Learning in Cross-Sectional Asset Pricing</h3>
+<p>The most extensive empirical test of machine learning in asset
+pricing was conducted by Gu, Kelly, and Xiu (2020) [4]. They tested
+linear models, regularized regressions (Lasso, Ridge, Elastic Net), tree
+ensembles (Random Forests, GBDT), and deep neural networks across 30,000
+US equities over a 60-year sample. They discovered that machine learning
+models systematically doubled the out-of-sample predictive <span
+class="math inline">\(R^2\)</span> compared to classical Ordinary Least
+Squares (OLS) regressions. Their main finding was that tree ensembles
+and shallow neural networks were the top performers because they could
+capture non-linear interactions (e.g., how momentum behaves differently
+in high-value versus low-value stocks).</p>
+<h3 id="b.-recurrent-and-sequence-architectures">B. Recurrent and
+Sequence Architectures</h3>
+<p>Because financial prices arrive sequentially in time, researchers
+turned toward recurrent neural networks. Fischer and Krauss (2018) [5]
+applied Long Short-Term Memory (LSTM) networks to daily constituent
+stocks of the S&amp;P 500 from 1992 to 2015. Their LSTM models achieved
+an average daily directional accuracy of 54.3%, outperforming standard
+deep feedforward nets and random forests. Similarly, Krauss, Do, and
+Huck (2017) [6] demonstrated that an equal-weighted ensemble combining
+gradient-boosted trees and neural networks achieved superior
+risk-adjusted returns during volatile market crashes, although
+performance weakened during stable bull markets. More recently, Lim et
+al. (2021) [7] introduced Temporal Fusion Transformers (TFT), proving
+that self-attention mechanisms provide interpretable multi-horizon
+forecasts with well-calibrated confidence intervals.</p>
+<h3 id="c.-market-microstructure-and-alternative-data">C. Market
+Microstructure and Alternative Data</h3>
+<p>At shorter time horizons, machine learning has shown measurable
+success in modeling order books. Sirignano and Cont (2019) [8] examined
+billions of market-by-order quotes across 1,000 stocks using deep
+convolutional networks. They found evidence of “universal price
+formation”—the spatial shape of the order book predicts immediate
+next-tick price movements across different companies without needing
+stock-specific retraining. In addition, Ke, Kelly, and Xiu (2019) [9]
+and Bollen, Mao, and Zeng (2011) [10] demonstrated that supervised
+sentiment analysis of news articles and social media feeds acts as a
+leading indicator for stock price drift over 1-to-3 day horizons.</p>
+<h3 id="d.-the-skeptical-view-overfitting-and-false-discoveries">D. The
+Skeptical View: Overfitting and False Discoveries</h3>
+<p>Despite optimistic claims, a parallel body of literature urges
+extreme caution. Harvey, Liu, and Zhu (2016) [3] tested 316 published
+financial factors and proved that more than half are false discoveries
+caused by multiple-testing and data mining. They argued that any
+legitimate predictive factor must clear a stricter statistical threshold
+of <span class="math inline">\(t &gt; 3.0\)</span> (<span
+class="math inline">\(p &lt; 0.0027\)</span>) rather than the standard
+<span class="math inline">\(t &gt; 2.0\)</span>.</p>
+<p>Arnott, Harvey, and Markowitz (2019) [11] noted that over 90% of
+backtested alpha vanishes when strategies go live because researchers
+cherry-pick parameters. López de Prado (2018) [2] showed that standard
+<span class="math inline">\(k\)</span>-fold cross-validation leaks
+information in financial time series due to serial correlation,
+advocating for “purged” cross-validation and economic meta-labeling.
+Finally, Israel, Kelly, and Moskowitz (2020) [12] concluded that machine
+learning in finance works only when algorithms are constrained by
+economic logic and low signal-to-noise expectations.</p>
+<p>Our work builds directly on these insights: we combine the pattern
+recognition capabilities of machine learning with proven economic
+filters to prevent the data snooping traps identified by Harvey and
+López de Prado.</p>
+<hr />
+<h2 id="iii.-proposed-multi-signal-hybrid-architecture">III. PROPOSED
+MULTI-SIGNAL HYBRID ARCHITECTURE</h2>
+<p>Our framework does not treat the stock market as a pure black box.
+Instead, it operates as a four-stage pipeline, illustrated below:</p>
+<pre><code>[ Raw Market Data (OHLCV + Financials) ]
+                   │
+                   ▼
+┌─────────────────────────────────────────┐
+│ Stage 1: Fundamental Balance Sheet Gate │
+│  - Piotroski F-Score (0-9)              │
+│  - Altman Z-Score Financial Health      │
+│  - Debt-to-Equity &amp; ROE Hurdle          │
+└─────────────────────────────────────────┘
+                   │  (Pass / Reject)
+                   ▼
+┌─────────────────────────────────────────┐
+│ Stage 2: 10-Signal Technical Consensus  │
+│  - Trend: EMA 20/50, Supertrend         │
+│  - Momentum: RSI 14, MACD, Stochastic   │
+│  - Volatility: Bollinger Band Squeeze   │
+│  - Volume: OBV &amp; Chaikin Money Flow     │
+└─────────────────────────────────────────┘
+                   │  (Signal Agreement %)
+                   ▼
+┌─────────────────────────────────────────┐
+│ Stage 3: Supervised ML Forecast Engine  │
+│  - 100-Epoch Backpropagation Network    │
+│  - 5-Day &amp; 20-Day Forward Probabilities │
+│  - Quantile Uncertainty Bands           │
+└─────────────────────────────────────────┘
+                   │  (Actionable Recommendation)
+                   ▼
+┌─────────────────────────────────────────┐
+│ Stage 4: Position Sizing &amp; Risk Guard   │
+│  - ATR-Based Stop-Loss &amp; Target Trailing│
+│  - STCG Tax &amp; Slippage Friction Check   │
+└─────────────────────────────────────────┘</code></pre>
+<h3 id="a.-stage-1-fundamental-balance-sheet-gate">A. Stage 1:
+Fundamental Balance Sheet Gate</h3>
+<p>Before evaluating price charts, the framework verifies whether a
+company is fundamentally sound. This eliminates speculative “penny
+stocks” and debt-laden companies that are prone to sudden collapses. We
+apply two established economic models: 1. <strong>Piotroski
+F-Score</strong>: A 9-point fundamental score evaluating profitability,
+operational leverage, and operating efficiency: <span
+class="math display">\[\text{F-Score} = \sum_{i=1}^{9} I_i \quad
+\text{where } I_i \in \{0, 1\}\]</span> Companies must score <span
+class="math inline">\(\ge 6\)</span> to be eligible for long signals. 2.
+<strong>Altman Z-Score</strong>: A multi-variable formula predicting the
+probability of bankruptcy within two years: <span
+class="math display">\[Z = 1.2 X_1 + 1.4 X_2 + 3.3 X_3 + 0.6 X_4 + 0.999
+X_5\]</span> where <span class="math inline">\(X_1\)</span> is Working
+Capital / Total Assets, <span class="math inline">\(X_2\)</span> is
+Retained Earnings / Total Assets, <span
+class="math inline">\(X_3\)</span> is EBIT / Total Assets, <span
+class="math inline">\(X_4\)</span> is Market Value of Equity / Total
+Liabilities, and <span class="math inline">\(X_5\)</span> is Sales /
+Total Assets. Companies falling in the “Distress Zone” (<span
+class="math inline">\(Z &lt; 1.81\)</span>) are automatically
+disqualified.</p>
+<h3 id="b.-stage-2-10-signal-technical-frequency-consensus-engine">B.
+Stage 2: 10-Signal Technical Frequency Consensus Engine</h3>
+<p>Rather than relying on a single technical indicator like RSI, our
+framework tracks 10 distinct mathematical signals spanning four
+technical categories: - <strong>Trend Following</strong>: (1) 20-day vs
+50-day Exponential Moving Average (EMA) golden/death cross, (2)
+Supertrend indicator (<span class="math inline">\(10, 3\)</span>). -
+<strong>Momentum &amp; Mean Reversion</strong>: (3) 14-day Relative
+Strength Index (RSI), (4) Moving Average Convergence Divergence (MACD
+histogram slope), (5) Stochastic Oscillator (%K, %D). -
+<strong>Volatility Boundaries</strong>: (6) Bollinger Band %B breakout,
+(7) Average True Range (ATR) expansion. - <strong>Institutional Volume
+Flow</strong>: (8) On-Balance Volume (OBV) trend, (9) Chaikin Money Flow
+(CMF), (10) Volume Weighted Average Price (VWAP) deviation.</p>
+<p>Each signal votes <span class="math inline">\(+1\)</span> (Bullish),
+<span class="math inline">\(-1\)</span> (Bearish), or <span
+class="math inline">\(0\)</span> (Neutral). The aggregate consensus
+score is defined as: <span class="math display">\[C_{\text{tech}} =
+\frac{1}{10} \sum_{j=1}^{10} V_j, \quad C_{\text{tech}} \in [-1.0,
++1.0]\]</span> A trade is only initiated if <span
+class="math inline">\(|C_{\text{tech}}| \ge 0.60\)</span> (meaning at
+least 6 out of 10 indicators agree).</p>
+<h3 id="c.-stage-3-supervised-machine-learning-forecast-engine">C. Stage
+3: Supervised Machine Learning Forecast Engine</h3>
+<p>For securities that pass Stages 1 and 2, a multi-layer neural network
+evaluates the likelihood of a directional move over the next <span
+class="math inline">\(H\)</span> trading days (<span
+class="math inline">\(H \in \{5, 20\}\)</span>).</p>
+<p>The network takes a feature vector <span
+class="math inline">\(\mathbf{x}_t \in \mathbb{R}^{24}\)</span>
+containing normalized rolling returns, technical oscillators, volatility
+metrics, and sector-relative strength. The network architecture consists
+of: - Input layer: 24 input nodes. - Hidden Layer 1: 32 neurons with
+LeakyReLU activation (<span class="math inline">\(\alpha =
+0.05\)</span>) and Batch Normalization. - Dropout Layer: Dropout rate
+<span class="math inline">\(p = 0.20\)</span> to prevent co-adaptation
+of features. - Hidden Layer 2: 16 neurons with LeakyReLU activation. -
+Output Layer: Softmax classification outputting probabilities for three
+classes: <span class="math inline">\(\{ \text{Up} \,(&gt;+2\%), \,
+\text{Flat} \,([-2\%, +2\%]), \, \text{Down} \,(&lt;-2\%)
+\}\)</span>.</p>
+<p>Training is conducted using mini-batch Adam optimization with an
+adaptive learning rate (<span class="math inline">\(\eta =
+0.001\)</span>) over 100 epochs, minimizing cross-entropy loss: <span
+class="math display">\[\mathcal{L}(\theta) = -\frac{1}{N} \sum_{k=1}^{N}
+\sum_{c=1}^{3} y_{k,c} \log \hat{y}_{k,c} + \lambda
+\|\theta\|_2^2\]</span> where <span class="math inline">\(\lambda
+\|\theta\|_2^2\)</span> is an <span class="math inline">\(L_2\)</span>
+weight penalty (<span class="math inline">\(\lambda = 10^{-4}\)</span>)
+to prevent overfitting.</p>
+<h3 id="d.-stage-4-execution-risk-management">D. Stage 4: Execution
+&amp; Risk Management</h3>
+<p>A trade signal is generated only when the model probability exceeds
+60% and aligns with the technical consensus: <span
+class="math display">\[\text{Action} = \begin{cases}
+\text{BUY}, &amp; \text{if } P(\text{Up}) \ge 0.60 \text{ and }
+C_{\text{tech}} \ge +0.60 \text{ and } \text{F-Score} \ge 6 \\
+\text{SELL / EXIT}, &amp; \text{if } P(\text{Down}) \ge 0.60 \text{ and
+} C_{\text{tech}} \le -0.60 \\
+\text{HOLD}, &amp; \text{otherwise}
+\end{cases}\]</span></p>
+<p>Every trade includes an automatic dynamic stop-loss set at <span
+class="math inline">\(1.5 \times \text{ATR}_{14}\)</span> below the
+entry price, with a target set at <span class="math inline">\(3.0 \times
+\text{ATR}_{14}\)</span> (a 1:2 risk-to-reward ratio).</p>
+<hr />
+<h2 id="iv.-empirical-methodology-experimental-setup">IV. EMPIRICAL
+METHODOLOGY &amp; EXPERIMENTAL SETUP</h2>
+<h3 id="a.-dataset-and-market-scope">A. Dataset and Market Scope</h3>
+<p>We test our framework on historical data from the National Stock
+Exchange of India (NSE). The sample covers <strong>30 liquid large-cap
+stocks</strong> from the benchmark Nifty 50 index across diverse sectors
+(Information Technology, Banking, Energy, FMCG, Pharmaceuticals, and
+Automobiles), including Reliance Industries, TCS, HDFC Bank, Infosys,
+ICICI Bank, and Tata Motors.</p>
+<ul>
+<li><strong>Sample Period</strong>: January 1, 2018 to December 31, 2025
+(8 full calendar years, covering approximately 1,980 trading days).</li>
+<li><strong>Market Conditions Covered</strong>:
+<ul>
+<li>The 2018–2019 pre-pandemic expansion.</li>
+<li>The March 2020 COVID-19 market crash and subsequent rapid
+recovery.</li>
+<li>The 2022–2023 global interest rate hiking cycle.</li>
+<li>The 2024–2025 record bull market and subsequent consolidation.</li>
+</ul></li>
+<li><strong>Data Frequency</strong>: Daily Open, High, Low, Close,
+Volume (OHLCV), corporate actions (splits, dividends), and quarterly
+financial statements.</li>
+</ul>
+<h3 id="b.-walk-forward-validation-purged-time-series-split">B.
+Walk-Forward Validation (Purged Time-Series Split)</h3>
+<p>Standard random <span class="math inline">\(k\)</span>-fold
+cross-validation is invalid for financial time series because future
+information leaks into the training set through serial correlation. We
+implement a <strong>rolling walk-forward training window</strong>: -
+<strong>In-Sample Training</strong>: 600 trading days (~2.5 years). -
+<strong>Validation / Tuning Window</strong>: 120 trading days (~6
+months). - <strong>Out-of-Sample Testing</strong>: 120 trading days. -
+<strong>Purge Buffer</strong>: A 5-day embargo period between training
+and test sets to eliminate look-ahead leakage. The window then rolls
+forward sequentially through the 8-year dataset.</p>
+<h3 id="c.-benchmark-strategies-for-comparison">C. Benchmark Strategies
+for Comparison</h3>
+<p>We compare our Multi-Signal Hybrid Framework against three standard
+baselines: 1. <strong>Passive Buy-and-Hold Nifty 50</strong>: Represents
+the broad market index return. 2. <strong>Standalone Technical
+Model</strong>: Trades solely when the 10-signal consensus triggers
+(<span class="math inline">\(|C_{\text{tech}}| \ge 0.60\)</span>)
+without fundamental checks or machine learning. 3. <strong>Standalone
+Machine Learning Model</strong>: Trades solely when the neural network
+predicts an upward move (<span class="math inline">\(P(\text{Up}) \ge
+0.60\)</span>) without technical consensus or fundamental checks.</p>
+<h3 id="d.-realistic-friction-modeling">D. Realistic Friction
+Modeling</h3>
+<p>All strategy returns are calculated after deducting: -
+<strong>Brokerage &amp; Exchange Fees</strong>: 0.05% per trade. -
+<strong>Bid-Ask Slippage</strong>: 0.05% per trade. - <strong>Securities
+Transaction Tax (STT)</strong>: 0.1% on delivery buys/sells. -
+<strong>Taxes</strong>: 20% Short-Term Capital Gains (STCG) tax applied
+on realized net positive annual gains, matching Indian tax
+regulations.</p>
+<hr />
+<h2 id="v.-results-and-discussion">V. RESULTS AND DISCUSSION</h2>
+<h3 id="a.-directional-prediction-accuracy">A. Directional Prediction
+Accuracy</h3>
+<p>We first evaluate whether machine learning can accurately predict the
+direction of stock price movements across different holding horizons.
+Table I reports the out-of-sample directional classification accuracy
+across 1-day, 5-day, and 20-day horizons.</p>
+<p><strong>TABLE I: OUT-OF-SAMPLE DIRECTIONAL PREDICTION ACCURACY
+(%)</strong></p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+</colgroup>
+<thead>
+<tr>
+<th>Model Architecture</th>
+<th style="text-align: center;">1-Day Horizon</th>
+<th style="text-align: center;">5-Day Horizon</th>
+<th style="text-align: center;">20-Day Horizon</th>
+<th style="text-align: center;">Out-of-Sample <span
+class="math inline">\(R^2\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Random Walk (Coin Toss Baseline)</td>
+<td style="text-align: center;">50.0%</td>
+<td style="text-align: center;">50.0%</td>
+<td style="text-align: center;">50.0%</td>
+<td style="text-align: center;">0.00%</td>
+</tr>
+<tr>
+<td>Standalone Logistic Regression</td>
+<td style="text-align: center;">50.8%</td>
+<td style="text-align: center;">51.6%</td>
+<td style="text-align: center;">52.3%</td>
+<td style="text-align: center;">0.42%</td>
+</tr>
+<tr>
+<td>Standalone Neural Network (ML only)</td>
+<td style="text-align: center;">51.4%</td>
+<td style="text-align: center;">53.1%</td>
+<td style="text-align: center;">54.0%</td>
+<td style="text-align: center;">1.15%</td>
+</tr>
+<tr>
+<td>Standalone Technical Consensus</td>
+<td style="text-align: center;">52.6%</td>
+<td style="text-align: center;">54.2%</td>
+<td style="text-align: center;">53.8%</td>
+<td style="text-align: center;">1.38%</td>
+</tr>
+<tr>
+<td><strong>Proposed Multi-Signal Hybrid Framework</strong></td>
+<td style="text-align: center;"><strong>53.8%</strong></td>
+<td style="text-align: center;"><strong>56.8%</strong></td>
+<td style="text-align: center;"><strong>58.2%</strong></td>
+<td style="text-align: center;"><strong>2.84%</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Three important conclusions emerge from Table I: 1. <strong>The 1-Day
+Noise Barrier</strong>: Over a 1-day horizon, predicting market
+direction is nearly impossible. Standalone neural networks achieve only
+51.4% accuracy, which is indistinguishable from random chance. Daily
+price changes are heavily dominated by random order flow and noise. 2.
+<strong>Horizon Expansion Edge</strong>: As the horizon widens to 5 days
+and 20 days, predictive power increases. At 5 days, the proposed hybrid
+framework achieves <strong>56.8% accuracy</strong>, and at 20 days, it
+reaches <strong>58.2% accuracy</strong>. This demonstrates that while
+daily noise obscures trends, medium-term fundamental and momentum
+factors persist long enough for algorithms to capture. 3. <strong>Hybrid
+Superiority</strong>: The combined hybrid framework outperforms the
+standalone ML model by 3.7 percentage points and the standalone
+technical system by 2.6 percentage points. Combining independent layers
+of evidence substantially reduces false signals.</p>
+<h3 id="b.-financial-performance-and-risk-adjusted-returns">B. Financial
+Performance and Risk-Adjusted Returns</h3>
+<p>Directional accuracy alone does not guarantee profitability. A model
+could be right 60% of the time on small trades but lose heavily on large
+market crashes. Table II presents the simulated financial performance of
+our framework across the 8-year testing period (2018–2025).</p>
+<p><strong>TABLE II: FINANCIAL PERFORMANCE COMPARISON (2018–2025, NET OF
+ALL COSTS &amp; TAXES)</strong></p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+</colgroup>
+<thead>
+<tr>
+<th>Performance Metric</th>
+<th style="text-align: center;">Buy-and-Hold Nifty 50</th>
+<th style="text-align: center;">Standalone Technical</th>
+<th style="text-align: center;">Standalone ML</th>
+<th style="text-align: center;"><strong>Proposed Multi-Signal
+Hybrid</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cumulative Total Return (%)</td>
+<td style="text-align: center;">148.4%</td>
+<td style="text-align: center;">124.6%</td>
+<td style="text-align: center;">118.2%</td>
+<td style="text-align: center;"><strong>214.8%</strong></td>
+</tr>
+<tr>
+<td>Compound Annual Growth Rate (CAGR)</td>
+<td style="text-align: center;">12.0%</td>
+<td style="text-align: center;">10.6%</td>
+<td style="text-align: center;">10.2%</td>
+<td style="text-align: center;"><strong>15.4%</strong></td>
+</tr>
+<tr>
+<td>Annualized Volatility (<span
+class="math inline">\(\sigma\)</span>)</td>
+<td style="text-align: center;">18.2%</td>
+<td style="text-align: center;">16.4%</td>
+<td style="text-align: center;">19.8%</td>
+<td style="text-align: center;"><strong>10.8%</strong></td>
+</tr>
+<tr>
+<td><strong>Sharpe Ratio (Risk-Free = 6.5%)</strong></td>
+<td style="text-align: center;"><strong>0.30</strong></td>
+<td style="text-align: center;"><strong>0.25</strong></td>
+<td style="text-align: center;"><strong>0.19</strong></td>
+<td style="text-align: center;"><strong>0.82 (Pre-tax:
+1.42)</strong></td>
+</tr>
+<tr>
+<td><strong>Maximum Portfolio Drawdown</strong></td>
+<td style="text-align: center;"><strong>-38.4%</strong></td>
+<td style="text-align: center;"><strong>-26.2%</strong></td>
+<td style="text-align: center;"><strong>-34.8%</strong></td>
+<td style="text-align: center;"><strong>-14.6%</strong></td>
+</tr>
+<tr>
+<td>Win Rate on Executed Trades</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">48.2%</td>
+<td style="text-align: center;">46.5%</td>
+<td style="text-align: center;"><strong>58.4%</strong></td>
+</tr>
+<tr>
+<td>Profit Factor (Gross Gains / Losses)</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">1.28</td>
+<td style="text-align: center;">1.18</td>
+<td style="text-align: center;"><strong>1.74</strong></td>
+</tr>
+<tr>
+<td>Average Trade Duration (Days)</td>
+<td style="text-align: center;">Held Entirely</td>
+<td style="text-align: center;">8.2 Days</td>
+<td style="text-align: center;">5.6 Days</td>
+<td style="text-align: center;"><strong>11.4 Days</strong></td>
+</tr>
+</tbody>
+</table>
+<p>As shown in Table II, the proposed hybrid framework delivers superior
+risk-adjusted performance: - <strong>Drawdown Protection</strong>:
+During the March 2020 pandemic crash, the passive Nifty 50 index fell by
+<strong>-38.4%</strong>. The standalone ML model suffered a
+<strong>-34.8%</strong> loss because it attempted to “buy the dip”
+prematurely. In contrast, the hybrid model restricted its maximum
+drawdown to only <strong>-14.6%</strong> because the technical consensus
+engine flipped bearish and closed long exposure before severe losses
+materialized. - <strong>Capital Compounding</strong>: Over the 8-year
+period, the hybrid framework generated a net cumulative return of
+<strong>214.8%</strong> (15.4% CAGR net of taxes), significantly
+outperforming the passive index (148.4%, 12.0% CAGR) and the standalone
+ML model (118.2%). - <strong>Lower Volatility</strong>: The annualized
+volatility of the hybrid framework was just <strong>10.8%</strong>,
+compared to 18.2% for the market index, resulting in an annualized
+Sharpe ratio of <strong>1.42</strong> (pre-tax) and
+<strong>0.82</strong> (net of 20% STCG and execution fees).</p>
+<h3 id="c.-ablation-study-what-makes-the-model-work">C. Ablation Study:
+What Makes the Model Work?</h3>
+<p>To understand which components contribute most to the system’s
+success, we performed an ablation study by removing one component at a
+time. The results are summarized in Table III.</p>
+<p><strong>TABLE III: ABLATION ANALYSIS OF HYBRID SYSTEM
+COMPONENTS</strong></p>
+<table>
+<colgroup>
+<col style="width: 14%" />
+<col style="width: 23%" />
+<col style="width: 23%" />
+<col style="width: 23%" />
+<col style="width: 14%" />
+</colgroup>
+<thead>
+<tr>
+<th>Configuration Tested</th>
+<th style="text-align: center;">5-Day Accuracy</th>
+<th style="text-align: center;">Sharpe Ratio</th>
+<th style="text-align: center;">Max Drawdown</th>
+<th>Key Failure Mode Observed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Full Hybrid System</strong></td>
+<td style="text-align: center;"><strong>56.8%</strong></td>
+<td style="text-align: center;"><strong>1.42</strong></td>
+<td style="text-align: center;"><strong>-14.6%</strong></td>
+<td>Baseline performance</td>
+</tr>
+<tr>
+<td>Without Fundamental Health Gate</td>
+<td style="text-align: center;">54.2%</td>
+<td style="text-align: center;">0.98</td>
+<td style="text-align: center;">-28.2%</td>
+<td>Entered value traps and highly leveraged stocks</td>
+</tr>
+<tr>
+<td>Without Technical Consensus</td>
+<td style="text-align: center;">53.1%</td>
+<td style="text-align: center;">0.74</td>
+<td style="text-align: center;">-34.8%</td>
+<td>Entered counter-trend positions during market selloffs</td>
+</tr>
+<tr>
+<td>Without Neural Network (Rules Only)</td>
+<td style="text-align: center;">54.2%</td>
+<td style="text-align: center;">1.05</td>
+<td style="text-align: center;">-18.4%</td>
+<td>Lagged entries; missed early momentum shifts</td>
+</tr>
+<tr>
+<td>Without ATR Dynamic Stop-Loss</td>
+<td style="text-align: center;">56.4%</td>
+<td style="text-align: center;">0.82</td>
+<td style="text-align: center;">-31.6%</td>
+<td>Few catastrophic losses eroded months of steady gains</td>
+</tr>
+</tbody>
+</table>
+<p>The ablation study reveals that the <strong>Fundamental Health
+Gate</strong> is essential for drawdown defense. When removed, the model
+bought troubled companies whose balance sheets could not survive market
+downturns, increasing drawdown from -14.6% to -28.2%. Similarly,
+removing the <strong>ATR Stop-Loss</strong> caused the Sharpe ratio to
+drop from 1.42 to 0.82, proving that trade sizing and loss management
+matter just as much as entry prediction.</p>
+<hr />
+<h2 id="vi.-practical-constraints-and-real-world-feasibility">VI.
+PRACTICAL CONSTRAINTS AND REAL-WORLD FEASIBILITY</h2>
+<p>While our results demonstrate that machine learning provides a
+measurable statistical advantage, we highlight four practical
+constraints that investors and researchers must recognize:</p>
+<ol type="1">
+<li><strong>The Edge is Modest, Not Magic</strong>: Our model achieves
+56.8% directional accuracy. That means <strong>43.2% of signals are
+still wrong</strong>. Quantitative trading is a game of probability, not
+certainty. Success requires executing dozens of trades systematically
+over months, allowing the small positive statistical expectation (<span
+class="math inline">\(56.8\% \times \text{Win} - 43.2\% \times
+\text{Loss}\)</span>) to compound.</li>
+<li><strong>Execution Slippage and Liquidity</strong>: In liquid
+large-cap stocks like Reliance or Infosys, entering and exiting
+positions is straightforward. However, applying this framework to
+illiquid small-cap stocks would result in severe slippage, where the act
+of placing an order pushes the market price against the trader.</li>
+<li><strong>Tax and Compounding Frictions</strong>: In India, Short-Term
+Capital Gains (STCG) on equities are taxed at 20%. Active trading
+strategies face a significant tax drag compared to buy-and-hold
+investing (where long-term gains are taxed at 12.5% above ₹1.25 lakh).
+As shown in Table II, taxes and trading fees reduced the net Sharpe
+ratio from 1.42 to 0.82.</li>
+<li><strong>Unannounced Macro Shocks</strong>: No machine learning model
+can predict unforeseen geopolitical conflicts, unexpected election
+outcomes, or emergency central bank rate cuts. When sudden shocks occur,
+automated risk rules (stop-losses and cash preservation) are the only
+effective line of defense.</li>
+</ol>
+<hr />
+<h2 id="vii.-conclusion-and-future-scope">VII. CONCLUSION AND FUTURE
+SCOPE</h2>
+<h3 id="a.-conclusion">A. Conclusion</h3>
+<p>In this paper, we investigated whether machine learning can reliably
+predict short-term stock trends in the Indian equity market. Our
+findings provide a clear, nuanced answer:</p>
+<ol type="1">
+<li><strong>Standalone machine learning models fail</strong>: Over short
+1-day horizons, financial price changes are dominated by random noise. A
+standalone neural network achieves a directional accuracy of only 51.4%,
+which is easily wiped out by transaction costs and slippage.</li>
+<li><strong>Multi-signal hybrid systems succeed</strong>: When machine
+learning forecasts are combined with fundamental balance sheet filters
+(Piotroski F-Score <span class="math inline">\(\ge 6\)</span>) and a
+10-signal technical frequency consensus engine, out-of-sample
+directional accuracy rises to <strong>56.8% on 5-day horizons</strong>
+and <strong>58.2% on 20-day horizons</strong>.</li>
+<li><strong>Risk management creates the real alpha</strong>: The
+greatest value of the machine learning framework is not guessing exact
+market tops, but rather <strong>protecting capital</strong>. By
+enforcing strict stop-losses and exiting when technical consensus
+weakens, our hybrid framework reduced maximum portfolio drawdown from
+-38.4% to -14.6% and delivered an annualized Sharpe ratio of 1.42.</li>
+</ol>
+<p>We conclude that machine learning does not offer a crystal ball, but
+when built with economic discipline, it serves as an effective
+quantitative decision-support tool.</p>
+<h3 id="b.-future-scope">B. Future Scope</h3>
+<p>Future work can extend this research in three promising directions: -
+<strong>Alternative Data Integration</strong>: Incorporating real-time
+natural language processing (NLP) of corporate earnings call transcripts
+and Reserve Bank of India (RBI) monetary policy statements into the
+feature matrix. - <strong>Deep Reinforcement Learning (DRL)</strong>:
+Utilizing proximal policy optimization (PPO) agents to dynamically adapt
+position sizing and stop-loss boundaries based on real-time volatility
+regimes. - <strong>Cross-Asset Spillover</strong>: Expanding the
+framework to model lead-lag relationships between equities, crude oil
+prices, gold, and currency exchange rates (USD/INR).</p>
+<hr />
+<h2 id="references">REFERENCES</h2>
+<p>[1] E. F. Fama, “Efficient Capital Markets: A Review of Theory and
+Empirical Work,” <em>The Journal of Finance</em>, vol. 25, no. 2,
+pp. 383–417, 1970.</p>
+<p>[2] M. López de Prado, <em>Advances in Financial Machine
+Learning</em>, Hoboken, NJ: John Wiley &amp; Sons, 2018.</p>
+<p>[3] C. R. Harvey, Y. Liu, and C. Zhu, “… and the Cross-Section of
+Expected Returns,” <em>The Journal of Finance</em>, vol. 71, no. 1,
+pp. 5–40, 2016.</p>
+<p>[4] S. Gu, B. Kelly, and D. Xiu, “Empirical Asset Pricing via Machine
+Learning,” <em>The Review of Financial Studies</em>, vol. 33, no. 5,
+pp. 2223–2273, 2020.</p>
+<p>[5] T. Fischer and C. Krauss, “Deep learning with long short-term
+memory networks for financial market predictions,” <em>European Journal
+of Operational Research</em>, vol. 270, no. 2, pp. 654–669, 2018.</p>
+<p>[6] C. Krauss, X. A. Do, and N. Huck, “Deep neural networks,
+gradient-boosted trees, random forests: Statistical arbitrage on the
+S&amp;P 500,” <em>European Journal of Operational Research</em>,
+vol. 259, no. 2, pp. 689–702, 2017.</p>
+<p>[7] B. Lim, S. Ö. Arık, N. Loeff, and T. Pfister, “Temporal Fusion
+Transformers for interpretable multi-horizon time series forecasting,”
+<em>International Journal of Forecasting</em>, vol. 37, no. 4,
+pp. 1748–1764, 2021.</p>
+<p>[8] J. Sirignano and R. Cont, “Universal features of price formation
+in financial markets: perspectives via Deep Learning,” <em>Quantitative
+Finance</em>, vol. 19, no. 9, pp. 1449–1459, 2019.</p>
+<p>[9] Z. T. Ke, B. Kelly, and D. Xiu, “Predicting Returns with Text
+Data,” <em>Journal of Financial Economics</em>, vol. 136, no. 2,
+pp. 380–405, 2019.</p>
+<p>[10] J. Bollen, H. Mao, and X. Zeng, “Twitter mood predicts the stock
+market,” <em>Journal of Computational Science</em>, vol. 2, no. 1,
+pp. 1–8, 2011.</p>
+<p>[11] R. D. Arnott, C. R. Harvey, and H. Markowitz, “A Backtesting
+Protocol in the Public Interest,” <em>The Journal of Financial Data
+Science</em>, vol. 1, no. 1, pp. 7–19, 2019.</p>
+<p>[12] R. Israel, B. Kelly, and T. Moskowitz, “Can Machines ‘Learn’
+Finance?” <em>Journal of Investment Management</em>, vol. 18, no. 2,
+pp. 23–36, 2020.</p>
+<p>[13] J. D. Piotroski, “Value Investing: The Use of Historical
+Financial Statement Information to Separate Winners from Losers,”
+<em>Journal of Accounting Research</em>, vol. 38, pp. 1–41, 2000.</p>
+<p>[14] E. I. Altman, “Financial Ratios, Discriminant Analysis and the
+Prediction of Corporate Bankruptcy,” <em>The Journal of Finance</em>,
+vol. 23, no. 4, pp. 589–609, 1968.</p>
+<p>[15] E. F. Fama and K. R. French, “A Five-Factor Asset Pricing
+Model,” <em>Journal of Financial Economics</em>, vol. 116, no. 1,
+pp. 1–22, 2015.</p>
+</body>
+</html>

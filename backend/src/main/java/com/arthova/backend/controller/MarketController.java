@@ -10,7 +10,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/public/market")
-@CrossOrigin(origins = "http://localhost:3000")
 public class MarketController {
 
     @Autowired
@@ -29,5 +28,11 @@ public class MarketController {
     @GetMapping("/quote")
     public BigDecimal getQuote(@RequestParam String symbol) {
         return marketService.getQuote(symbol);
+    }
+
+    @GetMapping("/delay")
+    public Map<String, Object> getDelayed(@RequestParam(defaultValue = "3000") long ms) throws InterruptedException {
+        Thread.sleep(Math.min(ms, 10000));
+        return Map.of("status", "delayed_response_ok", "delayMs", ms);
     }
 }

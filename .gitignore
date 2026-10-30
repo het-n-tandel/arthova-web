@@ -32,6 +32,17 @@ backend/target/
 *.swp
 *.swo
 
+# Logs and Process IDs
+*.log
+*.pid
+backend/*.log
+backend/*.pid
+frontend/*.log
+frontend/*.pid
+
+# Agents & local tooling
+.agents/
+
 # Temporary scripts
 frontend/scripts/test_query.js
 frontend/scripts/clear_rows.js

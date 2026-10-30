@@ -9,3 +9,4 @@ export * from './price-cell';
 export * from './skeleton-loader';
 export * from './notification-toast';
 export * from './asset-action-modal';
+export * from './disclosure-card';

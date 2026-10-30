@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/public/compare")
-@CrossOrigin(origins = "http://localhost:3000")
 public class ComparisonController {
 
     @Autowired

@@ -56,8 +56,15 @@ export async function GET() {
     // 2. Try Spring Boot for saved profile
     let profile: any = null;
     try {
+      const secret = process.env.INTERNAL_API_SECRET;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (secret) {
+        headers['X-Internal-Secret'] = secret;
+        headers['X-User-Id'] = userId;
+      }
+
       const res = await fetch(`${BACKEND_URL}/api/public/ai/profile/${userId}`, {
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         signal: AbortSignal.timeout(2000),
       });
 
@@ -155,9 +162,16 @@ export async function POST(req: Request) {
         ? `${BACKEND_URL}/api/public/ai/profile/${userId}`
         : `${BACKEND_URL}/api/public/ai/recommendation`;
 
+      const secret = process.env.INTERNAL_API_SECRET;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (secret && userId) {
+        headers['X-Internal-Secret'] = secret;
+        headers['X-User-Id'] = userId;
+      }
+
       const res = await fetch(targetUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(3000),
       });

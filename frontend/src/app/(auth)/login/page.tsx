@@ -1,17 +1,32 @@
 'use client';
-import { useState } from 'react';
+
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowRight, Mail, Lock, Building, ShieldCheck, Loader2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowRight, Mail, Lock, Building, ShieldCheck, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const emailParam = searchParams.get('email');
+  const registered = searchParams.get('registered');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  useEffect(() => {
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+    if (registered) {
+      setSuccess('Account created successfully! Sign in below to enter your dashboard.');
+    }
+  }, [emailParam, registered]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +42,7 @@ export default function LoginPage() {
       });
       
       if (res?.error) {
-        setError('Invalid email or password');
+        setError('Invalid email or password. Please verify your credentials or use the 1-click demo login.');
         setLoading(false);
       } else {
         router.push('/dashboard');
@@ -40,9 +55,34 @@ export default function LoginPage() {
     }
   };
 
+  const handleQuickLogin = async (loginEmail: string, loginPass: string) => {
+    setError(null);
+    setDemoLoading(true);
+    setEmail(loginEmail);
+    setPassword(loginPass);
+    try {
+      const res = await signIn('credentials', {
+        email: loginEmail,
+        password: loginPass,
+        redirect: false,
+      });
+      if (res?.error) {
+        setError('Login failed: ' + res.error);
+        setDemoLoading(false);
+      } else {
+        router.push('/dashboard');
+        router.refresh();
+      }
+    } catch (err) {
+      console.error('Quick login error:', err);
+      setError('An unexpected error occurred.');
+      setDemoLoading(false);
+    }
+  };
+
   const handleDematLogin = (e: React.MouseEvent) => {
     e.preventDefault();
-    router.push('/dashboard');
+    handleQuickLogin('demo@arthova.com', 'password123');
   };
 
   return (
@@ -64,9 +104,16 @@ export default function LoginPage() {
         <h1 className="font-display text-[30px] font-bold text-text-primary tracking-tight text-gradient-emerald mt-1">
           Welcome back
         </h1>
-        <p className="text-text-secondary text-[13.5px] mt-1 mb-7 leading-relaxed">
+        <p className="text-text-secondary text-[13.5px] mt-1 mb-5 leading-relaxed">
           Sign in to access your unified portfolio & quant analytics engine.
         </p>
+
+        {success && (
+          <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 px-4 py-3 rounded-xl text-[13px] mb-5 font-medium flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{success}</span>
+          </div>
+        )}
 
         {error && (
           <div className="bg-rose-500/10 border border-rose-500/25 text-rose-300 px-4 py-3 rounded-xl text-[13px] mb-5 font-medium flex items-center gap-2 animate-in fade-in">
@@ -74,6 +121,34 @@ export default function LoginPage() {
             <span>{error}</span>
           </div>
         )}
+
+        {/* 1-Click Fast Login Card */}
+        <div className="mb-5 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase text-emerald-400 flex items-center gap-1 font-semibold">
+              <Sparkles className="w-3.5 h-3.5" /> Quick Access
+            </span>
+            <span className="text-[11px] text-text-faint font-mono">Password: password123</span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={demoLoading || loading}
+              onClick={() => handleQuickLogin('hnt@gmail.com', 'password123')}
+              className="flex-1 py-1.5 px-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 rounded-lg text-[12px] font-medium text-emerald-300 transition-colors text-center disabled:opacity-50"
+            >
+              {demoLoading ? 'Signing in...' : 'Het (hnt@gmail.com)'}
+            </button>
+            <button
+              type="button"
+              disabled={demoLoading || loading}
+              onClick={() => handleQuickLogin('demo@arthova.com', 'password123')}
+              className="flex-1 py-1.5 px-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[12px] font-medium text-text-primary transition-colors text-center disabled:opacity-50"
+            >
+              {demoLoading ? 'Signing in...' : 'Demo User'}
+            </button>
+          </div>
+        </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5">
@@ -95,9 +170,6 @@ export default function LoginPage() {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[12.5px] font-medium text-text-primary">Password</label>
-              <Link href="#" className="text-[12px] text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
-                Forgot password?
-              </Link>
             </div>
             <div className="relative group">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint group-focus-within:text-emerald-400 transition-colors" />
@@ -115,7 +187,7 @@ export default function LoginPage() {
 
           <button 
             type="submit" 
-            disabled={loading}
+            disabled={loading || demoLoading}
             className="w-full mt-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-semibold py-2.5 rounded-xl text-[14px] shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
           >
             {loading ? (
@@ -132,7 +204,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="relative my-7">
+        <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-white/[0.08]" />
           </div>
@@ -143,14 +215,15 @@ export default function LoginPage() {
 
         <button 
           onClick={handleDematLogin} 
+          disabled={demoLoading || loading}
           type="button"
-          className="w-full flex items-center justify-center gap-2.5 bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 hover:border-white/20 py-2.5 rounded-xl font-medium text-[13.5px] text-text-primary transition-all duration-200 group cursor-pointer"
+          className="w-full flex items-center justify-center gap-2.5 bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 hover:border-white/20 py-2.5 rounded-xl font-medium text-[13.5px] text-text-primary transition-all duration-200 group cursor-pointer disabled:opacity-50"
         >
           <Building className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-          <span>Connect Broker / Demat Account</span>
+          <span>Connect Broker / Instant Demo Terminal</span>
         </button>
 
-        <p className="text-center text-[13px] text-text-secondary mt-7">
+        <p className="text-center text-[13px] text-text-secondary mt-6">
           New to ARTHOVA?{' '}
           <Link href="/register" className="text-emerald-400 hover:text-emerald-300 font-medium hover:underline transition-colors">
             Create an account
@@ -158,5 +231,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="text-text-faint text-center">Loading sign in...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

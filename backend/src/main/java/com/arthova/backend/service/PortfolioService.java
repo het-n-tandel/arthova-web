@@ -34,6 +34,23 @@ public class PortfolioService {
 
     @Transactional
     public Holding executeTrade(UUID userId, TradeRequest request) {
+        // Defensive Service-Layer Invariant Validation
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID must not be null.");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("Trade request must not be null.");
+        }
+        if (request.getQuantity() == null || request.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Trade quantity must be strictly greater than zero.");
+        }
+        if (request.getPricePerUnit() == null || request.getPricePerUnit().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Trade price must be strictly greater than zero.");
+        }
+        if (request.getTransactionType() == null) {
+            throw new IllegalArgumentException("Transaction type must be specified.");
+        }
+
         // Resolve the effective purchase date: use user-provided date or default to today
         LocalDate effectivePurchaseDate = request.getPurchaseDate() != null
                 ? request.getPurchaseDate()

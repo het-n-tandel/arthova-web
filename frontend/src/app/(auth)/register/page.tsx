@@ -6,6 +6,8 @@ import { Mail, Lock, User, Calendar, Globe, Briefcase, Coins, Activity, ChevronD
 import { cn } from '@/lib/formatters';
 import { registerUser } from '../actions';
 
+import { signIn } from 'next-auth/react';
+
 export default function RegisterPage() {
   const router = useRouter();
   const [password, setPassword] = useState('');
@@ -20,14 +22,32 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const formData = new FormData(e.target as HTMLFormElement);
+    const formElement = e.target as HTMLFormElement;
+    const formData = new FormData(formElement);
+    const emailVal = (formData.get('email') as string)?.trim().toLowerCase();
+    const passVal = formData.get('password') as string;
+
     const res = await registerUser(formData);
     
     if (res?.error) {
       setError(res.error);
       setLoading(false);
     } else {
-      router.push('/login');
+      try {
+        const signRes = await signIn('credentials', {
+          email: emailVal,
+          password: passVal,
+          redirect: false,
+        });
+        if (!signRes?.error) {
+          router.push('/dashboard');
+          router.refresh();
+          return;
+        }
+      } catch (err) {
+        console.error('Auto sign-in error:', err);
+      }
+      router.push(`/login?email=${encodeURIComponent(emailVal)}&registered=1`);
     }
   };
 
@@ -54,9 +74,16 @@ export default function RegisterPage() {
         </p>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/25 text-rose-300 px-4 py-3 rounded-xl text-[13px] mb-5 font-medium flex items-center gap-2 animate-in fade-in">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
-            {error}
+          <div className="bg-rose-500/10 border border-rose-500/25 text-rose-300 px-4 py-3 rounded-xl text-[13px] mb-5 font-medium flex items-center justify-between gap-2 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+              <span>{error}</span>
+            </div>
+            {error.toLowerCase().includes('already exists') && (
+              <Link href="/login" className="underline text-emerald-400 hover:text-emerald-300 whitespace-nowrap text-[12px] font-semibold">
+                Sign In →
+              </Link>
+            )}
           </div>
         )}
 

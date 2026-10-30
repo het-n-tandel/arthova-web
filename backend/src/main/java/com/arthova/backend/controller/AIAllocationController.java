@@ -10,7 +10,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/public/ai")
-@CrossOrigin(origins = "http://localhost:3000")
 public class AIAllocationController {
 
     @Autowired

@@ -4,7 +4,6 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { useLedgerStore } from '@/lib/store';
-import { BACKEND_URL } from '@/lib/config';
 
 export interface AssetAllocation {
   name: string;
@@ -58,13 +57,7 @@ export function usePortfolio(): PortfolioSummary {
         const res = await fetch('/api/holdings');
         if (res.ok) return res.json();
       } catch (err) {
-        console.warn('Next.js /api/holdings failed, trying fallback:', err);
-      }
-      try {
-        const fallbackRes = await fetch(`${BACKEND_URL}/api/public/portfolio/${userId}`);
-        if (fallbackRes.ok) return fallbackRes.json();
-      } catch (err) {
-        // Fallback offline
+        console.warn('Next.js /api/holdings failed:', err);
       }
       return [];
     },
@@ -72,15 +65,15 @@ export function usePortfolio(): PortfolioSummary {
   });
 
   return useMemo(() => {
-    let stockVal = { invested: 0, current: 0 };
-    let mfVal    = { invested: 0, current: 0 };
-    let goldVal  = { invested: 0, current: 0 };
-    let fdVal    = { invested: 0, current: 0 };
-    let propVal  = { invested: 0, current: 0 };
-    let cryptoVal = { invested: 0, current: 0 };
-    let cashVal  = { invested: 0, current: 0 };
-    let bondVal  = { invested: 0, current: 0 };
-    let liabilityVal = { invested: 0, current: 0 };
+    const stockVal = { invested: 0, current: 0 };
+    const mfVal    = { invested: 0, current: 0 };
+    const goldVal  = { invested: 0, current: 0 };
+    const fdVal    = { invested: 0, current: 0 };
+    const propVal  = { invested: 0, current: 0 };
+    const cryptoVal = { invested: 0, current: 0 };
+    const cashVal  = { invested: 0, current: 0 };
+    const bondVal  = { invested: 0, current: 0 };
+    const liabilityVal = { invested: 0, current: 0 };
     let dayChange = 0;
 
     const now = Date.now();

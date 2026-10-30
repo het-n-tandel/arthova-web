@@ -243,7 +243,7 @@ export function SmartRebalancerCard({
     const debtDeficit = Math.max(0, recommended.debtPercent - current.debtPercent);
     const cashDeficit = Math.max(0, recommended.cashPercent - current.cashPercent);
 
-    let totalDeficit = equityDeficit + goldDeficit + debtDeficit + cashDeficit;
+    const totalDeficit = equityDeficit + goldDeficit + debtDeficit + cashDeficit;
 
     let eqWeight = totalDeficit > 0 ? equityDeficit / totalDeficit : recommended.equityPercent / 100;
     let goldWeight = totalDeficit > 0 ? goldDeficit / totalDeficit : recommended.goldPercent / 100;

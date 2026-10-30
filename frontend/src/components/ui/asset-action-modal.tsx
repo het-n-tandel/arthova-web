@@ -7,7 +7,6 @@ import { LineChart, Line, YAxis, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/formatters';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { useLedgerStore } from '@/lib/store';
-import { BACKEND_URL } from '@/lib/config';
 
 interface Props {
   assetType: 'stock' | 'mutual_fund' | 'gold' | 'silver' | 'fd' | 'property' | 'crypto' | 'cash' | 'bond' | 'liability';
@@ -165,13 +164,9 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
     queryKey: ['historical-chart', selectedAsset?.symbol],
     queryFn: async () => {
       if (!selectedAsset) return null;
-      try {
-        const res = await fetch(`/api/market/compare?symbols=${selectedAsset.symbol}`);
-        if (res.ok) return res.json();
-      } catch (e) {}
-      const fallbackRes = await fetch(`${BACKEND_URL}/api/public/compare/dynamic?symbols=${selectedAsset.symbol}`);
-      if (!fallbackRes.ok) throw new Error('Failed to fetch chart data');
-      return fallbackRes.json();
+      const res = await fetch(`/api/market/compare?symbols=${selectedAsset.symbol}`);
+      if (!res.ok) throw new Error('Failed to fetch chart data');
+      return res.json();
     },
     enabled: view === 'trade' && !!selectedAsset && !isManualAsset,
   });
@@ -255,7 +250,7 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
       if (!userId) throw new Error('User not authenticated');
       
       let finalSymbol = selectedAsset?.symbol || `MANUAL-${Date.now()}`;
-      let finalName = selectedAsset?.name || manualName;
+      const finalName = selectedAsset?.name || manualName;
 
       if (isManualAsset && !isMetal) {
           // Manual assets (FD, property, cash, bond, liability) don't have ticker symbols
@@ -293,23 +288,11 @@ export function AssetActionModal({ assetType, mode, onClose }: Props) {
         purchaseDate: purchaseDate || new Date().toISOString().slice(0, 10),
       };
 
-      let res = await fetch('/api/portfolio/trade', {
+      const res = await fetch('/api/portfolio/trade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, assetType })
       });
-
-      if (!res.ok) {
-        // Fallback to Spring Boot if available
-        try {
-          const fallbackRes = await fetch(`${BACKEND_URL}/api/public/portfolio/${userId}/trade`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...payload, assetType })
-          });
-          if (fallbackRes.ok) res = fallbackRes;
-        } catch (e) {}
-      }
       
       if (!res.ok) throw new Error('Transaction failed');
       return res.json();

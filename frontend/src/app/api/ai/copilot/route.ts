@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { auth } from '@/auth';
 import { tracing } from '@/lib/tracing';
+import { CopilotAction } from '@/lib/types/copilot';
+import { INDIAN_EQUITY_PRICE_REGISTRY, getEquityMarketQuote } from '@/lib/stock-prices';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -59,7 +61,22 @@ export async function POST(req: Request) {
       try {
         const ai = new GoogleGenAI({ apiKey });
         const systemPrompt = `You are the Arthova Wealth Copilot, an elite institutional private wealth strategist and quantitative portfolio advisor for high-net-worth Indian investors.
-You provide precise, actionable, numbers-backed advice tailored to the user's actual portfolio holdings, Indian Union Budget FY 2025-26 taxation rules, and institutional risk management principles.
+You provide precise, actionable, numbers-backed advice tailored to the user's actual portfolio holdings, Indian Union Budget FY 2025-26 taxation rules, institutional risk management principles, and quantitative signal analysis.
+
+YOUR CAPABILITIES & DOMAIN EXPERTISE:
+1. COMPLETE TRADING & STOCK ADVICE:
+   - Explain stock trends and fluctuations using Arthova's 10-signal frequency framework (RSI-14, EMA 20/50, EMA 50/200 Golden Cross, MACD, Bollinger %B, Volume Surge, CAGR vs NIFTY, 20d ROC, Volatility, 52W range).
+   - Explain how institutional traders make decisions: not by claiming to predict the exact price, but by calculating directional probabilities from historical pattern frequency (e.g. "When 7+ signals aligned historically, price moved up 68% of 30-day windows").
+   - Always emphasize position sizing (max 8-10% in high conviction stocks, 4-6% starter), stop-loss levels (2x ATR), target profit-taking zones, and exit triggers.
+2. SIP & MUTUAL FUND SELECTION:
+   - For long-term core compounding (> 7 years): recommend Nifty 50 Index Fund or Tier-1 Flexi-Cap Fund (e.g., Parag Parikh Flexi Cap).
+   - For alpha growth (5-10 years, higher risk): recommend quality Mid-Cap / Large & Mid-Cap Funds (e.g., Motilal Oswal / Mirae Asset).
+   - For short-term goals (< 3 years) or emergency funds: recommend Arbitrage or Ultra-Short Term Debt Funds for tax efficiency.
+3. WEALTH ARCHITECTURE & ASSET ALLOCATION:
+   - Keep 6 months of living expenses in liquid buffer.
+   - Enforce 10% single-stock ceiling and 25% single-sector ceiling.
+   - Advise on Gold/Silver as inflation & currency hedges (8-12%).
+   - Section 112A annual ₹1.25L LTCG tax-free exemption and 20% STCG harvesting.
 
 USER'S REAL-TIME PORTFOLIO CONTEXT:
 - Total Net Worth: ₹${(portfolioContext.netWorth || 0).toLocaleString('en-IN')}
@@ -79,9 +96,9 @@ ${(portfolioContext.holdings || []).slice(0, 15).map(h => `  * ${h.symbol} (${h.
 GUIDELINES:
 1. Always reference exact numbers, tickers, and percentages from the context when answering.
 2. Structure your response concisely with bold key figures, bullet points, and actionable takeaways.
-3. If asked about taxes, cite Section 112A (₹1.25L exemption, 12.5% LTCG) and STCG @ 20% under Indian tax law.
-4. If asked about sector/single-stock risk, enforce the 10% single-stock ceiling and 25% single-sector guideline.
-5. End with 1 clear, immediate next action recommendation (e.g. "Execute rebalance", "Harvest losses", or "Add to watchlist").`;
+3. If asked about trading advice or whether a stock is good: evaluate trend strength, volatility, and historical frequency. Emphasize risk management (stop loss and sizing).
+4. If asked about SIPs or Mutual Funds: recommend specific categories based on time horizon and risk tolerance.
+5. End with 1 clear, immediate next action recommendation (e.g. "Check the Signal Advisor on the stock page", "Execute rebalance", or "Set up an automated SIP").`;
 
         const conversationHistory = messages.map(m => `${m.role === 'user' ? 'User' : 'Copilot'}: ${m.content}`).join('\n\n');
         const fullPrompt = `${systemPrompt}\n\nCONVERSATION HISTORY:\n${conversationHistory}\n\nCopilot:`;
@@ -92,8 +109,9 @@ GUIDELINES:
         });
 
         const reply = response.text || generateLocalDeterministicReply(latestUserMessage, portfolioContext);
+        const actions = generateCopilotActions(latestUserMessage, portfolioContext);
         trace.end('SUCCESS', 'Generated Gemini AI copilot response');
-        return NextResponse.json({ reply, source: 'gemini' });
+        return NextResponse.json({ reply, actions, source: 'gemini' });
       } catch (geminiError) {
         trace.warn('Gemini call failed or quota reached, using local quantitative advisor fallback', geminiError);
       }
@@ -101,8 +119,9 @@ GUIDELINES:
 
     // High-performance deterministic quantitative advisor fallback
     const localReply = generateLocalDeterministicReply(latestUserMessage, portfolioContext);
+    const actions = generateCopilotActions(latestUserMessage, portfolioContext);
     trace.end('SUCCESS', 'Generated local quantitative copilot response');
-    return NextResponse.json({ reply: localReply, source: 'local_quant_engine' });
+    return NextResponse.json({ reply: localReply, actions, source: 'local_quant_engine' });
   } catch (err: any) {
     trace.error('Copilot request failed', err);
     return NextResponse.json(
@@ -110,6 +129,94 @@ GUIDELINES:
       { status: 500 }
     );
   }
+}
+
+/**
+ * Intelligent action recommender that extracts executable 1-click workflows from context.
+ */
+function generateCopilotActions(query: string, ctx: PortfolioContext): CopilotAction[] {
+  const actions: CopilotAction[] = [];
+  const q = query.toUpperCase();
+
+  // 1. Detect if any known ticker was queried
+  const knownTickers = Object.keys(INDIAN_EQUITY_PRICE_REGISTRY);
+  const matchedTicker = knownTickers.find((t) => q.includes(t));
+
+  if (matchedTicker) {
+    const quote = getEquityMarketQuote(matchedTicker);
+    actions.push({
+      id: `trade_${matchedTicker}`,
+      title: `Trade ${matchedTicker}`,
+      subtitle: `Pre-fill Order @ CMP ₹${quote.cmp.toLocaleString('en-IN')}`,
+      actionType: 'trade',
+      symbol: `${matchedTicker}.NS`,
+      name: matchedTicker,
+      price: quote.cmp,
+      side: 'buy',
+      badge: '1-CLICK ORDER',
+    });
+
+    actions.push({
+      id: `navigate_${matchedTicker}`,
+      title: `${matchedTicker} 10-Signal Advisor`,
+      subtitle: `View Historical Probability & 100-Epoch ML Forecast`,
+      actionType: 'navigate',
+      targetUrl: `/dashboard/stocks/${matchedTicker}`,
+      badge: 'QUANT TERMINAL',
+    });
+  }
+
+  // 2. Tax query
+  if (q.includes('TAX') || q.includes('HARVEST') || q.includes('112A') || q.includes('CAPITAL GAIN')) {
+    actions.push({
+      id: 'act_tax_harvest',
+      title: 'Review Tax-Loss Harvesting',
+      subtitle: 'Offset 20% STCG and preserve Section 112A exemption',
+      actionType: 'tax_harvest',
+      targetUrl: '/dashboard/tax',
+      badge: 'TAX SHIELD',
+    });
+  }
+
+  // 3. Allocation / Rebalance / Sector
+  if (q.includes('SECTOR') || q.includes('REBALANCE') || q.includes('ALLOCATION') || q.includes('EXPOSURE') || q.includes('OVEREXPOSED')) {
+    actions.push({
+      id: 'act_rebalance',
+      title: 'Launch Smart Rebalancer',
+      subtitle: 'Audit portfolio deviations & execute target alignment',
+      actionType: 'rebalance',
+      targetUrl: '/dashboard/ai-advisor?tab=rebalancer',
+      badge: 'REBALANCE',
+    });
+  }
+
+  // 4. Mutual Fund / SIP
+  if (q.includes('SIP') || q.includes('MUTUAL FUND') || q.includes('MF') || q.includes('INDEX')) {
+    actions.push({
+      id: 'act_mf_catalog',
+      title: 'Explore Verified Mutual Funds',
+      subtitle: 'Compare Flexi-Cap & Nifty 50 Index funds by Sharpe ratio',
+      actionType: 'navigate',
+      targetUrl: '/dashboard/mutual-funds',
+      badge: 'SIP WEALTH',
+    });
+  }
+
+  // 5. Screener / Quantitative picks
+  if (q.includes('QVM') || q.includes('STOCK') || q.includes('SCREENER') || q.includes('PREDICT') || q.includes('TRADE') || q.includes('TREND')) {
+    if (!matchedTicker) {
+      actions.push({
+        id: 'act_screener',
+        title: 'Open Institutional Screener',
+        subtitle: 'Batch-train 45+ equities and filter by 10-signal consensus',
+        actionType: 'screener',
+        targetUrl: '/dashboard/stocks',
+        badge: 'FACTOR LAB',
+      });
+    }
+  }
+
+  return actions.slice(0, 3);
 }
 
 /**
@@ -204,27 +311,59 @@ function generateLocalDeterministicReply(prompt: string, ctx: PortfolioContext):
     return response;
   }
 
-  // 4. Stock / QVM Quant Evaluation Queries
-  if (query.includes('qvm') || query.includes('stock') || query.includes('buy') || query.includes('sell') || query.includes('pick')) {
+  // 4. Trading Advice, Trend & Fluctuation Queries
+  if (query.includes('trade') || query.includes('trading') || query.includes('trend') || query.includes('fluctuation') || query.includes('signal') || query.includes('predict') || query.includes('advice')) {
+    return `### 📈 Quantitative Trading & Signal Strategy Guide\n\n` +
+      `In the professional trading world, **no algorithm can predict the exact future price**. Instead, institutional desks use **Historical Pattern Frequency**:\n\n` +
+      `**How Arthova's 10-Signal Framework Works**:\n` +
+      `1. **Momentum Indicators**: RSI-14 (oversold < 40 vs overbought > 65), MACD Histogram divergence, 20-Day Rate of Change (ROC).\n` +
+      `2. **Trend Regimes**: Short-term EMA 20/50 cross, Long-term 50/200 Golden Cross, Bollinger Band %B.\n` +
+      `3. **Market Quality**: Volume Surge (> 1.3x 20d average), Annualised Volatility (σ < 28% = institutional quality, σ > 55% = elevated risk), CAGR vs Nifty 50 benchmark.\n\n` +
+      `**The Core Principle**:\n` +
+      `- When **7 or more signals align bullish**, historical data shows price moves higher in **~65–72%** of 30-day windows.\n` +
+      `- That statistical edge is what drives our **Buy / Strong Buy** recommendation.\n\n` +
+      `**Golden Rules of Institutional Risk Management**:\n` +
+      `- **Stop-Loss Discipline**: Always place a trailing stop at **2x ATR** below entry. Never average down on broken trends.\n` +
+      `- **Position Sizing**: Limit any single speculative position to **5–8%** of total net worth.\n` +
+      `- **Profit Taking**: Book 50% profits at Target 1, trail stop-loss to breakeven for Target 2.\n\n` +
+      `👉 *Visit any stock's detail page (e.g., RELIANCE or TCS) to run the live 10-Signal Frequency Advisor!*`;
+  }
+
+  // 5. SIP & Mutual Fund Strategy Queries
+  if (query.includes('sip') || query.includes('mutual fund') || query.includes('mf') || query.includes('plan') || query.includes('best fund')) {
+    return `### 🎯 Systematic Investment Plan (SIP) Blueprint for Indian Investors\n\n` +
+      `Mutual fund agents often sell high-commission products. At Arthova, we optimize for **low expense ratios**, **risk-adjusted alpha**, and **time horizon alignment**:\n\n` +
+      `**1. Long-Term Core Wealth (> 7 Years Horizon)**:\n` +
+      `- **Nifty 50 Index Fund** (e.g., UTI / Navi Nifty 50 Index — Expense ratio < 0.20%): Zero fund-manager bias, tracks India's top 50 compounders (~12–14% historical CAGR).\n` +
+      `- **Flexi-Cap Fund** (e.g., Parag Parikh Flexi Cap Fund): Balanced exposure across Large, Mid, and Global tech leaders with conservative cash holding.\n\n` +
+      `**2. High-Growth Alpha Engine (5–10 Years Horizon)**:\n` +
+      `- **Mid-Cap / Large & Mid-Cap Index** (e.g., Nifty LargeMidcap 250): Captures emerging market leaders with higher CAGR potential (~15–18%).\n\n` +
+      `**3. Emergency Fund & Short-Term Buffer (< 3 Years Horizon)**:\n` +
+      `- **Arbitrage Fund** (e.g., Tata Arbitrage / Kotak Equity Arbitrage): Delivers ~6.5–7.2% returns with equity-level tax treatment (12.5% LTCG after 1 year) instead of 30% slab rate!\n\n` +
+      `💡 **Action Plan**: Allocate **60%** of your monthly surplus to Core Nifty Index/Flexi-Cap, **25%** to Mid-Cap Alpha, and **15%** to Sovereign Gold Bonds or Liquid emergency fund.`;
+  }
+
+  // 6. Stock / QVM Quant Evaluation Queries
+  if (query.includes('qvm') || query.includes('stock') || query.includes('buy') || query.includes('sell') || query.includes('pick') || query.includes('reliance') || query.includes('tcs')) {
     return `### 🎯 QVM Multi-Factor Quant Screener Insights\n\n` +
       `Our institutional quant engine scores every Indian equity across **Quality (40%)**, **Valuation (30%)**, and **Momentum (30%)**, paired with Stanford Piotroski F-Scores (0–9) and Altman Z-Score distress zones.\n\n` +
       `**Top Recommended Compounders Today**:\n` +
-      `- **TCS (TCS.NS)**: QVM 88/100 · F-Score 8/9 · Safe Zone · Strong Buy\n` +
-      `- **Polycab (POLYCAB.NS)**: QVM 84/100 · F-Score 7/9 · Alpha Momentum Pick\n` +
-      `- **Tata Motors (TATAMOTORS.NS)**: QVM 78/100 · F-Score 8/9 · High ROCE Compounder\n\n` +
-      `**Action**: Use the **QVM Screener Card** in the AI Advisor tab to test any stock against your 10% portfolio concentration limit!`;
+      `- **TCS (TCS.NS)**: QVM 88/100 · F-Score 8/9 · Safe Zone · Strong Buy (Quality IT compounder)\n` +
+      `- **Polycab (POLYCAB.NS)**: QVM 84/100 · F-Score 7/9 · Alpha Momentum Pick (Infra capex)\n` +
+      `- **Tata Motors (TATAMOTORS.NS)**: QVM 78/100 · F-Score 8/9 · High ROCE Auto Giant\n\n` +
+      `**Action**: Use the **Signal Advisor** or **QVM Screener Card** in the Stock Detail and AI Advisor tabs to verify any stock against your 10% portfolio concentration limit!`;
   }
 
-  // 5. Default General Wealth Guidance
+  // 7. Default General Wealth Guidance
   return `### 🏛️ Arthova Wealth Copilot Overview\n\n` +
-    `Hello! I am your portfolio's quantitative intelligence copilot. Here is your portfolio snapshot:\n\n` +
+    `Hello! I am your complete personal wealth & quantitative trading intelligence copilot. Here is your portfolio snapshot:\n\n` +
     `- **Net Worth**: **₹${netWorth.toLocaleString('en-IN')}**\n` +
     `- **Active Holdings**: **${holdings.length}** assets\n` +
     `- **Available Cash**: **₹${(ctx.cashBalance || 0).toLocaleString('en-IN')}**\n` +
     `- **Tax Savings Potential**: **₹${tax.estimatedTaxSaved.toLocaleString('en-IN')}**\n\n` +
     `**You can ask me questions like**:\n` +
-    `1. *"Am I overexposed to tech or any sector?"*\n` +
-    `2. *"How much tax can I harvest before March 31?"*\n` +
-    `3. *"How should I rebalance my cash reserve?"*\n` +
-    `4. *"What does the QVM engine suggest for my risk profile?"*`;
+    `1. *"How do traders know if a stock is good or bad according to trend and fluctuation?"*\n` +
+    `2. *"Which SIP or mutual fund plan is best for long-term compounding?"*\n` +
+    `3. *"How much tax can I save before March 31 with Section 112A?"*\n` +
+    `4. *"Am I overexposed to tech or any single sector?"*`;
 }

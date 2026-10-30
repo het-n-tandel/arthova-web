@@ -13,3 +13,7 @@ export * from './smart-rebalancer-card';
 export * from './stress-testing-card';
 export * from './pairs-spread-chart';
 export * from './strategy-benchmark-card';
+export * from './price-prediction-card';
+export * from './stock-signal-advisor';
+export * from './mf-performance-chart';
+export * from './sip-calculator-chart';

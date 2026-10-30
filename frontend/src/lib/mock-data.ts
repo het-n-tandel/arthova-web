@@ -225,7 +225,7 @@ export function generatePortfolioHistory(currentNetWorth: number = 0, months: nu
   return history.reverse();
 }
 
-export function generateCandlestickData(days: number = 90): {
+export function generateCandlestickData(days: number = 5500, basePrice?: number): {
   time: string;
   open: number;
   high: number;
@@ -233,21 +233,124 @@ export function generateCandlestickData(days: number = 90): {
   close: number;
   volume: number;
 }[] {
-  const data = [];
+  interface Candle {
+    time: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }
+  const data: Candle[] = [];
   const now = new Date();
-  let price = 2800;
+  const targetPrice = basePrice && basePrice > 0 ? basePrice : 2800;
+
+  // If requesting multi-year / 2005-to-present view (days >= 1000)
+  if (days >= 1000) {
+    const startDate = new Date('2005-01-03T00:00:00Z');
+    const tradingDates: string[] = [];
+    const cursor = new Date(startDate);
+
+    while (cursor <= now) {
+      const day = cursor.getUTCDay();
+      if (day !== 0 && day !== 6) {
+        tradingDates.push(cursor.toISOString().slice(0, 10));
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+
+    const totalBars = tradingDates.length;
+    // Starting base price around Jan 2005 was ~10% of today's price (10x-12x over 21 years)
+    let current = targetPrice * 0.105;
+
+    // Linear congruential generator with fixed seed derived from targetPrice for stable rendering
+    let seed = Math.floor(targetPrice * 100) % 2147483647;
+    const rnd = () => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
+
+    for (let i = 0; i < totalBars; i++) {
+      const dateStr = tradingDates[i];
+      const year = parseInt(dateStr.slice(0, 4), 10);
+      const month = parseInt(dateStr.slice(5, 7), 10);
+
+      // Historical market regime drifts for Indian equities (NSE Nifty 50 / Bluechips)
+      let regimeDrift = 0.00055; // baseline secular drift ~14% p.a.
+      let regimeVol = 0.012;
+
+      if (year === 2008) {
+        regimeDrift = -0.0028; // 2008 Global Financial Crisis crash
+        regimeVol = 0.026;
+      } else if (year === 2009) {
+        regimeDrift = 0.0025; // 2009 V-shaped recovery
+        regimeVol = 0.022;
+      } else if (year >= 2005 && year <= 2007) {
+        regimeDrift = 0.0014; // 2005-2007 Capex boom
+        regimeVol = 0.014;
+      } else if (year >= 2011 && year <= 2013) {
+        regimeDrift = 0.0001; // Choppy sideways consolidation
+        regimeVol = 0.011;
+      } else if (year >= 2014 && year <= 2017) {
+        regimeDrift = 0.0008; // Secular Modi bull market
+        regimeVol = 0.010;
+      } else if (year === 2020 && month >= 2 && month <= 3) {
+        regimeDrift = -0.0075; // March 2020 COVID shock
+        regimeVol = 0.038;
+      } else if (year === 2020 && month >= 4) {
+        regimeDrift = 0.0028; // Post-COVID recovery rally
+        regimeVol = 0.020;
+      } else if (year >= 2021 && year <= 2024) {
+        regimeDrift = 0.00075; // Broad market expansion
+        regimeVol = 0.011;
+      }
+
+      // Progressively pull trajectory towards targetPrice in the final 120 bars
+      if (i > totalBars - 120) {
+        const remaining = totalBars - i;
+        const correctionDrift = (targetPrice - current) / (remaining * current);
+        regimeDrift = regimeDrift * 0.3 + correctionDrift * 0.7;
+      }
+
+      const dailyReturn = regimeDrift + (rnd() - 0.49) * regimeVol;
+      const open: number = i === 0 ? current : data[i - 1].close;
+      let close = i === totalBars - 1 ? targetPrice : open * (1 + dailyReturn);
+      close = Math.max(1, close);
+
+      const spread = Math.abs(open - close) + open * 0.006 * rnd();
+      const high = Math.max(open, close) + spread * (0.2 + rnd() * 0.8);
+      const low = Math.max(0.5, Math.min(open, close) - spread * (0.2 + rnd() * 0.8));
+      const volume = Math.round(500000 + rnd() * 8000000);
+
+      data.push({
+        time: dateStr,
+        open: Number(open.toFixed(2)),
+        high: Number(high.toFixed(2)),
+        low: Number(low.toFixed(2)),
+        close: Number(close.toFixed(2)),
+        volume,
+      });
+
+      current = close;
+    }
+
+    return data;
+  }
+
+  // Fallback for short requested days (< 1000)
+  let price = Number((targetPrice * 0.94).toFixed(2));
+  const dailySpread = Math.max(1, targetPrice * 0.015);
 
   for (let i = days; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
-    // Skip weekends
     if (date.getDay() === 0 || date.getDay() === 6) continue;
 
-    const change = (Math.random() - 0.48) * 60;
+    const drift = i === 0 ? (targetPrice - price) : (Math.random() - 0.47) * dailySpread;
     const open = price;
-    const close = price + change;
-    const high = Math.max(open, close) + Math.random() * 30;
-    const low = Math.min(open, close) - Math.random() * 30;
+    const close = i === 0 ? targetPrice : price + drift;
+    const high = Math.max(open, close) + Math.random() * (dailySpread * 0.6);
+    const low = Math.min(open, close) - Math.random() * (dailySpread * 0.6);
 
     data.push({
       time: date.toISOString().slice(0, 10),
@@ -255,7 +358,7 @@ export function generateCandlestickData(days: number = 90): {
       high: Math.round(high * 100) / 100,
       low: Math.round(low * 100) / 100,
       close: Math.round(close * 100) / 100,
-      volume: Math.round(5000000 + Math.random() * 10000000),
+      volume: Math.round(1000000 + Math.random() * 5000000),
     });
 
     price = close;

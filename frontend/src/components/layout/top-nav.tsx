@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Sun, Moon, Bell } from 'lucide-react';
+import { Search, Sun, Moon } from 'lucide-react';
 import { useLedgerStore } from '@/lib/store';
 import { CommandPalette } from './command-palette';
 
 export function TopNav() {
   const theme = useLedgerStore((s) => s.theme);
   const toggleTheme = useLedgerStore((s) => s.toggleTheme);
-  const notifications = useLedgerStore((s) => s.notifications);
 
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [marketStatus, setMarketStatus] = useState<{ isOpen: boolean; label: string }>({
@@ -78,8 +77,9 @@ export function TopNav() {
           </div>
         </div>
 
-        {/* Right Nav Badges & Controls */}
+        {/* Right Nav Controls */}
         <div className="flex items-center gap-3">
+
           {/* Dynamic IST Indian Market Status Pulse */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-surface-2 border border-border text-[12px]">
             <span className="relative flex h-2 w-2">
@@ -103,22 +103,11 @@ export function TopNav() {
 
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg text-text-faint hover:text-text-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-transparent hover:border-border transition-all"
+            className="p-2 rounded-lg text-text-faint hover:text-text-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-transparent hover:border-border transition-all cursor-pointer"
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
-
-          <button className="p-2 rounded-lg text-text-faint hover:text-text-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-transparent hover:border-border transition-all relative">
-            <Bell className="w-4 h-4" />
-            {notifications.length > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-bg-surface" />
-            )}
-          </button>
-
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 ring-1 ring-white/20 flex items-center justify-center ml-1 shadow-sm">
-            <span className="text-[12px] font-semibold text-white tracking-wider">HT</span>
-          </div>
         </div>
       </header>
 

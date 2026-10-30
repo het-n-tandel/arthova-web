@@ -1,46 +1,93 @@
 import { NextResponse } from 'next/server';
 import YahooFinance from 'yahoo-finance2';
-import { auth } from '@/auth';
+import { getEquityMarketQuote } from '@/lib/stock-prices';
 
-const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+const yahooFinance = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
+
+// In-memory 15-second TTL cache to prevent rate-limiting
+const quoteCache = new Map<string, { data: any; expiresAt: number }>();
+
+function normalizeSymbol(raw: string): string {
+  const upper = raw.toUpperCase().trim();
+  if (upper.includes('.') || upper.includes('=') || upper.includes('^') || upper.includes('-')) {
+    return upper;
+  }
+  return `${upper}.NS`;
+}
 
 export async function GET(req: Request) {
-  const session = await auth();
-  if (!session?.user) return new NextResponse('Unauthorized', { status: 401 });
-
   const { searchParams } = new URL(req.url);
-  const symbol = searchParams.get('symbol');
+  const rawSymbol = searchParams.get('symbol');
 
-  if (!symbol) return new NextResponse('Missing symbol', { status: 400 });
+  if (!rawSymbol) {
+    return NextResponse.json({ error: 'Missing symbol parameter' }, { status: 400 });
+  }
+
+  const querySymbol = normalizeSymbol(rawSymbol);
+  const cleanSym = querySymbol.replace('.NS', '').replace('.BO', '');
+
+  // 1. Check in-memory cache
+  const cached = quoteCache.get(querySymbol);
+  if (cached && cached.expiresAt > Date.now()) {
+    return NextResponse.json(cached.data);
+  }
 
   try {
-    const quote = await yahooFinance.quote(symbol);
-    return NextResponse.json(quote);
-  } catch (error) {
-    console.warn('Yahoo Finance Error for', symbol, '- using fallback quote');
-    // Fallback estimates for common symbols so client doesn't 500
-    const fallbackPrices: Record<string, number> = {
-      'RELIANCE.NS': 2950,
-      'TCS.NS': 4150,
-      'POLYCAB.NS': 6420,
-      'CDSL.NS': 1610,
-      'TATAMOTORS.NS': 980,
-      'PERSISTENT.NS': 4920,
-      'ANGELONE.NS': 2840,
-      'HDFCBANK.NS': 1640,
-      'INFY.NS': 1820,
-      'GC=F': 2400,
-      'SI=F': 30.5,
-      'INR=X': 83.8,
-    };
-    const cleanSym = symbol.toUpperCase();
-    const estPrice = fallbackPrices[cleanSym] || fallbackPrices[`${cleanSym}.NS`] || 1000;
-    return NextResponse.json({
-      symbol,
-      regularMarketPrice: estPrice,
-      regularMarketChange: 0,
-      regularMarketChangePercent: 0,
-      displayName: symbol.replace('.NS', ''),
-    });
+    const q: any = await yahooFinance.quote(querySymbol);
+
+    if (q && q.regularMarketPrice != null) {
+      const payload = {
+        symbol: querySymbol,
+        cleanSymbol: cleanSym,
+        price: Number(q.regularMarketPrice.toFixed(2)),
+        change: Number((q.regularMarketChange ?? 0).toFixed(2)),
+        changePercent: Number((q.regularMarketChangePercent ?? 0).toFixed(2)),
+        previousClose: q.regularMarketPreviousClose ? Number(q.regularMarketPreviousClose.toFixed(2)) : undefined,
+        open: q.regularMarketOpen ? Number(q.regularMarketOpen.toFixed(2)) : undefined,
+        high: q.regularMarketDayHigh ? Number(q.regularMarketDayHigh.toFixed(2)) : undefined,
+        low: q.regularMarketDayLow ? Number(q.regularMarketDayLow.toFixed(2)) : undefined,
+        volume: q.regularMarketVolume ?? 0,
+        weekHigh52: q.fiftyTwoWeekHigh ? Number(q.fiftyTwoWeekHigh.toFixed(2)) : undefined,
+        weekLow52: q.fiftyTwoWeekLow ? Number(q.fiftyTwoWeekLow.toFixed(2)) : undefined,
+        marketCap: q.marketCap,
+        marketCapCr: q.marketCap ? Math.round(q.marketCap / 10000000) : undefined,
+        pe: q.trailingPE ? Number(q.trailingPE.toFixed(2)) : undefined,
+        name: q.longName || q.shortName || cleanSym,
+        currency: q.currency || 'INR',
+        exchange: q.exchange || 'NSE',
+        isRealTime: true,
+        timestamp: q.regularMarketTime ? new Date(q.regularMarketTime).toISOString() : new Date().toISOString(),
+      };
+
+      quoteCache.set(querySymbol, {
+        data: payload,
+        expiresAt: Date.now() + 15000, // 15 seconds
+      });
+
+      return NextResponse.json(payload);
+    }
+  } catch (error: any) {
+    console.warn(`Yahoo Finance live quote fetch failed for ${querySymbol}:`, error?.message || error);
   }
+
+  // 2. Graceful Fallback if Yahoo Finance is rate-limited or offline
+  const marketQuote = getEquityMarketQuote(cleanSym);
+  const fallbackPayload = {
+    symbol: querySymbol,
+    cleanSymbol: cleanSym,
+    price: marketQuote.cmp,
+    change: marketQuote.dayChange,
+    changePercent: marketQuote.dayChangePercent,
+    weekHigh52: marketQuote.weekHigh52,
+    weekLow52: marketQuote.weekLow52,
+    marketCapCr: marketQuote.marketCapCr,
+    pe: marketQuote.pe,
+    name: cleanSym,
+    currency: 'INR',
+    exchange: 'NSE',
+    isRealTime: false,
+    timestamp: new Date().toISOString(),
+  };
+
+  return NextResponse.json(fallbackPayload);
 }

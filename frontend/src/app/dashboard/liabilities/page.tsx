@@ -41,7 +41,7 @@ export default function LiabilitiesPage() {
         <ManualAssetTable data={liabilityHoldings} type="liability" />
       ) : (
         <div className="text-center py-12 border border-border-default rounded-[12px] bg-bg-surface-2">
-          <p className="text-[14px] text-text-secondary mb-3">You don't have any liabilities.</p>
+          <p className="text-[14px] text-text-secondary mb-3">You don&apos;t have any liabilities.</p>
           <button
             onClick={() => setModalOpen(true)}
             className="text-accent-brass text-[13px] font-medium hover:underline"

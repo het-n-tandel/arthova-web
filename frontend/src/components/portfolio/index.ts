@@ -12,3 +12,4 @@ export * from './ai-insight-card';
 export * from './csv-import-modal';
 export * from './algo-signal-badge';
 export * from './sentiment-catalyst-card';
+export * from './stock-screener-lab';

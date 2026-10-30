@@ -40,10 +40,9 @@ import { NetWorthProjectionChart } from '@/components/charts/net-worth-projectio
 import { StressTestingCard } from '@/components/charts/stress-testing-card';
 import { StrategyBenchmarkCard } from '@/components/charts/strategy-benchmark-card';
 import { AIOnboardingWizard } from '@/components/onboarding/ai-onboarding-wizard';
-import { AIInsightCard } from '@/components/portfolio/ai-insight-card';
 import { QVMScoringCard } from '@/components/portfolio/qvm-scoring-card';
 import { SentimentCatalystCard } from '@/components/portfolio/sentiment-catalyst-card';
-import { aiInsights as staticAiInsights } from '@/lib/mock-data';
+import { DisclosureCard } from '@/components/ui/disclosure-card';
 import { formatINR, formatINRCompact, cn } from '@/lib/formatters';
 
 type TabKey = 'overview' | 'rebalancer' | 'qvm' | 'risk' | 'goals' | 'stress-test' | 'benchmarks';
@@ -91,65 +90,6 @@ function AIAdvisorContent() {
     params.set('tab', tabId);
     window.history.replaceState(null, '', `?${params.toString()}`);
   };
-
-  // Load saved state on mount
-  useEffect(() => {
-    const initData = async () => {
-      let loadedProfile: any = null;
-
-      // 1. Check localStorage for user profile
-      const localProfileStr = localStorage.getItem('arthova_user_profile');
-      if (localProfileStr) {
-        try {
-          loadedProfile = JSON.parse(localProfileStr);
-        } catch (e) {}
-      }
-
-      // 2. If not in localStorage, attempt to fetch from backend/DB
-      if (!loadedProfile) {
-        try {
-          const profileRes = await fetch('/api/ai/profile');
-          if (profileRes.ok) {
-            const profile = await profileRes.json();
-            if (profile && profile.userDemographics) {
-              loadedProfile = profile;
-              localStorage.setItem('arthova_user_profile', JSON.stringify(profile));
-            }
-          }
-        } catch (e) {}
-      }
-
-      if (loadedProfile) {
-        setUserProfile(loadedProfile);
-      }
-
-      // 3. Purge any legacy cached data with negative values
-      const savedData = localStorage.getItem('arthova_ai_data');
-      if (savedData) {
-        try {
-          const parsed = JSON.parse(savedData);
-          const hasNegative =
-            !parsed ||
-            (parsed.projectedRetirementNetWorth || 0) <= 0 ||
-            parsed.netWorthTrajectory?.some((pt: any) => (pt.expectedNetWorth || 0) < 0);
-          if (parsed && parsed.marketCapAllocation && !hasNegative && parsed.projectedRetirementNetWorth > 0) {
-            setAiData(parsed);
-            setIsLoading(false);
-            return;
-          } else {
-            localStorage.removeItem('arthova_ai_data');
-          }
-        } catch (e) {
-          localStorage.removeItem('arthova_ai_data');
-        }
-      }
-
-      // 4. Generate recommendation with either loaded profile or live portfolio defaults
-      await fetchAiRecommendation(loadedProfile);
-    };
-
-    initData();
-  }, [portfolio.totalCurrent, portfolio.liabilityHoldings.length, portfolio.rawHoldings.length]);
 
   const sanitizeRecommendation = (data: any) => {
     if (!data) return data;
@@ -246,6 +186,65 @@ function AIAdvisorContent() {
     }
   };
 
+  // Load saved state on mount
+  useEffect(() => {
+    const initData = async () => {
+      let loadedProfile: any = null;
+
+      // 1. Check localStorage for user profile
+      const localProfileStr = localStorage.getItem('arthova_user_profile');
+      if (localProfileStr) {
+        try {
+          loadedProfile = JSON.parse(localProfileStr);
+        } catch (e) {}
+      }
+
+      // 2. If not in localStorage, attempt to fetch from backend/DB
+      if (!loadedProfile) {
+        try {
+          const profileRes = await fetch('/api/ai/profile');
+          if (profileRes.ok) {
+            const profile = await profileRes.json();
+            if (profile && profile.userDemographics) {
+              loadedProfile = profile;
+              localStorage.setItem('arthova_user_profile', JSON.stringify(profile));
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (loadedProfile) {
+        setUserProfile(loadedProfile);
+      }
+
+      // 3. Purge any legacy cached data with negative values
+      const savedData = localStorage.getItem('arthova_ai_data');
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          const hasNegative =
+            !parsed ||
+            (parsed.projectedRetirementNetWorth || 0) <= 0 ||
+            parsed.netWorthTrajectory?.some((pt: any) => (pt.expectedNetWorth || 0) < 0);
+          if (parsed && parsed.marketCapAllocation && !hasNegative && parsed.projectedRetirementNetWorth > 0) {
+            setAiData(parsed);
+            setIsLoading(false);
+            return;
+          } else {
+            localStorage.removeItem('arthova_ai_data');
+          }
+        } catch (e) {
+          localStorage.removeItem('arthova_ai_data');
+        }
+      }
+
+      // 4. Generate recommendation with either loaded profile or live portfolio defaults
+      await fetchAiRecommendation(loadedProfile);
+    };
+
+    initData();
+  }, [portfolio.totalCurrent, portfolio.liabilityHoldings.length, portfolio.rawHoldings.length]);
+
   const handleWizardSuccess = (profileOrData: any, maybeData?: any) => {
     const profile = profileOrData?.userDemographics
       ? profileOrData
@@ -322,6 +321,60 @@ function AIAdvisorContent() {
   const activeExpenses = userProfile?.financialCashflow?.monthlyExpenses || 40000;
   const activeEmis = userProfile?.financialCashflow?.monthlyEmis || 0;
   const activeSurplus = Math.max(0, activeIncome - activeExpenses - activeEmis);
+
+  // Dynamic cash and emergency calculation from live database holdings
+  const actualLiquidCash = useMemo(() => {
+    return portfolio.cashHoldings.reduce((sum, h) => sum + (h.computedValue || h.quantity || 0), 0);
+  }, [portfolio.cashHoldings]);
+
+  const currentRunwayMonths = activeExpenses > 0 ? (actualLiquidCash / activeExpenses).toFixed(1) : '0.0';
+
+  // Dynamic AI Action Items generated from live user holdings & allocation data
+  const dynamicActionItems = useMemo(() => {
+    if (aiData?.rebalanceActions && aiData.rebalanceActions.length > 0) {
+      return aiData.rebalanceActions;
+    }
+
+    const actions: string[] = [];
+    const equityPct = aiData?.currentAllocation?.equityPercent || 0;
+    const targetEquity = aiData?.recommendedAllocation?.equityPercent || 60;
+    const drift = Math.abs(equityPct - targetEquity);
+
+    if (drift > 5) {
+      if (equityPct > targetEquity) {
+        actions.push(`Rebalance Equity: Current equity allocation (${equityPct.toFixed(1)}%) exceeds target (${targetEquity.toFixed(1)}%) by ${drift.toFixed(1)}%. Route incoming monthly cash flow toward debt and gold.`);
+      } else {
+        actions.push(`Deploy Capital to Equities: Equity exposure (${equityPct.toFixed(1)}%) is underweight target (${targetEquity.toFixed(1)}%) by ${drift.toFixed(1)}%. Increase SIP allocation into quality large-cap index funds.`);
+      }
+    }
+
+    if (activeEmis > 0 && activeIncome > 0) {
+      const emiRatio = (activeEmis / activeIncome) * 100;
+      if (emiRatio > 35) {
+        actions.push(`Debt Management: EMI obligations consume ${emiRatio.toFixed(1)}% of monthly income. Focus surplus on pre-paying highest APR debt before expanding discretionary investments.`);
+      }
+    }
+
+    const targetEmergency = activeExpenses * 6;
+    if (actualLiquidCash < targetEmergency) {
+      const deficit = targetEmergency - actualLiquidCash;
+      actions.push(`Emergency Fund Buffer: Liquid cash reserves (₹${actualLiquidCash.toLocaleString('en-IN')}) are below the recommended 6-month safety net of ₹${targetEmergency.toLocaleString('en-IN')}. Prioritize accumulating ₹${deficit.toLocaleString('en-IN')} in liquid instruments.`);
+    }
+
+    // Stock concentration check
+    const totalEq = portfolio.totalCurrent || 1;
+    const concentratedHolding = portfolio.stockHoldings.find(h => ((h.cmp * h.quantity) / totalEq) > 0.25);
+    if (concentratedHolding) {
+      const weight = (((concentratedHolding.cmp * concentratedHolding.quantity) / totalEq) * 100).toFixed(1);
+      actions.push(`Concentration Risk: ${concentratedHolding.symbol} represents ${weight}% of total assets. Consider staggering profit-taking to avoid single-stock drawdown exposure.`);
+    }
+
+    if (actions.length === 0) {
+      actions.push('Portfolio Alignment Verified: Asset allocation is balanced within optimal institutional risk bands. Continue regular automated SIP deployments.');
+    }
+
+    return actions;
+  }, [aiData, activeEmis, activeIncome, activeExpenses, actualLiquidCash, portfolio]);
 
   // Active risk alerts count
   const alertCount = aiData?.marketCapAllocation?.concentrationAlerts?.length || 0;
@@ -762,18 +815,16 @@ function AIAdvisorContent() {
                   <h2 className="text-[16px] font-medium text-text-primary">Actionable Advisory Checklist</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {aiData?.rebalanceActions?.map((action: string, idx: number) => (
+                  {dynamicActionItems.map((action: string, idx: number) => (
                     <div
                       key={idx}
-                      className="bg-bg-surface/90 backdrop-blur-xl border border-border-default rounded-[12px] p-4 space-y-2 shadow-sm"
+                      className="bg-bg-surface/90 backdrop-blur-xl border border-border-default hover:border-accent-brass/40 rounded-[12px] p-4 space-y-2 shadow-sm transition-all"
                     >
                       <div className="flex items-center gap-2 text-accent-brass text-[12px] font-medium">
                         <Sparkles className="w-3.5 h-3.5" /> Action #{idx + 1}
                       </div>
                       <p className="text-[13px] text-text-primary leading-relaxed">{action}</p>
                     </div>
-                  )) || staticAiInsights.slice(0, 3).map((insight) => (
-                    <AIInsightCard key={insight.id} insight={insight} />
                   ))}
                 </div>
               </div>
@@ -874,10 +925,10 @@ function AIAdvisorContent() {
                   <div className="bg-bg-surface-2/70 p-4 rounded-[10px] border border-border-default space-y-1">
                     <span className="text-[11px] font-mono uppercase text-text-faint">Emergency Runway</span>
                     <div className="text-[20px] font-mono font-medium text-accent-brass">
-                      6 Months Buffer
+                      {currentRunwayMonths} Mo. Active
                     </div>
                     <span className="text-[11px] text-text-secondary">
-                      Target: {formatINR(activeExpenses * 6)} in liquid instruments
+                      {formatINR(actualLiquidCash)} / {formatINR(activeExpenses * 6)} (6 Mo. Target)
                     </span>
                   </div>
                 </div>

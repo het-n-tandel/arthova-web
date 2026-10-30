@@ -6,9 +6,9 @@ import { motion } from 'framer-motion';
 import { Search, X, TrendingUp, AlertTriangle, ArrowLeftRight, BarChart2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { PairsSpreadChart } from '@/components/charts';
-import { BACKEND_URL } from '@/lib/config';
+import { DisclosureCard } from '@/components/ui/disclosure-card';
+import Link from 'next/link';
 
-// A palette for the chart lines
 const colors = ['#C4A962', '#818CF8', '#34D399', '#F87171', '#A78BFA', '#60A5FA'];
 
 export default function ComparePage() {
@@ -20,15 +20,9 @@ export default function ComparePage() {
     queryKey: ['compare-dynamic', symbols],
     queryFn: async () => {
       if (symbols.length === 0) return null;
-      try {
-        const res = await fetch(`/api/market/compare?symbols=${symbols.join(',')}`);
-        if (res.ok) return res.json();
-      } catch (e) {
-        console.warn('Local compare route failed, trying fallback');
-      }
-      const fallbackRes = await fetch(`${BACKEND_URL}/api/public/compare/dynamic?symbols=${symbols.join(',')}`);
-      if (!fallbackRes.ok) throw new Error('Failed to fetch comparison data');
-      return fallbackRes.json();
+      const res = await fetch(`/api/market/compare?symbols=${symbols.join(',')}`);
+      if (!res.ok) throw new Error('Failed to fetch comparison data');
+      return res.json();
     },
     enabled: symbols.length > 0,
   });
@@ -49,9 +43,9 @@ export default function ComparePage() {
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[28px] text-text-primary mb-2">Market Comparison & Arbitrage</h1>
-          <p className="text-text-secondary text-[15px]">
-            Benchmark normalized historical multi-asset performance or evaluate cointegrated pairs statistical arbitrage (Dey et al., 2025).
+          <h1 className="font-display text-[28px] text-text-primary mb-1">Market Comparison &amp; Arbitrage</h1>
+          <p className="text-text-secondary text-[13.5px]">
+            Benchmark normalized historical multi-asset performance or evaluate cointegrated pairs statistical arbitrage
           </p>
         </div>
 
@@ -59,7 +53,7 @@ export default function ComparePage() {
         <div className="flex items-center gap-1 bg-bg-surface-2 p-1 rounded-xl border border-border-default self-start md:self-auto">
           <button
             onClick={() => setActiveTab('returns')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
               activeTab === 'returns'
                 ? 'bg-bg-surface text-text-primary shadow-sm border border-border-default'
                 : 'text-text-secondary hover:text-text-primary'
@@ -70,7 +64,7 @@ export default function ComparePage() {
           </button>
           <button
             onClick={() => setActiveTab('statarb')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
               activeTab === 'statarb'
                 ? 'bg-bg-surface text-text-primary shadow-sm border border-border-default'
                 : 'text-text-secondary hover:text-text-primary'
@@ -81,6 +75,30 @@ export default function ComparePage() {
           </button>
         </div>
       </div>
+
+      {/* Methodology DisclosureCard */}
+      <DisclosureCard
+        title="Comparative Analytics & Statistical Arbitrage Methodology"
+        subtitle="Normalized baseline re-indexing and mean-reverting cointegration spreads"
+        badge="Quant Theory"
+        icon={<BarChart2 className="w-4 h-4 text-emerald-400" />}
+        variant="subtle"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-[12px]">
+          <div className="bg-bg-surface p-3 rounded-lg border border-border-default">
+            <span className="font-mono font-bold text-emerald-400 block mb-1">Normalized Re-Indexing (Baseline 100)</span>
+            <p className="text-text-secondary leading-relaxed">
+              Every asset is re-scaled to 100 on Day 0. Subsequent values represent true cumulative percentage performance regardless of nominal share prices.
+            </p>
+          </div>
+          <div className="bg-bg-surface p-3 rounded-lg border border-border-default">
+            <span className="font-mono font-bold text-violet-400 block mb-1">Pairs Cointegration &amp; Mean Reversion</span>
+            <p className="text-text-secondary leading-relaxed">
+              Identifies stationary residual spreads between historically correlated Indian peers (e.g., RELIANCE vs TCS). Z-Scores exceeding &plusmn;2σ signal mean-reversion trades.
+            </p>
+          </div>
+        </div>
+      </DisclosureCard>
 
       {activeTab === 'statarb' ? (
         <PairsSpreadChart />
@@ -97,7 +115,7 @@ export default function ComparePage() {
               className="w-full bg-bg-surface-2 border border-border-default rounded-[8px] pl-9 pr-4 py-2.5 text-[14px] text-text-primary placeholder:text-text-faint focus:outline-none focus:border-accent-brass transition-colors"
             />
           </div>
-          <button type="submit" className="bg-bg-surface-3 hover:bg-bg-surface-2 border border-border-default px-4 py-2.5 rounded-[8px] text-[14px] font-medium text-text-primary transition-colors">
+          <button type="submit" className="bg-bg-surface-3 hover:bg-bg-surface-2 border border-border-default px-4 py-2.5 rounded-[8px] text-[14px] font-medium text-text-primary transition-colors cursor-pointer">
             Add
           </button>
         </form>
@@ -107,7 +125,14 @@ export default function ComparePage() {
             <div key={sym} className="flex items-center gap-2 bg-bg-surface-2 border border-border-default px-3 py-1.5 rounded-full">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
               <span className="text-[13px] font-medium text-text-primary">{sym}</span>
-              <button onClick={() => removeSymbol(sym)} className="text-text-faint hover:text-negative transition-colors">
+              <a
+                href={`/dashboard/stocks/${sym.replace('.NS', '').replace('.BO', '')}`}
+                title={`Run 10-Signal Frequency & 100-Epoch Prediction on ${sym}`}
+                className="text-[10px] font-mono font-semibold text-violet-400 bg-violet-500/10 hover:bg-violet-500/20 px-1.5 py-0.5 rounded transition-colors ml-1"
+              >
+                Predict →
+              </a>
+              <button onClick={() => removeSymbol(sym)} className="text-text-faint hover:text-negative transition-colors cursor-pointer ml-0.5">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>

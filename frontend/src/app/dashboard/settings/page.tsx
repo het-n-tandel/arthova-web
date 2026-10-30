@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, User, Bell, Link as LinkIcon, Palette, Shield, Sun, Moon, Loader2 } from 'lucide-react';
+import { Settings as SettingsIcon, User, Link as LinkIcon, Palette, Shield, Sun, Moon, Loader2 } from 'lucide-react';
 import { useLedgerStore } from '@/lib/store';
 import { cn, formatINR } from '@/lib/formatters';
 import { useSession } from 'next-auth/react';
@@ -14,10 +14,6 @@ export default function SettingsPage() {
   const theme = useLedgerStore((s) => s.theme);
   const toggleTheme = useLedgerStore((s) => s.toggleTheme);
   const addNotification = useLedgerStore((s) => s.addNotification);
-  const [alertThreshold, setAlertThreshold] = useState(5);
-  const [emailNotifs, setEmailNotifs] = useState(true);
-  const [pushNotifs, setPushNotifs] = useState(true);
-  const [fraudAlerts, setFraudAlerts] = useState(true);
 
   // Demat linking state
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
@@ -140,50 +136,6 @@ export default function SettingsPage() {
             {theme === 'dark' ? <Moon className="w-4 h-4 text-accent-brass" /> : <Sun className="w-4 h-4 text-accent-brass" />}
             <span className="text-[13px] text-text-primary capitalize">{theme}</span>
           </button>
-        </div>
-      </section>
-
-      {/* Notifications */}
-      <section className="bg-bg-surface border border-border-default rounded-[12px] p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Bell className="w-5 h-5 text-text-faint" />
-          <h2 className="text-[16px] font-medium text-text-primary">Notifications & Alerts</h2>
-        </div>
-        <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[14px] text-text-primary">Email Notifications</p>
-              <p className="text-[12px] text-text-faint">Daily portfolio summary via email</p>
-            </div>
-            <button onClick={() => setEmailNotifs(!emailNotifs)} className={cn('w-10 h-6 rounded-full transition-colors relative', emailNotifs ? 'bg-accent-brass' : 'bg-bg-surface-3')}>
-              <div className={cn('w-4 h-4 rounded-full bg-white absolute top-1 transition-all', emailNotifs ? 'left-5' : 'left-1')} />
-            </button>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[14px] text-text-primary">Push Notifications</p>
-              <p className="text-[12px] text-text-faint">Real-time alerts for price movements</p>
-            </div>
-            <button onClick={() => setPushNotifs(!pushNotifs)} className={cn('w-10 h-6 rounded-full transition-colors relative', pushNotifs ? 'bg-accent-brass' : 'bg-bg-surface-3')}>
-              <div className={cn('w-4 h-4 rounded-full bg-white absolute top-1 transition-all', pushNotifs ? 'left-5' : 'left-1')} />
-            </button>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[14px] text-text-primary">AI Fraud Alerts</p>
-              <p className="text-[12px] text-text-faint">Get notified about unusual market activity</p>
-            </div>
-            <button onClick={() => setFraudAlerts(!fraudAlerts)} className={cn('w-10 h-6 rounded-full transition-colors relative', fraudAlerts ? 'bg-accent-brass' : 'bg-bg-surface-3')}>
-              <div className={cn('w-4 h-4 rounded-full bg-white absolute top-1 transition-all', fraudAlerts ? 'left-5' : 'left-1')} />
-            </button>
-          </div>
-          <div>
-            <label className="text-[12px] text-text-faint block mb-2">Price Alert Threshold (%)</label>
-            <div className="flex items-center gap-3">
-              <input type="range" min="1" max="20" value={alertThreshold} onChange={(e) => setAlertThreshold(Number(e.target.value))} className="flex-1 accent-[#C9A227]" />
-              <span className="text-[14px] text-text-primary w-12 text-right" style={{ fontFamily: 'IBM Plex Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{alertThreshold}%</span>
-            </div>
-          </div>
         </div>
       </section>
 

@@ -29,21 +29,54 @@ import { useLedgerStore } from '@/lib/store';
 import { cn } from '@/lib/formatters';
 import { useSession, signOut } from 'next-auth/react';
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/ai-advisor', label: 'AI Advisor', icon: Sparkles },
-  { href: '/dashboard/portfolio', label: 'Portfolio', icon: Briefcase },
-  { href: '/dashboard/stocks', label: 'Stocks', icon: TrendingUp },
-  { href: '/dashboard/mutual-funds', label: 'Mutual Funds', icon: PiggyBank },
-  { href: '/dashboard/gold-silver', label: 'Gold & Silver', icon: Coins },
-  { href: '/dashboard/fixed-deposits', label: 'Fixed Deposits', icon: Landmark },
-  { href: '/dashboard/property', label: 'Property', icon: Building2 },
-  { href: '/dashboard/crypto', label: 'Crypto', icon: Bitcoin },
-  { href: '/dashboard/bonds', label: 'Bonds', icon: ScrollText },
-  { href: '/dashboard/cash', label: 'Cash', icon: Banknote },
-  { href: '/dashboard/liabilities', label: 'Liabilities', icon: CreditCard },
-  { href: '/dashboard/tax-reports', label: 'Tax Reports', icon: FileText },
-  { href: '/dashboard/compare', label: 'Compare Assets', icon: Scale },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: any;
+  badge?: string;
+  badgeColor?: string;
+}
+
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    title: 'Portfolio',
+    items: [
+      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/dashboard/portfolio', label: 'Holdings & Allocation', icon: Briefcase },
+      { href: '/dashboard/ai-advisor', label: 'AI Advisory & Rebalance', icon: Sparkles },
+    ],
+  },
+  {
+    title: 'Markets & Research',
+    items: [
+      { href: '/dashboard/stocks', label: 'Equities & Screener', icon: TrendingUp },
+      { href: '/dashboard/mutual-funds', label: 'Mutual Funds & SIPs', icon: PiggyBank },
+      { href: '/dashboard/compare', label: 'Asset Comparison', icon: Scale },
+    ],
+  },
+  {
+    title: 'Asset Classes',
+    items: [
+      { href: '/dashboard/gold-silver', label: 'Gold & Silver', icon: Coins },
+      { href: '/dashboard/fixed-deposits', label: 'Fixed Deposits', icon: Landmark },
+      { href: '/dashboard/property', label: 'Real Estate', icon: Building2 },
+      { href: '/dashboard/crypto', label: 'Digital Assets', icon: Bitcoin },
+      { href: '/dashboard/bonds', label: 'Bonds', icon: ScrollText },
+      { href: '/dashboard/cash', label: 'Liquid Cash', icon: Banknote },
+    ],
+  },
+  {
+    title: 'Operations',
+    items: [
+      { href: '/dashboard/liabilities', label: 'Liabilities & Debt', icon: CreditCard },
+      { href: '/dashboard/tax-reports', label: 'Tax Reports', icon: FileText },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -69,7 +102,7 @@ export function Sidebar() {
       className={cn(
         'hidden md:flex flex-col bg-bg-surface/85 backdrop-blur-2xl border-r border-border',
         'transition-all duration-200 ease-out h-screen sticky top-0 z-30 shadow-lg',
-        collapsed ? 'w-[72px]' : 'w-[248px]'
+        collapsed ? 'w-[72px]' : 'w-[252px]'
       )}
     >
       <div className={cn('flex items-center h-16 border-b border-border px-5', collapsed ? 'justify-center px-2' : 'justify-between')}>
@@ -83,54 +116,60 @@ export function Sidebar() {
         </Link>
       </div>
 
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const isActive = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 rounded-lg transition-all duration-150 relative group',
-                collapsed ? 'px-3 py-2.5 justify-center' : 'px-3.5 py-2.5',
-                isActive
-                  ? 'bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20 shadow-sm'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.04]'
-              )}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="sidebar-active"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-accent-brass shadow-[0_0_8px_rgba(16,185,129,0.8)]"
-                  transition={{ duration: 0.2, ease: 'easeOut' as const }}
-                />
-              )}
-              <item.icon 
-                className={cn(
-                  'w-[18px] h-[18px] shrink-0 transition-colors',
-                  isActive ? 'text-accent-brass' : 'text-text-faint group-hover:text-text-secondary'
-                )} 
-                strokeWidth={isActive ? 2 : 1.75} 
-              />
-              {!collapsed && (
-                <div className="flex items-center justify-between flex-1 min-w-0">
-                  <span className="text-[13.5px] truncate">{item.label}</span>
-                  {item.href === '/dashboard/ai-advisor' && (
-                    <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 font-bold tracking-wider">
-                      QUANT
-                    </span>
+      <nav className="flex-1 py-3 px-2.5 space-y-4 overflow-y-auto no-scrollbar">
+        {navGroups.map((group, gIdx) => (
+          <div key={group.title} className="space-y-1">
+            {!collapsed ? (
+              <div className="px-3 pt-1 pb-1">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-text-faint font-semibold">
+                  {group.title}
+                </span>
+              </div>
+            ) : (
+              gIdx > 0 && <div className="h-px bg-border-subtle my-2 mx-2" />
+            )}
+
+            {group.items.map((item) => {
+              const isActive = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-2.5 rounded-lg transition-all duration-150 relative group',
+                    collapsed ? 'px-3 py-2.5 justify-center' : 'px-3 py-2',
+                    isActive
+                      ? 'bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20 shadow-sm'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.04]'
                   )}
-                </div>
-              )}
-              {collapsed && (
-                <div className="absolute left-full ml-2.5 px-2.5 py-1 bg-bg-surface border border-border text-text-primary text-[12px] font-medium rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
-                  {item.label}
-                  {item.href === '/dashboard/ai-advisor' && ' (QUANT)'}
-                </div>
-              )}
-            </Link>
-          );
-        })}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-active"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-accent-brass shadow-[0_0_8px_rgba(16,185,129,0.8)]"
+                      transition={{ duration: 0.2, ease: 'easeOut' as const }}
+                    />
+                  )}
+                  <item.icon 
+                    className={cn(
+                      'w-[17px] h-[17px] shrink-0 transition-colors',
+                      isActive ? 'text-accent-brass' : 'text-text-faint group-hover:text-text-secondary'
+                    )} 
+                    strokeWidth={isActive ? 2 : 1.75} 
+                  />
+                  {!collapsed && (
+                    <span className="text-[13px] truncate">{item.label}</span>
+                  )}
+                  {collapsed && (
+                    <div className="absolute left-full ml-2.5 px-2.5 py-1 bg-bg-surface border border-border text-text-primary text-[12px] font-medium rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
+                      {item.label}
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="border-t border-border-default p-3 relative" ref={menuRef}>
@@ -200,7 +239,13 @@ export function Sidebar() {
 
 export function MobileNav() {
   const pathname = usePathname();
-  const mobileItems = navItems.slice(0, 5);
+  const mobileItems: NavItem[] = [
+    { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+    { href: '/dashboard/portfolio', label: 'Portfolio', icon: Briefcase },
+    { href: '/dashboard/stocks', label: 'Stocks', icon: TrendingUp },
+    { href: '/dashboard/ai-advisor', label: 'AI Advisor', icon: Sparkles },
+    { href: '/dashboard/compare', label: 'Compare', icon: Scale },
+  ];
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-bg-surface border-t border-border-default z-50 px-2 pb-[env(safe-area-inset-bottom)]">

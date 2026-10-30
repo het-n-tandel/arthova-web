@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
 import { calculateAIRecommendation } from '@/lib/ai-engine';
 import { BACKEND_URL } from '@/lib/config';
+import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limiter';
 
 export async function POST(req: Request) {
+  const clientIp = getClientIp(req);
+  const rlKey = `ai-rec:${clientIp}`;
+  const rlResult = checkRateLimit(rlKey, { limit: 15, windowMs: 60 * 1000 });
+  if (!rlResult.success) {
+    return rateLimitResponse(rlResult);
+  }
+
   try {
     const body = await req.json();
 

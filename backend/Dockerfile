@@ -7,7 +7,12 @@ RUN mvn clean package -DskipTests -B
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=builder /app/target/*.jar app.jar
+
+RUN groupadd --system spring && useradd --system --gid spring spring
+
+COPY --from=builder --chown=spring:spring /app/target/*.jar app.jar
+
+USER spring:spring
 EXPOSE 8080
 # Optimize JVM for Render 512MB RAM container limits
 ENTRYPOINT ["java", "-XX:+UseSerialGC", "-Xmx350m", "-jar", "app.jar"]

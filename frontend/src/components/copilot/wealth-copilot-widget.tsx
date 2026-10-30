@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -17,32 +18,63 @@ import {
   Bot,
   User,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePortfolio } from '@/lib/hooks/use-portfolio';
 import { formatINR, cn } from '@/lib/formatters';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-}
+import { CopilotAction, CopilotMessage } from '@/lib/types/copilot';
+import { TradeModal } from '@/components/portfolio/trade-modal';
 
 export function WealthCopilotWidget() {
+  const router = useRouter();
   const portfolio = usePortfolio();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
+
+  // Trade Modal execution state
+  const [tradeConfig, setTradeConfig] = useState<{
+    isOpen: boolean;
+    symbol: string;
+    name: string;
+    currentPrice: number;
+    initialAction: 'buy' | 'sell';
+  }>({
+    isOpen: false,
+    symbol: 'RELIANCE.NS',
+    name: 'Reliance Industries',
+    currentPrice: 2980.50,
+    initialAction: 'buy',
+  });
+
+  const [messages, setMessages] = useState<CopilotMessage[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      content: `Hello! I'm your **Arthova Wealth Copilot**. I have real-time visibility into your **₹${(portfolio.netWorth || 0).toLocaleString('en-IN')}** portfolio, tax buckets, and factor scoring. How can I assist you with your wealth strategy today?`,
+      content: `Hello! I'm your **Arthova Wealth Copilot**. I have real-time visibility into your **₹${(portfolio.netWorth || 0).toLocaleString('en-IN')}** portfolio, tax buckets, and 10-signal factor models.\n\nAsk me anything or execute actions directly below:`,
       timestamp: Date.now(),
+      actions: [
+        {
+          id: 'act_rebalance_init',
+          title: 'Audit Asset Allocation',
+          subtitle: 'Verify 65% Equity, 20% Debt, 10% Gold targets',
+          actionType: 'rebalance',
+          targetUrl: '/dashboard/ai-advisor?tab=rebalancer',
+          badge: 'PORTFOLIO',
+        },
+        {
+          id: 'act_screener_init',
+          title: 'Institutional Screener (45+ Equities)',
+          subtitle: 'Batch-train 100-epoch models & 10-signal consensus',
+          actionType: 'screener',
+          targetUrl: '/dashboard/stocks',
+          badge: 'QUANT ALPHA',
+        },
+      ],
     },
   ]);
 
@@ -119,11 +151,28 @@ export function WealthCopilotWidget() {
     };
   }, [portfolio]);
 
+  const handleExecuteAction = (action: CopilotAction) => {
+    if (action.actionType === 'trade' && action.symbol) {
+      setTradeConfig({
+        isOpen: true,
+        symbol: action.symbol,
+        name: action.name || action.symbol.replace('.NS', ''),
+        currentPrice: action.price || 1000,
+        initialAction: action.side || 'buy',
+      });
+      return;
+    }
+
+    if (action.targetUrl) {
+      router.push(action.targetUrl);
+    }
+  };
+
   const handleSendMessage = async (textToSend?: string) => {
     const query = (textToSend || inputMessage).trim();
     if (!query || isTyping) return;
 
-    const userMsg: Message = {
+    const userMsg: CopilotMessage = {
       id: `u_${Date.now()}`,
       role: 'user',
       content: query,
@@ -152,11 +201,12 @@ export function WealthCopilotWidget() {
       }
 
       const data = await res.json();
-      const assistantMsg: Message = {
+      const assistantMsg: CopilotMessage = {
         id: `a_${Date.now()}`,
         role: 'assistant',
         content: data.reply || 'I analyzed your portfolio but could not generate a reply. Please try again.',
         timestamp: Date.now(),
+        actions: Array.isArray(data.actions) ? data.actions : [],
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
@@ -194,189 +244,259 @@ export function WealthCopilotWidget() {
   };
 
   const promptChips = [
+    { label: 'Trade RELIANCE', query: 'Should I buy RELIANCE right now according to quantitative signals and CMP?' },
+    { label: 'Harvest Tax', query: 'How much capital gains tax can I harvest before March 31 with Section 112A?' },
+    { label: 'Rebalance Portfolio', query: 'Audit my asset allocation and recommend a smart rebalance.' },
+    { label: 'Best SIP Plan', query: 'Which SIP or mutual fund plan is best for long-term compounding?' },
     { label: 'Tech Exposure', query: 'Am I overexposed to tech or any single sector?' },
-    { label: 'Harvest Tax', query: 'How much capital gains tax can I harvest before March 31?' },
-    { label: 'Allocation Audit', query: 'Review my asset allocation against institutional benchmarks.' },
-    { label: 'QVM Picks', query: 'What does the QVM quant engine suggest for my portfolio?' },
   ];
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-6 z-50">
-      {/* Floating Trigger Button */}
-      {!isOpen && (
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsOpen(true)}
-          className="relative group flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-black font-semibold text-xs shadow-xl shadow-amber-500/20 hover:shadow-amber-500/30 transition-all border border-amber-300/40"
-          aria-label="Open Arthova AI Wealth Copilot"
-        >
-          <div className="relative">
-            <Sparkles className="w-4 h-4 text-black animate-pulse" />
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-black" />
-          </div>
-          <span className="font-mono tracking-tight font-bold">AI Copilot</span>
-        </motion.button>
-      )}
-
-      {/* Expandable Chat Drawer Window */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-              y: 0,
-              height: isMinimized ? '64px' : '580px',
-            }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className={cn(
-              'w-[360px] sm:w-[420px] rounded-2xl border border-border-default bg-bg-surface shadow-2xl flex flex-col overflow-hidden transition-all',
-              'backdrop-blur-xl bg-bg-surface/95'
-            )}
+    <>
+      <div className="fixed bottom-20 md:bottom-6 right-6 z-50">
+        {/* Floating Trigger Button */}
+        {!isOpen && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsOpen(true)}
+            className="relative group flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-black font-semibold text-xs shadow-xl shadow-amber-500/20 hover:shadow-amber-500/30 transition-all border border-amber-300/40 cursor-pointer"
+            aria-label="Open Arthova AI Wealth Copilot"
           >
-            {/* Header */}
-            <div className="h-16 px-4 py-3 border-b border-border-default bg-bg-surface-2/60 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black shadow-sm">
-                  <Bot className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-text-primary flex items-center gap-1.5">
-                    Arthova Copilot
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-positive/10 text-positive border border-positive/20">
-                      Live
-                    </span>
-                  </h4>
-                  <p className="text-[10.5px] text-text-faint font-mono truncate max-w-[190px]">
-                    Context: {formatINR(portfolio.netWorth)} Net Worth
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1 text-text-faint">
-                <button
-                  type="button"
-                  onClick={clearChat}
-                  title="Clear conversation"
-                  className="p-1.5 rounded-lg hover:text-text-primary hover:bg-bg-surface-2 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsMinimized(!isMinimized)}
-                  title={isMinimized ? 'Expand' : 'Minimize'}
-                  className="p-1.5 rounded-lg hover:text-text-primary hover:bg-bg-surface-2 transition-colors"
-                >
-                  {isMinimized ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  title="Close Copilot"
-                  className="p-1.5 rounded-lg hover:text-text-primary hover:bg-bg-surface-2 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+            <div className="relative">
+              <Sparkles className="w-4 h-4 text-black animate-pulse" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-black" />
             </div>
-
-            {/* Chat Body (Hidden when minimized) */}
-            {!isMinimized && (
-              <>
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs custom-scrollbar">
-                  {messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={cn(
-                        'flex gap-2.5 max-w-[90%]',
-                        m.role === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          'w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[10px]',
-                          m.role === 'user'
-                            ? 'bg-accent-brass text-bg-base font-bold'
-                            : 'bg-bg-surface-2 border border-border-default text-accent-brass'
-                        )}
-                      >
-                        {m.role === 'user' ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
-                      </div>
-
-                      <div
-                        className={cn(
-                          'p-3 rounded-2xl leading-relaxed whitespace-pre-wrap',
-                          m.role === 'user'
-                            ? 'bg-accent-brass text-bg-base font-medium rounded-tr-xs'
-                            : 'bg-bg-surface-2/80 border border-border-default text-text-primary rounded-tl-xs space-y-1.5'
-                        )}
-                      >
-                        {m.content}
-                      </div>
-                    </div>
-                  ))}
-
-                  {isTyping && (
-                    <div className="flex items-center gap-2 text-text-faint text-xs pl-8">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-brass" />
-                      <span>Synthesizing portfolio intelligence...</span>
-                    </div>
-                  )}
-
-                  <div ref={messagesEndRef} />
-                </div>
-
-                {/* Suggested Prompt Chips */}
-                <div className="px-3 py-2 border-t border-border-default/60 bg-bg-surface-2/30 flex items-center gap-1.5 overflow-x-auto custom-scrollbar shrink-0">
-                  {promptChips.map((chip) => (
-                    <button
-                      key={chip.label}
-                      type="button"
-                      onClick={() => handleSendMessage(chip.query)}
-                      disabled={isTyping}
-                      className="px-2.5 py-1 rounded-full text-[11px] font-mono bg-bg-surface hover:bg-bg-surface-2 border border-border-default hover:border-accent-brass text-text-secondary hover:text-text-primary whitespace-nowrap transition-all shrink-0 cursor-pointer disabled:opacity-50"
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Input Area */}
-                <div className="p-3 border-t border-border-default bg-bg-surface shrink-0">
-                  <div className="relative flex items-center">
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={inputMessage}
-                      onChange={(e) => setInputMessage(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Ask about sector risk, taxes, or QVM..."
-                      disabled={isTyping}
-                      className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-border-default bg-bg-surface-2/70 text-xs text-text-primary placeholder:text-text-faint focus:outline-none focus:border-accent-brass transition-all font-sans"
-                    />
-                    <button
-                      type="button"
-                      disabled={!inputMessage.trim() || isTyping}
-                      onClick={() => handleSendMessage()}
-                      className="absolute right-1.5 p-1.5 rounded-lg bg-accent-brass hover:bg-accent-brass-dim text-bg-base disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-text-faint px-1 mt-1.5 font-mono">
-                    <span>Powered by Arthova Quant & Gemini</span>
-                    <span>Press Enter ↵</span>
-                  </div>
-                </div>
-              </>
-            )}
-          </motion.div>
+            <span className="font-mono tracking-tight font-bold">AI Copilot</span>
+          </motion.button>
         )}
-      </AnimatePresence>
-    </div>
+
+        {/* Expandable Chat Drawer Window */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                y: 0,
+                height: isMinimized ? '64px' : '580px',
+              }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className={cn(
+                'w-[360px] sm:w-[430px] rounded-2xl border border-border-default bg-bg-surface shadow-2xl flex flex-col overflow-hidden transition-all',
+                'backdrop-blur-xl bg-bg-surface/95'
+              )}
+            >
+              {/* Header */}
+              <div className="h-16 px-4 py-3 border-b border-border-default bg-bg-surface-2/60 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black shadow-sm">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-text-primary flex items-center gap-1.5">
+                      Arthova Copilot
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-positive/10 text-positive border border-positive/20">
+                        Actionable
+                      </span>
+                    </h4>
+                    <p className="text-[10.5px] text-text-faint font-mono truncate max-w-[190px]">
+                      Context: {formatINR(portfolio.netWorth)} Net Worth
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 text-text-faint">
+                  <button
+                    type="button"
+                    onClick={clearChat}
+                    title="Clear conversation"
+                    className="p-1.5 rounded-lg hover:text-text-primary hover:bg-bg-surface-2 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsMinimized(!isMinimized)}
+                    title={isMinimized ? 'Expand' : 'Minimize'}
+                    className="p-1.5 rounded-lg hover:text-text-primary hover:bg-bg-surface-2 transition-colors cursor-pointer"
+                  >
+                    {isMinimized ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    title="Close Copilot"
+                    className="p-1.5 rounded-lg hover:text-text-primary hover:bg-bg-surface-2 transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Chat Body (Hidden when minimized) */}
+              {!isMinimized && (
+                <>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs custom-scrollbar">
+                    {messages.map((m) => (
+                      <div
+                        key={m.id}
+                        className={cn(
+                          'flex gap-2.5 max-w-[92%]',
+                          m.role === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[10px]',
+                            m.role === 'user'
+                              ? 'bg-accent-brass text-bg-base font-bold'
+                              : 'bg-bg-surface-2 border border-border-default text-accent-brass'
+                          )}
+                        >
+                          {m.role === 'user' ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
+                        </div>
+
+                        <div className="space-y-2 flex-1">
+                          <div
+                            className={cn(
+                              'p-3 rounded-2xl leading-relaxed whitespace-pre-wrap',
+                              m.role === 'user'
+                                ? 'bg-accent-brass text-bg-base font-medium rounded-tr-xs'
+                                : 'bg-bg-surface-2/80 border border-border-default text-text-primary rounded-tl-xs space-y-1.5'
+                            )}
+                          >
+                            {m.content}
+                          </div>
+
+                          {/* 1-Click Actionable Execution Cards */}
+                          {m.actions && m.actions.length > 0 && (
+                            <div className="space-y-1.5 pt-1">
+                              <span className="text-[10px] font-mono uppercase text-accent-brass flex items-center gap-1 font-semibold pl-1">
+                                <Zap className="w-3 h-3" /> Recommended Action
+                              </span>
+                              {m.actions.map((act) => (
+                                <div
+                                  key={act.id}
+                                  onClick={() => handleExecuteAction(act)}
+                                  className="p-2.5 rounded-[10px] bg-bg-surface hover:bg-bg-surface-2 border border-border-default hover:border-accent-brass/50 transition-all cursor-pointer group flex items-center justify-between gap-2 shadow-xs"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="w-7 h-7 rounded-[8px] bg-bg-surface-2 flex items-center justify-center shrink-0 border border-border-default/60">
+                                      {act.actionType === 'trade' ? (
+                                        <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                                      ) : act.actionType === 'tax_harvest' ? (
+                                        <Scissors className="w-3.5 h-3.5 text-amber-400" />
+                                      ) : act.actionType === 'rebalance' ? (
+                                        <PieChart className="w-3.5 h-3.5 text-violet-400" />
+                                      ) : act.actionType === 'screener' ? (
+                                        <Target className="w-3.5 h-3.5 text-accent-brass" />
+                                      ) : (
+                                        <ExternalLink className="w-3.5 h-3.5 text-sky-400" />
+                                      )}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-semibold text-text-primary text-[11.5px] truncate group-hover:text-accent-brass transition-colors">
+                                          {act.title}
+                                        </span>
+                                        {act.badge && (
+                                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-accent-brass/10 text-accent-brass border border-accent-brass/20 shrink-0 font-medium">
+                                            {act.badge}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-[10.5px] text-text-faint truncate">{act.subtitle}</p>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    className="shrink-0 px-2 py-1 rounded-[6px] bg-accent-brass/10 hover:bg-accent-brass text-accent-brass hover:text-bg-base text-[10.5px] font-semibold transition-all flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <span>Execute</span>
+                                    <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {isTyping && (
+                      <div className="flex items-center gap-2 text-text-faint text-xs pl-8">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-brass" />
+                        <span>Synthesizing portfolio intelligence...</span>
+                      </div>
+                    )}
+
+                    <div ref={messagesEndRef} />
+                  </div>
+
+                  {/* Suggested Prompt Chips */}
+                  <div className="px-3 py-2 border-t border-border-default/60 bg-bg-surface-2/30 flex items-center gap-1.5 overflow-x-auto custom-scrollbar shrink-0">
+                    {promptChips.map((chip) => (
+                      <button
+                        key={chip.label}
+                        type="button"
+                        onClick={() => handleSendMessage(chip.query)}
+                        disabled={isTyping}
+                        className="px-2.5 py-1 rounded-full text-[11px] font-mono bg-bg-surface hover:bg-bg-surface-2 border border-border-default hover:border-accent-brass text-text-secondary hover:text-text-primary whitespace-nowrap transition-all shrink-0 cursor-pointer disabled:opacity-50"
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Input Area */}
+                  <div className="p-3 border-t border-border-default bg-bg-surface shrink-0">
+                    <div className="relative flex items-center">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={inputMessage}
+                        onChange={(e) => setInputMessage(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Ask about trading signals, tax harvest, or rebalance..."
+                        disabled={isTyping}
+                        className="w-full pl-3 pr-10 py-2.5 rounded-xl border border-border-default bg-bg-surface-2/70 text-xs text-text-primary placeholder:text-text-faint focus:outline-none focus:border-accent-brass transition-all font-sans"
+                      />
+                      <button
+                        type="button"
+                        disabled={!inputMessage.trim() || isTyping}
+                        onClick={() => handleSendMessage()}
+                        className="absolute right-1.5 p-1.5 rounded-lg bg-accent-brass hover:bg-accent-brass-dim text-bg-base disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-text-faint px-1 mt-1.5 font-mono">
+                      <span>Arthova Autonomous Copilot</span>
+                      <span>Press Enter ↵</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* 1-Click Interactive Trade Modal Execution */}
+      {tradeConfig.isOpen && (
+        <TradeModal
+          isOpen={tradeConfig.isOpen}
+          onClose={() => setTradeConfig((prev) => ({ ...prev, isOpen: false }))}
+          symbol={tradeConfig.symbol}
+          name={tradeConfig.name}
+          currentPrice={tradeConfig.currentPrice}
+          initialAction={tradeConfig.initialAction}
+        />
+      )}
+    </>
   );
 }

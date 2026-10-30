@@ -28,6 +28,7 @@ import { AllocationDonut } from '@/components/charts/allocation-donut';
 import { IncomeLineChart } from '@/components/charts/income-line-chart';
 import { AIInsightCard } from '@/components/portfolio/ai-insight-card';
 import { FavouriteStockRow } from '@/components/portfolio/favourite-stock-row';
+import { DailyWealthPulse } from '@/components/dashboard/daily-wealth-pulse';
 import { useLedgerStore } from '@/lib/store';
 
 const containerVariants = {
@@ -96,20 +97,30 @@ export default function DashboardPage() {
       className="space-y-6"
     >
       {/* Page header */}
-      <motion.div variants={itemVariants} className="flex items-center justify-between">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-[28px] text-text-primary mb-1">Dashboard</h1>
+          <h1 className="font-display text-[28px] text-text-primary mb-1">Portfolio Command Center</h1>
           <p className="text-[13px] text-text-faint">
-            Portfolio overview as of {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+            Consolidated net worth as of {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })} · Live NSE/BSE Pricing
           </p>
         </div>
-        <Link
-          href="/dashboard/ai-advisor"
-          className="flex items-center gap-2 bg-accent-brass/10 hover:bg-accent-brass/20 text-accent-brass px-3.5 py-1.5 rounded-[8px] text-[13px] font-medium transition-colors border border-accent-brass/30"
-        >
-          <Sparkles className="w-4 h-4" />
-          AI Advisor <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/stocks"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium bg-bg-surface-2 hover:bg-bg-surface-3 border border-border text-text-secondary hover:text-text-primary transition-all"
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-violet-400" />
+            Quant Screener
+          </Link>
+          <Link
+            href="/dashboard/ai-advisor?tab=rebalancer"
+            className="flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-3.5 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors border border-emerald-500/30"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Smart Rebalancer
+          </Link>
+        </div>
       </motion.div>
 
       {/* Hero: Total value + Allocation donut */}
@@ -189,34 +200,9 @@ export default function DashboardPage() {
         })}
       </motion.div>
 
-      {/* AI Advisor Banner Quick Link */}
+      {/* Daily Morning Wealth Intelligence Pulse */}
       <motion.div variants={itemVariants}>
-        <div className="relative overflow-hidden rounded-xl glass-card p-5 sm:p-6 border border-emerald-500/25 hover:border-emerald-500/40 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 group shadow-lg">
-          <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-emerald-500/10 via-transparent to-transparent pointer-events-none" />
-          
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-0.5">
-                <h3 className="text-[16px] font-semibold text-text-primary">Institutional AI Wealth Advisor</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-                  SEBI RIA Model
-                </span>
-              </div>
-              <p className="text-[13px] text-text-secondary leading-relaxed">
-                QVM quantitative stock scoring, demographic market-cap bounds, and realistic goal-outflow retirement simulations.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/dashboard/ai-advisor"
-            className="relative z-10 flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-semibold px-5 py-2.5 rounded-lg text-[13.5px] transition-all whitespace-nowrap shadow-md shadow-emerald-500/25 group-hover:shadow-emerald-500/40"
-          >
-            Open AI Advisor <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+        <DailyWealthPulse />
       </motion.div>
 
       {/* Main content grid */}
